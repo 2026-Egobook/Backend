@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: "Egobook_BE"
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver # MySQL JDBC 드라이버 클래스 이름
+
+  jpa:
+    database: mysql # 사용할 데이터베이스 유형 지정 (MySQL)
+    database-platform: org.hibernate.dialect.MySQLDialect # Hibernate에서 사용할 MySQL 방언(dialect) 설정
+    show-sql: true # 실행된 SQL 쿼리를 콘솔에 출력할지 여부 설정
+    properties:
+      hibernate:
+        format_sql: true # 출력되는 SQL 쿼리를 보기 좋게 포맷팅
+
+server:
+  servlet:
+    session:
+      timeout: 30m  # 세션 유효 시간(기본값: 30분). 30분 동안 활동 없으면 삭제됨
+      cookie:
+        max-age: 1800     # 쿠키 유효 시간 (초 단위). 보통 timeout과 맞춤
+        http-only: true   # js로 쿠키 접근 불가하도록 하는 설정
+        # secure: false     # 로컬 개발(http)이므로 false. 배포(https) 시 true로 변경
+        # -> secure 설정은 환경마다 다르므로 여기서 뺀다.

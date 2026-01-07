@@ -1,0 +1,18 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: ${DB_URL}      # 환경변수에서 가져옴
+    username: ${DB_USER}
+    password: ${DB_PW}
+  jpa:
+    show-sql: true      # 개발 서버니까 로그 봄
+    hibernate:
+      ddl-auto: update  # 데이터 날아가면 안 되니까 update
+
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true # HTTPS(ALB)를 쓰면 true가 좋음

@@ -1,0 +1,24 @@
+# name: 워크플로우 이름 설정
+name: Egobook Dev CI/CD
+
+# on: 실행 트리거 역할: "언제 이 작업을 시작하는가?"를 정의
+on:
+  pull_request:
+    branches: ["develop", "main"] # develop이나 main 브랜치에 PR이 올라가고,
+    types: [closed]   # 해당 PR이 닫혔을 때 배포가 실행되도록 설정
+  workflow_dispatch: # 수동 실행도 가능하도록 설정해주는 트리거
+    # => 이 설정이 있으면 Github - Actions - 워크플로 - Run Workflow 버튼으로 배포할 수 있게 됨
+
+# jobs: 작업 환경 설정
+jobs:
+  # build: Job들 중 한개의 작업을 정의한 것 (build라는 작업 정의)
+  build:
+    runs-on: ubuntu-latest # 실행 환경(OS 환경) 설정. 해당 작업을 실행할 컴퓨터의 운영체제를 지정함
+    # if: 해당 Job의 실행 조건 설정
+      # on에서 PR이 Closed일 때 Deploy가 되도록 설정해놨는데, 이러면 "병합됨/거절됨"을 구분못한다.
+      # 따라서, develop과 main 브랜치에 해당 결과를 구분하도록 설정을 추가해줘야된다.
+    if: github.event.pull_request.merged == true 
+      && (github.event.pull_request.base.ref == 'develop' || github.event.pull_request.base.ref == 'main')
+    steps:
+
+

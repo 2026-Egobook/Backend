@@ -1,0 +1,22 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+      # => 해당 파일은 "prod"라는 이름을 달고 실행할 때만 작동할 것이라는 조건부 실행 설정
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PW}
+  jpa:
+    show-sql: false      # 운영에선 쿼리 로그 끔 (성능/보안)
+    hibernate:
+      ddl-auto: validate  # 테이블 건들지 말고 검증만 하라는 설정
+
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true
+        # => 브라우저가 주소가 https일 때만 쿠키를 서버로 보내도록 하는 설정
+        # => HTTPS(ALB)를 쓰면 true가 좋음
+        # => https가 적용된 곳에만 적용해야한다.
