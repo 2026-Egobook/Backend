@@ -1,0 +1,173 @@
+# name: 워크플로우 이름 설정
+name: Egobook Dev CI/CD
+
+# on: 실행 트리거 역할: "언제 이 작업을 시작하는가?"를 정의
+on:
+  pull_request:
+    branches: ["develop", "main"] # develop이나 main 브랜치에 PR이 올라가고,
+    types: [closed]   # 해당 PR이 닫혔을 때 배포가 실행되도록 설정
+  workflow_dispatch: # 수동 실행도 가능하도록 설정해주는 트리거
+    # => 이 설정이 있으면 Github - Actions - 워크플로 - Run Workflow 버튼으로 배포할 수 있게 됨
+
+# jobs: 작업 환경 설정
+jobs:
+  # 1. build: Job들 중 한개의 작업을 정의한 것 (build라는 작업 정의)
+  build:
+    runs-on: ubuntu-latest # 실행 환경(OS 환경) 설정. 해당 작업을 실행할 컴퓨터의 운영체제를 지정함
+
+    # if: 해당 Job의 실행 조건 설정
+      # on에서 PR이 Closed일 때 Deploy가 되도록 설정해놨는데, 이러면 "병합됨/거절됨"을 구분못한다.
+      # 따라서, develop과 main 브랜치에 해당 결과를 구분하도록 설정을 추가해줘야된다.
+    if: github.event.pull_request.merged == true 
+      && (github.event.pull_request.base.ref == 'develop' || github.event.pull_request.base.ref == 'main')
+
+    # steps: 하나의 Job 안에서 순차적으로 실행되는 작업 단위들의 목록
+      # 각 step은 같은 Runner(가상 머신)위에서 실행된다. (위에서 아래로)
+      # 이 steps는 [코드 내려받기 -> jdk 설치 -> 설정 파일 생성 -> Gradle 빌드 -> JAR(빌드 산출물) 업로드]까지 순서대로 수행하는 파이프라인이다.
+    steps:
+      # (1) Checkout Source Code (항상 실무의 첫 단계)
+      - name: Checkout Source Code
+        uses: actions/checkout@v4 # 하나의 액션
+        # - uses: github actions에서 미리 만들어진 Action을 실행한다는 뜻
+        # - actions/checkout은 레포지토리 코드를 Runner(가상머신)에 체크아웃(다운로드)하는 설정이다.
+        # - 이 설정이 없으면 Runner에는 코드가 없어서 gradlew, build.gradle, src/등을 찾을 수 없다.
+
+      # (2) Set up JDK 21
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4 # Runner에 Java를 설치하고 환경변수까지 잡아준다
+        # with: 해당 액션에 넘기는 파라미터값 설정
+        with:
+          distribution: 'temurin' # Temurin(Adoptium) 배포판 사용. (실무에서 많이 쓴다고 함)
+          java-version: '21' # jdk 21 사용
+
+      # (3) Make application-dev.yml
+      # Github Secrets에 등록해둔 dev용 민감한 정보들을 이용하여 application-dev.yml 파일을 생성한다.
+      - name: Make application-dev.yml
+        if: github.base_ref == 'develop' # 병합된 Branch가 develop인 경우에만 해당 action이 동작하도록 설정
+
+        # run: Github Actions Runner(보통 Ubuntu Linux)에서 bash 쉘로 실행되는 명령어를 적는 곳
+        # 아래 명령어는, <<Secrets에 저장된 민감 정보들을 $GITHUB_ENV 파일에 기록하여, 이후 모든 step에서 사용할 수 있는 환경 변수로 등록하는 작업이다.>>
+        # (하나의 빌드 -> 하나의 Runner에서 실행되므로, 다음번 빌드에서는 다른 Runner가 생성되므로, 여러번 빌드해서 GITHUB_ENV에 값이 쌓이지 않는다.)
+          # echo: 문자열을 표준 출력(stdout)으로 출력하는 명령어
+          # >: 파일 덮어쓰기, >>: 파일 뒤에 추가
+          # $GITHUB_ENV: Github Actions가 미리 만들어둔 특수한 파일 경로 - 이 파일에 "key=value"형태로 쓰면, 다음 step부터 사용할 수 있는 환경변수로 자동 등록된다.
+        run: |
+          echo "APP_PROFILE=dev" >> $GITHUB_ENV
+          echo "DB_URL=${{secrets.DEV_DB_URL}}" >> $GITHUB_ENV
+          echo "DB_USER=${{secrets.DEV_DB_USER}}" >> $GITHUB_ENV
+          echo "DB_PW=${{secrets.DEV_DB_PW}}" >> $GITHUB_ENV
+        # ${{secrets.DEV_DB_URL}}: Github Actions 문법 (Runner에서 실행되기 이전에 Github가 해당 값을 실제 문자열로 치환함)
+        # ex) echo "DB_URL=${{secrets.DEV_DB_URL}}" >> $GITHUB_ENV
+          # - 치환된 문자열을 echo하고, 해당 값을 $GITHUB_ENV에 기록한다.
+          # 같은 값이 중복되면, 최근에 설정된 env값이 사용된다.
+        shell: bash
+
+      # (4) Make application-prod.yml
+      # Prod 버전으로 $GITHUB_ENV 파일에 내용을 저장
+      - name: Make application-prod.yml
+        if: github.base_ref == 'main' # 병합된 Branch가 main인 경우 실행됨
+        run: |
+          echo "APP_PROFILE=prod" >> $GITHUB_ENV
+          echo "DB_URL=${{secrets.PROD_DB_URL}}" >> $GITHUB_ENV
+          echo "DB_USER=${{secrets.PROD_DB_USER}}" >> $GITHUB_ENV
+          echo "DB_PW=${{secrets.PROD_DB_PW}}" >> $GITHUB_ENV
+        shell: bash
+
+      # (5) gradlew 파일에 실행 권한 부여
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+        # "gradlew 파일에 실행(eXecute) 권한을 더해줘(+)"라는 리눅스 명령어
+        # gradlew는 Gradle Wrapper 실행 파일이다.
+          # Gradle Wrapper: 프로젝트에 Gradle을 포함해서 배포하는 실행 스크립트
+        # 윈도우에서 개발해서 Git에 올리면, 리눅스(Github Actions 서버)로 넘어갈 때(체크아웃) 파일의 실행 권한 정보가 사라지는 경우가 있음
+        # 따라서, 나중에 .gradlew build를 실행할 때 Permission denied 에러가 뜰 수 있음
+
+      # (6) Gradle로 빌드
+      - name: Build with Gradle
+        uses: gradle/gradle-build-action@v3
+          # - 단순히 ./gradlew build 명령어를 치는 것보다 훨씬 똑똑하게 빌드해주는 공식 플러그인을 사용하는 설정
+          # - Gradle은 빌드할 때 수많은 의존성들을 다운받는데, 이 액션을 사용하면 이전에 다운받은 것을 기억했다가 재사용한다.(캐싱) 따라서, 빌드 속도가 빨라진다.
+        with:
+          arguments: build -x test
+            # build: 프로젝트를 컴파일하고, jar 파일을 만드는 명령어
+            # -x test: 테스트 코드는 안돌리는 명령어(Exclude Test). 바쁜 배포 과정에서 테스트 시간 아끼려고 사용하는 설정(정석은 테스트 하는게 맞다)
+
+      # (7) 빌드 결과물(.jar 파일)을 Github의 임시 저장소(Artifact)에 업로드
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: egobookServer # 저장할 파일 꾸러미 이름
+          path: build/libs/*.jar # 해당 job의 Runner(가상환경)에서의 경로
+
+
+  # 2. deploy - build한 결과물을 배포하는 job
+  deploy:
+    needs: build  # needs: 해당 Job은 지정한 Job들이 성공적으로 끝난 후에만 실행된다는 의존성 선언
+    runs-on: ubuntu-latest # 실행 환경(OS 환경) 설정. 해당 작업을 실행할 컴퓨터의 운영체제를 지정함
+    steps:
+      # (1) build해놓은 결과물(.jar) 다운로드 받기
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+          # 해당 build 결과물을 업로드한 버전과 같아야함.
+        with: # with: 전달할 파라미터 설정
+          name: egobookServer # build job에서 upload할 때 설정한 파일 꾸러미 이름 지정
+          path: build/libs/ # 해당 파일을 가져와서 어디에 둘지 설정
+
+      # (2) EC2로 배포
+      - name: Deploy to EC2
+        # env: 해당 step레벨에서 사용할 환경 변수 설정(workflow, job 레벨에서도 설정 가능)
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          # => github secrets에 설정해놓은 값들 env로 가져오기
+
+        run: |
+          echo "$EC2_SSH_KEY" > private_key.pem
+          # >: 파일 덮어씌우기.
+          # echo로 해당 파일의 내용을 private_key.pem이라는 실제 파일로 만든다.
+          
+          chmod 600 private_key.pem
+          # chmod 600: 해당 파일의 권한을 "소유자"만 읽고 쓸 수 있게 변경함
+          # 이걸 안하면 SSH 접속 시 키 파일이 너무 개방되어있다고 접속을 거부당함
+          
+          # jar 파일 찾기
+          jar_file=$(find build/libs -name '*.jar' ! -name '*plain.jar' | head -n 1)
+          # - find build/libs: 아까 다운로드 받은 폴더를 뒤진다
+          # - -name '*.jar': .jar로 끝나는 파일을 찾는다
+          # - ! -name '*plain.jar': 이름에 plain이 들어간 파일을 제외한다 -> spring boot 2.5 이상부터는 실행 불가능한 plain.jar 파일이 같이 생성되는데, 이걸 배포하면 실행이 안됨
+          # - | head -n 1: 여러 개가 나오면 맨 위에거 하나만 선택함 
+          
+          # EC2로 파일 전송 (S3 없이 직접 전송)
+          scp -i private_key.pem -o StrictHostKeyChecking=no "$jar_file" $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/egobookServer.jar
+          # - scp: Secure Copy. SSH를 통해 안전하게 파일을 복사하는 명령어입니다.
+          # - -i private_key.pem: 아까 만든 열쇠 파일을 신분증으로 제출합니다.
+          # - -o StrictHostKeyChecking=no: "이 서버 처음 보는데 접속할래?" 묻는 과정(Yes/No)을 무시하고 강제로 접속합니다. (자동화를 위해 필수)
+          # - $EC2_USERNAME@$EC2_HOST:...: 내 컴퓨터의 $jar_file을 EC2 서버의 /home/사용자/egobookServer.jar 라는 이름으로 저장해라!
+          # - 참고: 업로드할 때 이름을 egobookServer.jar로 고정했습니다. 이렇게 하면 매번 파일명이 바뀌어도 서버 안에서는 항상 같은 이름이라 관리가 편합니다.
+          
+          # EC2 접속 및 실행 - "" 안에 있는 명령어는 EC2 안에서 실행됨
+          ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "
+            # (1) 기존 프로세스 종료
+            pgrep java | xargs -r kill -15
+            sleep 5
+            # - pgrep java: 현재 실행 중인 자바 프로그램의 PID(프로세스 번호)를 찾습니다.
+            # - | xargs -r: 찾은 번호가 있다면(-r) 다음 명령어로 넘깁니다. 없으면 아무것도 안 합니다.
+            # - kill -15: 해당 프로세스에게 "이제 그만 종료해줄래?"라고 정중하게 요청합니다 (SIGTERM).
+            # - kill -9 (강제 종료)보다 안전합니다.
+            # - sleep 5: 프로세스가 완전히 꺼질 때까지 5초 정도 기다려줍니다.
+            # - [중요] -Dspring.profiles.active=dev 옵션 추가 (dev 설정 파일 적용)
+          
+            # (2) 새 버전 실행
+            nohup java -jar -Dspring.profiles.active=dev /home/$EC2_USERNAME/umc7thServer.jar > app.log 2>&1 &
+            # - nohup ... &: [필수] SSH 접속이 끊겨도 서버가 계속 돌아가게 합니다. (백그라운드 실행)
+            # - -Dspring.profiles.active=dev: 아까 질문하셨던 application-dev.yml 설정을 적용해서 켭니다.
+            # - > app.log 2>&1:
+            # ---- 서버의 실행 로그(System.out)를 app.log 파일에 기록합니다.
+            # ---- 2>&1: 에러 로그(Standard Error)도 app.log에 같이 적으라는 뜻입니다.
+          "
+          
+          # Runner(가상환경)에 만들었던 임시 키 파일 삭제
+          rm -f private_key.pem
+        
+
