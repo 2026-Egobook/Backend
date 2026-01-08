@@ -51,6 +51,4 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(GlobalResponse.error("500", e.getMessage()));
     }
-
-
 }
