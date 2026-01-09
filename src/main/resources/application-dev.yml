@@ -21,3 +21,9 @@ server:
 springdoc:
   swagger-ui:
     enabled: true
+
+jwt:
+  token:
+    secretKey: ${JWT_SECRET_KEY_DEV}
+    expiration:
+      access: 14400000

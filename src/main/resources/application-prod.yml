@@ -25,3 +25,9 @@ server:
 springdoc:
   swagger-ui:
     enabled: false # 운영 서버에서는 Swagger UI 비활성화
+
+jwt:
+  token:
+    secretKey: ${JWT_SECRET_KEY_PROD}
+    expiration:
+      access: 14400000
