@@ -27,3 +27,12 @@ jwt:
     secretKey: ${JWT_SECRET_KEY_DEV}
     expiration:
       access: 14400000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health # health만 노출
+  endpoint:
+    health:
+      show-details: always # 상세 정보(DB 에러 내용 등) 표시 O
