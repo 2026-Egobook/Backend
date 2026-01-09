@@ -31,7 +31,7 @@ public class SecurityConfig {
             "/v3/api-docs/**",  // Swagger JSON 데이터
             "/swagger-ui/**",   // Swagger UI CSS, JS, 이미지
             "/swagger-ui-custom.html",  // Swagger UI 메인 페이지
-            "/actuator/health"  // AWS의 ALB 헬스 체크 경로
+            "/manage/health"  // AWS의 ALB 헬스 체크 경로
     };
 
     /**
