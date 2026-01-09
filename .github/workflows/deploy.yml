@@ -50,7 +50,7 @@ jobs:
           # (하나의 빌드 -> 하나의 Runner에서 실행되므로, 다음번 빌드에서는 다른 Runner가 생성되므로, 여러번 빌드해서 GITHUB_ENV에 값이 쌓이지 않는다.)
           # echo: 문자열을 표준 출력(stdout)으로 출력하는 명령어
           # >: 파일 덮어쓰기, >>: 파일 뒤에 추가
-        # $GITHUB_ENV: Github Actions가 미리 만들어둔 특수한 파일 경로 - 이 파일에 "key=value"형태로 쓰면, 다음 step부터 사용할 수 있는 환경변수로 자동 등록된다.
+        # 프로젝트에 있는 application-dev.yml 파일의 내용에서 문자열을 github secrets에 있는 값으로 치환하여 빌드한다.
         run: |
           # sed -i: 파일 수정 모드
           # s|찾을값|바꿀값|g: 문자열 치환
@@ -66,7 +66,7 @@ jobs:
         shell: bash
 
       # (4) Make application-prod.yml
-      # Prod 버전으로 $GITHUB_ENV 파일에 내용을 저장
+      # 프로젝트에 있는 application-prod.yml 파일의 내용에서 문자열을 github secrets에 있는 값으로 치환하여 빌드한다.
       - name: Make application-prod.yml
         if: github.base_ref == 'main' # 병합된 Branch가 main인 경우 실행됨
         run: |
