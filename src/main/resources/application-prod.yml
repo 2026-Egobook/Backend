@@ -13,6 +13,7 @@ spring:
       ddl-auto: validate  # 테이블 건들지 말고 검증만 하라는 설정
 
 server:
+  url: https://www.egobook.site
   servlet:
     session:
       cookie:
@@ -20,3 +21,7 @@ server:
         # => 브라우저가 주소가 https일 때만 쿠키를 서버로 보내도록 하는 설정
         # => HTTPS(ALB)를 쓰면 true가 좋음
         # => https가 적용된 곳에만 적용해야한다.
+        
+springdoc:
+  swagger-ui:
+    enabled: false # 운영 서버에서는 Swagger UI 비활성화

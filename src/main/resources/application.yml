@@ -21,3 +21,12 @@ server:
         http-only: true   # js로 쿠키 접근 불가하도록 하는 설정
         # secure: false     # 로컬 개발(http)이므로 false. 배포(https) 시 true로 변경
         # -> secure 설정은 환경마다 다르므로 여기서 뺀다.
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui # Swagger UI 웹페이지가 열리는 경로를 지정함 (기본값 : /swagger-ui/index.html)
+    display-request-duration: true # Swagger UI 화면에서 API 요청이 얼마나 걸렸는지 보여줌(응답시간, ms단위)
+    tags-sorter: alpha # Swagger UI에서 컨트롤러/태그 그룹 순서를 어떻게 정렬할지 지정 (alpha : 알파벳 순서)
+    operations-sorter: method # 한 컨트롤러 안에서 엔드포인트(API) 목록 정렬 방식을 지정함 => method: HTTP 메서드 순서(GET, POST, PUT, DELETE)로 정렬
+  api-docs:
+    path: /v3/api-docs # OpenAPI JSON 문서가 노출되는 엔드포인트. (기본값도 /v3/api-docs임) => 브라우저/REST 클라이언트에서 접근하면 전체 API 스펙(JSON) 확인 가능함

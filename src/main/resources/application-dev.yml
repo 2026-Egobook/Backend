@@ -12,7 +12,12 @@ spring:
       ddl-auto: update  # 데이터 날아가면 안 되니까 update
 
 server:
+  url: https://dev.egobook.site
   servlet:
     session:
       cookie:
         secure: true # HTTPS(ALB)를 쓰면 true가 좋음
+
+springdoc:
+  swagger-ui:
+    enabled: true
