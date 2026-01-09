@@ -24,17 +24,17 @@ public record GlobalResponse<T>(
 
         @JsonInclude(JsonInclude.Include.NON_NULL) // 값이 null이면 결과에 포함하지 않음
         @Schema(description = "응답 데이터")
-        T result
+        T data
 ) {
     // success - 성공 응답 생성 함수
-    public static <T> GlobalResponse<T> success(T result){
-        return new GlobalResponse<>(true, "200", "요청이 성공적으로 처리되었습니다!", result);
+    public static <T> GlobalResponse<T> success(T data){
+        return new GlobalResponse<>(true, "200", "요청이 성공적으로 처리되었습니다!", data);
     }
-    public static <T> GlobalResponse<T> success(String message, T result){
-        return new GlobalResponse<>(true, "200", message, result);
+    public static <T> GlobalResponse<T> success(String message, T data){
+        return new GlobalResponse<>(true, "200", message, data);
     }
-    public static <T> GlobalResponse<T> success(String code, String message, T result){
-        return new GlobalResponse<>(true, code, message, result);
+    public static <T> GlobalResponse<T> success(String code, String message, T data){
+        return new GlobalResponse<>(true, code, message, data);
     }
 
     // error - 실패 응답 생성 함수
