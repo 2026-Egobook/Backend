@@ -7,7 +7,7 @@ on:
     branches: ["develop", "main"] # develop이나 main 브랜치에 PR이 올라가고,
     types: [closed]   # 해당 PR이 닫혔을 때 배포가 실행되도록 설정
   workflow_dispatch: # 수동 실행도 가능하도록 설정해주는 트리거
-    # => 이 설정이 있으면 Github - Actions - 워크플로 - Run Workflow 버튼으로 배포할 수 있게 됨
+  # => 이 설정이 있으면 Github - Actions - 워크플로 - Run Workflow 버튼으로 배포할 수 있게 됨
 
 # jobs: 작업 환경 설정
 jobs:
@@ -15,15 +15,15 @@ jobs:
   build:
     runs-on: ubuntu-latest # 실행 환경(OS 환경) 설정. 해당 작업을 실행할 컴퓨터의 운영체제를 지정함
 
-    # if: 해당 Job의 실행 조건 설정
+      # if: 해당 Job의 실행 조건 설정
       # on에서 PR이 Closed일 때 Deploy가 되도록 설정해놨는데, 이러면 "병합됨/거절됨"을 구분못한다.
-      # 따라서, develop과 main 브랜치에 해당 결과를 구분하도록 설정을 추가해줘야된다.
-    if: github.event.pull_request.merged == true 
+    # 따라서, develop과 main 브랜치에 해당 결과를 구분하도록 설정을 추가해줘야된다.
+    if: github.event.pull_request.merged == true
       && (github.event.pull_request.base.ref == 'develop' || github.event.pull_request.base.ref == 'main')
 
-    # steps: 하나의 Job 안에서 순차적으로 실행되는 작업 단위들의 목록
+      # steps: 하나의 Job 안에서 순차적으로 실행되는 작업 단위들의 목록
       # 각 step은 같은 Runner(가상 머신)위에서 실행된다. (위에서 아래로)
-      # 이 steps는 [코드 내려받기 -> jdk 설치 -> 설정 파일 생성 -> Gradle 빌드 -> JAR(빌드 산출물) 업로드]까지 순서대로 수행하는 파이프라인이다.
+    # 이 steps는 [코드 내려받기 -> jdk 설치 -> 설정 파일 생성 -> Gradle 빌드 -> JAR(빌드 산출물) 업로드]까지 순서대로 수행하는 파이프라인이다.
     steps:
       # (1) Checkout Source Code (항상 실무의 첫 단계)
       - name: Checkout Source Code
@@ -45,21 +45,24 @@ jobs:
       - name: Make application-dev.yml
         if: github.base_ref == 'develop' # 병합된 Branch가 develop인 경우에만 해당 action이 동작하도록 설정
 
-        # run: Github Actions Runner(보통 Ubuntu Linux)에서 bash 쉘로 실행되는 명령어를 적는 곳
-        # 아래 명령어는, <<Secrets에 저장된 민감 정보들을 $GITHUB_ENV 파일에 기록하여, 이후 모든 step에서 사용할 수 있는 환경 변수로 등록하는 작업이다.>>
-        # (하나의 빌드 -> 하나의 Runner에서 실행되므로, 다음번 빌드에서는 다른 Runner가 생성되므로, 여러번 빌드해서 GITHUB_ENV에 값이 쌓이지 않는다.)
+          # run: Github Actions Runner(보통 Ubuntu Linux)에서 bash 쉘로 실행되는 명령어를 적는 곳
+          # 아래 명령어는, <<Secrets에 저장된 민감 정보들을 $GITHUB_ENV 파일에 기록하여, 이후 모든 step에서 사용할 수 있는 환경 변수로 등록하는 작업이다.>>
+          # (하나의 빌드 -> 하나의 Runner에서 실행되므로, 다음번 빌드에서는 다른 Runner가 생성되므로, 여러번 빌드해서 GITHUB_ENV에 값이 쌓이지 않는다.)
           # echo: 문자열을 표준 출력(stdout)으로 출력하는 명령어
           # >: 파일 덮어쓰기, >>: 파일 뒤에 추가
-          # $GITHUB_ENV: Github Actions가 미리 만들어둔 특수한 파일 경로 - 이 파일에 "key=value"형태로 쓰면, 다음 step부터 사용할 수 있는 환경변수로 자동 등록된다.
+        # $GITHUB_ENV: Github Actions가 미리 만들어둔 특수한 파일 경로 - 이 파일에 "key=value"형태로 쓰면, 다음 step부터 사용할 수 있는 환경변수로 자동 등록된다.
         run: |
-          echo "APP_PROFILE=dev" >> $GITHUB_ENV
-          echo "DB_URL=${{secrets.DEV_DB_URL}}" >> $GITHUB_ENV
-          echo "DB_USER=${{secrets.DEV_DB_USER}}" >> $GITHUB_ENV
-          echo "DB_PW=${{secrets.DEV_DB_PW}}" >> $GITHUB_ENV
-        # ${{secrets.DEV_DB_URL}}: Github Actions 문법 (Runner에서 실행되기 이전에 Github가 해당 값을 실제 문자열로 치환함)
-        # ex) echo "DB_URL=${{secrets.DEV_DB_URL}}" >> $GITHUB_ENV
-          # - 치환된 문자열을 echo하고, 해당 값을 $GITHUB_ENV에 기록한다.
-          # 같은 값이 중복되면, 최근에 설정된 env값이 사용된다.
+          # sed -i: 파일 수정 모드
+          # s|찾을값|바꿀값|g: 문자열 치환
+          # \${...}: $ 기호를 문자로 인식시키기 위해 역슬래시 사용
+          
+          FILE=./src/main/resources/application-dev.yml
+          
+          sed -i "s|\${DB_URL}|${{ secrets.DEV_DB_URL }}|g" $FILE
+          sed -i "s|\${DB_USER}|${{ secrets.DEV_DB_USER }}|g" $FILE
+          sed -i "s|\${DB_PW}|${{ secrets.DEV_DB_PW }}|g" $FILE
+          sed -i "s|\${JWT_SECRET_KEY_DEV}|${{ secrets.JWT_SECRET_KEY_DEV }}|g" $FILE
+        # 같은 값이 중복되면, 최근에 설정된 env값이 사용된다.
         shell: bash
 
       # (4) Make application-prod.yml
@@ -67,18 +70,20 @@ jobs:
       - name: Make application-prod.yml
         if: github.base_ref == 'main' # 병합된 Branch가 main인 경우 실행됨
         run: |
-          echo "APP_PROFILE=prod" >> $GITHUB_ENV
-          echo "DB_URL=${{secrets.PROD_DB_URL}}" >> $GITHUB_ENV
-          echo "DB_USER=${{secrets.PROD_DB_USER}}" >> $GITHUB_ENV
-          echo "DB_PW=${{secrets.PROD_DB_PW}}" >> $GITHUB_ENV
+          FILE=./src/main/resources/application-prod.yml
+          
+          sed -i "s|\${DB_URL}|${{ secrets.PROD_DB_URL }}|g" $FILE
+          sed -i "s|\${DB_USER}|${{ secrets.PROD_DB_USER }}|g" $FILE
+          sed -i "s|\${DB_PW}|${{ secrets.PROD_DB_PW }}|g" $FILE
+          sed -i "s|\${JWT_SECRET_KEY_PROD}|${{ secrets.JWT_SECRET_KEY_PROD }}|g" $FILE
         shell: bash
 
       # (5) gradlew 파일에 실행 권한 부여
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-        # "gradlew 파일에 실행(eXecute) 권한을 더해줘(+)"라는 리눅스 명령어
-        # gradlew는 Gradle Wrapper 실행 파일이다.
-          # Gradle Wrapper: 프로젝트에 Gradle을 포함해서 배포하는 실행 스크립트
+          # "gradlew 파일에 실행(eXecute) 권한을 더해줘(+)"라는 리눅스 명령어
+          # gradlew는 Gradle Wrapper 실행 파일이다.
+        # Gradle Wrapper: 프로젝트에 Gradle을 포함해서 배포하는 실행 스크립트
         # 윈도우에서 개발해서 Git에 올리면, 리눅스(Github Actions 서버)로 넘어갈 때(체크아웃) 파일의 실행 권한 정보가 사라지는 경우가 있음
         # 따라서, 나중에 .gradlew build를 실행할 때 Permission denied 에러가 뜰 수 있음
 
@@ -86,11 +91,11 @@ jobs:
       - name: Build with Gradle
         uses: gradle/gradle-build-action@v3
           # - 단순히 ./gradlew build 명령어를 치는 것보다 훨씬 똑똑하게 빌드해주는 공식 플러그인을 사용하는 설정
-          # - Gradle은 빌드할 때 수많은 의존성들을 다운받는데, 이 액션을 사용하면 이전에 다운받은 것을 기억했다가 재사용한다.(캐싱) 따라서, 빌드 속도가 빨라진다.
+        # - Gradle은 빌드할 때 수많은 의존성들을 다운받는데, 이 액션을 사용하면 이전에 다운받은 것을 기억했다가 재사용한다.(캐싱) 따라서, 빌드 속도가 빨라진다.
         with:
           arguments: build -x test
             # build: 프로젝트를 컴파일하고, jar 파일을 만드는 명령어
-            # -x test: 테스트 코드는 안돌리는 명령어(Exclude Test). 바쁜 배포 과정에서 테스트 시간 아끼려고 사용하는 설정(정석은 테스트 하는게 맞다)
+          # -x test: 테스트 코드는 안돌리는 명령어(Exclude Test). 바쁜 배포 과정에서 테스트 시간 아끼려고 사용하는 설정(정석은 테스트 하는게 맞다)
 
       # (7) 빌드 결과물(.jar 파일)을 Github의 임시 저장소(Artifact)에 업로드
       - name: Upload build artifact
@@ -108,7 +113,7 @@ jobs:
       # (1) build해놓은 결과물(.jar) 다운로드 받기
       - name: Download build artifact
         uses: actions/download-artifact@v4
-          # 해당 build 결과물을 업로드한 버전과 같아야함.
+        # 해당 build 결과물을 업로드한 버전과 같아야함.
         with: # with: 전달할 파라미터 설정
           name: egobookServer # build job에서 upload할 때 설정한 파일 꾸러미 이름 지정
           path: build/libs/ # 해당 파일을 가져와서 어디에 둘지 설정
