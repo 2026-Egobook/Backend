@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
         // 3. ResponseEntity 객체에 baseErrorCode의 status를 설정해주고, body에는 GlobalResponse 클래스의 "error()" 함수로 error 내용을 담은 객체를 넣어준다.
         return ResponseEntity
                 .status(baseErrorCode.getStatus()) // ResponseEntity에 Http status 설정
-                .body(GlobalResponse.error(baseErrorCode.getCode(), baseErrorCode.getMessage()));
+                .body(GlobalResponse.error(baseErrorCode.getStatus().value(), baseErrorCode.getMessage()));
     }
 
     // 비즈니스 로직 예외 처리
@@ -33,7 +33,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<GlobalResponse<?>> handleIllegalArgumentException(IllegalArgumentException e){
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(GlobalResponse.error("400", e.getMessage()));
+                .body(GlobalResponse.error(400, e.getMessage()));
     }
 
     // MethodArgumentNotValidException: 함수 인자의 @Valid를 할 때, 맞지 않는 형식이 있을 때 발생하는 에러
@@ -41,7 +41,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<GlobalResponse<?>> handleMethodArgumentNotValidException(MethodArgumentNotValidException e){
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(GlobalResponse.error("400", e.getMessage()));
+                .body(GlobalResponse.error(400, e.getMessage()));
     }
 
     // Exception 최후의 보루 예외 처리
@@ -49,6 +49,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<GlobalResponse<?>> handleException(Exception e){
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(GlobalResponse.error("500", e.getMessage()));
+                .body(GlobalResponse.error(500, e.getMessage()));
     }
 }
