@@ -1,6 +1,7 @@
 package com.example.egobook_be.global.response;
 
 
+import com.example.egobook_be.global.enums.GlobalResponseCode;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -9,14 +10,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @JsonPropertyOrder({"isSuccess", "code", "message", "result"})
 @Schema(title="GlobalResponse Dto", description = "공통 API 응답 형식 Record")
 public record GlobalResponse<T>(
-        // json 속성 지정
-        @JsonProperty("isSuccess")
-        @Schema(description = "요청 성공 여부", example = "true")
-        Boolean isSuccess,
+        @JsonProperty("status")
+        @Schema(description = "HTTP 상태 번호", example = "200")
+        Integer status,
 
         @JsonProperty("code")
-        @Schema(description = "HTTP 상태 코드", example = "200")
-        String code,
+        @Schema(description = "성공/실패 여부", example = "SUCCESS")
+        GlobalResponseCode code,
 
         @JsonProperty("message")
         @Schema(description = "HTTP 응답 메시지", example = "요청이 성공적으로 처리되었습니다.")
@@ -28,17 +28,17 @@ public record GlobalResponse<T>(
 ) {
     // success - 성공 응답 생성 함수
     public static <T> GlobalResponse<T> success(T data){
-        return new GlobalResponse<>(true, "200", "요청이 성공적으로 처리되었습니다!", data);
+        return new GlobalResponse<>(200, GlobalResponseCode.SUCCESS, "요청이 성공적으로 처리되었습니다!", data);
     }
     public static <T> GlobalResponse<T> success(String message, T data){
-        return new GlobalResponse<>(true, "200", message, data);
+        return new GlobalResponse<>(200, GlobalResponseCode.SUCCESS, message, data);
     }
-    public static <T> GlobalResponse<T> success(String code, String message, T data){
-        return new GlobalResponse<>(true, code, message, data);
+    public static <T> GlobalResponse<T> success(Integer status, String message, T data){
+        return new GlobalResponse<>(status, GlobalResponseCode.SUCCESS, message, data);
     }
 
     // error - 실패 응답 생성 함수
-    public static <T> GlobalResponse<T> error(String code, String message){
-        return new GlobalResponse<>(false, code , message, null);
+    public static <T> GlobalResponse<T> error(Integer status, String message){
+        return new GlobalResponse<>(status, GlobalResponseCode.FAIL, message, null);
     }
 }
