@@ -10,6 +10,9 @@ spring:
     show-sql: true      # 개발 서버니까 로그 봄
     hibernate:
       ddl-auto: update  # 데이터 날아가면 안 되니까 update
+  logging:
+    level:
+      root: INFO
 
 server:
   url: https://dev.egobook.site
