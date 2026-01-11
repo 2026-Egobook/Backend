@@ -11,6 +11,9 @@ spring:
     show-sql: false      # 운영에선 쿼리 로그 끔 (성능/보안)
     hibernate:
       ddl-auto: validate  # 테이블 건들지 말고 검증만 하라는 설정
+  logging:
+    level:
+      root: INFO
 
 server:
   url: https://www.egobook.site
