@@ -32,8 +32,6 @@ springdoc:
 jwt:
   token:
     secretKey: ${JWT_SECRET_KEY_PROD}
-    expiration:
-      access: 14400000
 
 management:
   endpoints:
