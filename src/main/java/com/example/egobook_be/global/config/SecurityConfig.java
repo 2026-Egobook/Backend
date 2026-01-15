@@ -1,5 +1,8 @@
 package com.example.egobook_be.global.config;
 
+import com.example.egobook_be.global.security.JwtAuthFilter;
+import com.example.egobook_be.global.security.handler.JwtAccessDeniedHandler;
+import com.example.egobook_be.global.security.handler.UserAuthenticationEntryPoint;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -11,7 +14,9 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
@@ -23,6 +28,10 @@ import org.springframework.web.cors.CorsConfigurationSource;
 public class SecurityConfig {
     // CorsConfig에서 주입시킨 CorsConfigurationSource를 주입받는다
     private final CorsConfigurationSource corsConfigurationSource;
+    private final UserAuthenticationEntryPoint userAuthenticationEntryPoint;
+    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    private final JwtAuthFilter jwtAuthFilter;
+
 
     // 인증 없이 접근 가능한 화이트 리스트 URL 모음 String 배열 (로그인, 회원가입, 스웨거 등)
     private static final String[] AUTH_WHITELIST = {
@@ -70,9 +79,24 @@ public class SecurityConfig {
         http.formLogin(AbstractHttpConfigurer::disable);
         http.httpBasic(AbstractHttpConfigurer::disable);
 
+        /**
+         * 5. JWT 필터 등록
+         * UsernamePasswordAuthenticationFilter 앞에 직접 만든 JwtAuthFilter를 넣는다.
+         * [ http.addFilterBefore("추가할 필터", 기존 필터) ]
+         * 해당 필터로 JWT를 통한 인증 처리를 수행하게 한다.
+         */
+        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         /**
-         * 5. 권한 규칙 작성
+         * 6. 예외 처리 핸들러 설정 - 인증 실패(401) 및 접근 거부(403) 예외를 처리하는 핸들러 설정
+         */
+        http.exceptionHandling(e -> e
+                .authenticationEntryPoint(userAuthenticationEntryPoint) // 401 에러 핸들러
+                .accessDeniedHandler(jwtAccessDeniedHandler)            // 403 에러 핸들러
+        );
+
+        /**
+         * 6. 권한 규칙 작성
          * - 화이트 리스트에 있는 경로는 누구나 접근할 수 있도록 허용한다.
          * - "/admin/**"로 요청이 왔을 때, 해당 사용자가 "ADMIN" Role을 갖고 있을 때만 접속을 허용한다.
          */
