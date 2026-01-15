@@ -48,4 +48,9 @@ public class PlazaLetter {
         this.repliedAt = repliedAt;
     }
 
+    public void markDeferred() {
+        this.status = PlazaLetterStatus.DEFERRED;
+    }
+
+
 }

@@ -1,6 +1,7 @@
 package com.example.egobook_be.plaza.letters.service;
 
 import com.example.egobook_be.plaza.letters.domain.*;
+import com.example.egobook_be.plaza.letters.dto.DeferResponse;
 import com.example.egobook_be.plaza.letters.dto.InboxNextResponse;
 import com.example.egobook_be.plaza.letters.dto.ReplyResponse;
 import com.example.egobook_be.plaza.letters.repository.PlazaLetterReplyRepository;
@@ -123,6 +124,36 @@ public class PlazaLetterService {
         }
         return true;
     }
+
+    @Transactional
+    public DeferResponse deferLetter(Long userId, Long letterId) {
+        PlazaLetter letter = plazaLetterRepository.findById(letterId)
+                .orElseThrow(() -> new PlazaLetterException("PLAZA404_LETTER_NOT_FOUND", "편지를 찾을 수 없어요"));
+
+        // 내 편지인지 체크
+        if (!letter.getReceiverId().equals(userId)) {
+            throw new PlazaLetterException("PLAZA403_FORBIDDEN", "접근 권한이 없어요");
+        }
+
+        // 이미 답장/포기된 상태면 defer 불가
+        if (letter.getStatus() == PlazaLetterStatus.REPLIED
+                || letter.getStatus() == PlazaLetterStatus.AI_REPLIED) {
+            throw new PlazaLetterException("PLAZA409_ALREADY_REPLIED", "이미 답장한 편지예요");
+        }
+
+        if (letter.getStatus() == PlazaLetterStatus.GAVE_UP) {
+            throw new PlazaLetterException("PLAZA409_ALREADY_GAVE_UP", "이미 포기된 편지예요");
+        }
+
+        // ARRIVED만 DEFERRED로 변경 (이미 DEFERRED면 그대로 반환해도 됨)
+        letter.markDeferred();
+
+        return DeferResponse.builder()
+                .letterId(letter.getLetterId())
+                .status(letter.getStatus())
+                .build();
+    }
+
 
 
 
