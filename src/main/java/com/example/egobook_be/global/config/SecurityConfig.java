@@ -33,6 +33,7 @@ public class SecurityConfig {
             "/swagger-ui-custom.html",  // Swagger UI 메인 페이지
             "/manage/health",  // AWS의 ALB 헬스 체크 경로
             "/api/images", // 나중에 운영 단계에서 & JWT 구현을 한 뒤에는
+            "/plaza/**",
     };
 
     /**
