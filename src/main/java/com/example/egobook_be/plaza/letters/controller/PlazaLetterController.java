@@ -5,10 +5,16 @@ import com.example.egobook_be.plaza.letters.dto.InboxNextResponse;
 import com.example.egobook_be.plaza.letters.service.PlazaLetterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.*;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import com.example.egobook_be.plaza.letters.dto.ReplyRequest;
+import com.example.egobook_be.plaza.letters.dto.ReplyResponse;
+import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
+
 
 @RestController
 @RequiredArgsConstructor
@@ -53,9 +59,29 @@ public class PlazaLetterController {
         Long resolvedUserId = (userId == null) ? 1L : userId;
 
         InboxNextResponse result = plazaLetterService.getNextArrivedLetter(resolvedUserId);
-
-        // 너 프로젝트 GlobalResponse 팩토리 메서드 이름이 다르면 여기만 맞춰줘
         return GlobalResponse.success(result);
     }
+
+    @PostMapping(value = "/{letterId}/reply", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public GlobalResponse<ReplyResponse> reply(
+            @Parameter(
+                    name = "X-USER-ID",
+                    description = "테스트용 유저 ID(초기에는 헤더로 받음). JWT 적용 후 제거 예정",
+                    in = ParameterIn.HEADER,
+                    required = false,
+                    example = "1"
+            )
+            @RequestHeader(name = "X-USER-ID", required = false) Long userId,
+
+            @Parameter(description = "답장할 편지 ID", example = "301")
+            @PathVariable Long letterId,
+
+            @Valid @RequestBody ReplyRequest request
+    ) {
+        Long resolvedUserId = (userId == null) ? 1L : userId;
+        ReplyResponse result = plazaLetterService.replyToLetter(resolvedUserId, letterId, request.getText());
+        return GlobalResponse.success(result);
+    }
+
 }
 

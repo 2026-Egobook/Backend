@@ -40,4 +40,12 @@ public class PlazaLetter {
 
     @Column(nullable = false)
     private OffsetDateTime replyDeadlineAt;
+
+    private OffsetDateTime repliedAt;
+
+    public void markReplied(OffsetDateTime repliedAt) {
+        this.status = PlazaLetterStatus.REPLIED;
+        this.repliedAt = repliedAt;
+    }
+
 }
