@@ -1,0 +1,25 @@
+package com.example.egobook_be.domain.user.repository;
+
+import com.example.egobook_be.domain.user.entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+
+    /**
+     * 신규 사용자 가입 시, AccountCode를 만들어 지정해줄 때 해당 AccountCode가 이미 존재하는지 확인하기 위한 함수 
+     * @param accountCode
+     * @return
+     */
+    boolean existsByAccountCode(String accountCode);
+
+    /**
+     * 신규 사용자 가입 시, Nickname을 랜덤으로 만들어 지정해줄 때 해당 닉네임이 이미 존재하는지 확인하기 위한 함수
+     * @param nickname
+     * @return
+     */
+    boolean existsByNickname(String nickname);
+}
