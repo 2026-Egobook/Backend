@@ -18,7 +18,7 @@ import org.hibernate.annotations.OnDeleteAction;
     uniqueConstraints = {
         @UniqueConstraint(
                 name="uk_account_device_provider", // 제약조건 이름 명시
-                columnNames = {"device_uid", "provider"} // 묶을 컬럼들 이름 설정
+                columnNames = {"hashed_device_uid", "provider"} // 묶을 컬럼들 이름 설정
         )
     }
 )
