@@ -1,5 +1,6 @@
 package com.example.egobook_be.global.util;
 
+import com.example.egobook_be.domain.auth.dto.TokenInfo;
 import com.example.egobook_be.global.enums.JwtTokenType;
 import com.example.egobook_be.global.security.CustomUserDetails;
 import io.jsonwebtoken.*;
@@ -13,6 +14,8 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -50,29 +53,29 @@ public class JwtUtil {
 
     /**
      * Access Token 생성 함수
-     * @param user CustomUserDetails
+     * @param userDetails CustomUserDetails
      * @return String 액세스 토큰
      */
-    public String createAccessToken(CustomUserDetails user) {
-        return createToken(user, accessExpiration, JwtTokenType.ACCESS.toString());
+    public TokenInfo createAccessToken(CustomUserDetails userDetails) {
+        return createToken(userDetails, accessExpiration, JwtTokenType.ACCESS.toString());
     }
 
     /**
      * Refresh Token 생성 함수
-     * @param user CustomUserDetails
+     * @param userDetails CustomUserDetails
      * @return String Refresh 토큰
      */
-    public String createRefreshToken(CustomUserDetails user) {
-        return createToken(user, refreshExpiration, JwtTokenType.REFRESH.toString());
+    public TokenInfo createRefreshToken(CustomUserDetails userDetails) {
+        return createToken(userDetails, refreshExpiration, JwtTokenType.REFRESH.toString());
     }
 
     /**
      * Recover Token 생성 함수
-     * @param user CustomUserDetails
+     * @param userDetails CustomUserDetails
      * @return String. Recover 토큰
      */
-    public String createRecoverToken(CustomUserDetails user) {
-        return createToken(user, recoverExpiration, JwtTokenType.RECOVER.toString());
+    public TokenInfo createRecoverToken(CustomUserDetails userDetails) {
+        return createToken(userDetails, recoverExpiration, JwtTokenType.RECOVER.toString());
     }
 
     /**
@@ -116,45 +119,66 @@ public class JwtUtil {
 
     /**
      * JWT Token을 생성하는 함수
-     * @param user CustomUserDetails. 사용자의 정보가 담겨있음
+     * @param userDetails CustomUserDetails. 사용자의 정보가 담겨있음
      * @param expiration Duration. 유효기간
      * @param type 해당 토큰의 유형.
      * @return
      */
-    private String createToken(CustomUserDetails user, Duration expiration, String type) {
+    private TokenInfo createToken(CustomUserDetails userDetails, Duration expiration, String type) {
         /**
          * 1. 현재 순간의 정보들을 Instant로 가져온다.
          * Instant: 타임라인 상의 특정 순간을 나타낸다.
          * - 즉, 절대적인 시간을 다룰 때 사용하는 표준이다.
          */
         Instant now = Instant.now();
+        Instant expiresInstant = now.plus(expiration);
 
         /**
-         * 2. 권한 정보 가져오기
+         * 2. JWT 생성을 위한 Date 변환
+         */
+        Date nowDate = Date.from(now);
+        Date expirationDate = Date.from(expiresInstant);
+
+        /**
+         * 3. Service/DB 반환을 위해, expirationDate을 Date -> LocalDateTime으로 변경한다.
+         */
+        LocalDateTime expiresAt = LocalDateTime.ofInstant(expiresInstant, ZoneId.systemDefault());
+
+        /**
+         * 4. 권한 정보 가져오기
          * 함수 인자로 받은 CustomUserDetails를 이용하여 사용자의 권한들을 가져온다.
          * => "권한1,권한2" 형식으로
          */
-        String authorities = user.getAuthorities().stream()
+        String authorities = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
 
         /**
-         * 3. UUID를 생성하여 Jti로 할당
+         * 5. UUID를 생성하여 Jti로 할당
          */
         String jti = UUID.randomUUID().toString();
 
         /**
-         * 4. Jwt Token 생성
+         * 6. Jwt Token 생성
          */
-        return Jwts.builder()
+        String token = Jwts.builder()
                 .id(jti) // Jwt Id 설정
-                .subject(user.getUsername()) // "provider:deviceUid" 형식의 융합 키
-                .claim("role", authorities)  // Custom Claim: 권한
-                .claim("type", type)         // Custom Claim: 토큰 타입
-                .issuedAt(Date.from(now))    // 발행 시간
-                .expiration(Date.from(now.plus(expiration))) // 만료 시간
-                .signWith(secretKey)         // 서명
+                .subject(userDetails.getUsername())    // "provider:deviceUid" 형식의 융합 키
+                .claim("role", authorities)         // Custom Claim: 권한
+                .claim("type", type)                // Custom Claim: 토큰 타입
+                .issuedAt(nowDate)                     // 발행 시간
+                .expiration(expirationDate)            // 만료 시간
+                .signWith(secretKey)                   // 서명
                 .compact();
+
+        /**
+         * 5. TokenInfo로 묶어서 반환 (LocalDateTime 사용)
+         * Service에서 해당 토큰의 만료 시간을 알아야 하기에, TokenInfo Dto에 해당 값을 LocalDateTime으로 저장해서 반환한다.
+         */
+        return TokenInfo.builder()
+                .token(token)
+                .expiresAt(expiresAt)
+                .build();
     }
 
 
