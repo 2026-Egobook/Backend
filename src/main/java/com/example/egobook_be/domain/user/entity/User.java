@@ -30,8 +30,8 @@ public class User extends BaseTimeEntity {
     @Builder.Default
     private RoleType role = RoleType.ROLE_USER;
 
-    @Column(length = 20)
-    private String nickname;
+    @Column(length = 20) // 닉네임은 최대 8글자
+    private String nickname; 
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -50,7 +50,7 @@ public class User extends BaseTimeEntity {
 
     @Column(name = "symbol_level", nullable = false)
     @Builder.Default
-    private Integer symbolLevel = 1; // 레벨 기본값 1
+    private Integer level = 1; // 사용자 레벨 기본값 1
 
     @Column(name = "purge_at")
     private LocalDateTime purgeAt; // 완전 삭제 예정 시각
@@ -59,10 +59,12 @@ public class User extends BaseTimeEntity {
     private LocalDateTime deletedAt; // 삭제 요청 시각
 
     @Column(name = "daily_praise")
-    private Boolean dailyPraise; // AI 칭찬서 수신 여부 (Null 허용이므로 Boolean Wrapper 사용)
+    @Builder.Default
+    private Boolean dailyPraise = true; // AI 칭찬서 수신 여부 (기본값 true)
 
     @Column(name = "weekly_report_style")
-    private String weeklyReportStyle; // 주간 AI 상담서 스타일 (다음주 상담 스타일)
+    @Builder.Default
+    private WeeklyReportStyle weeklyReportStyle = WeeklyReportStyle.SOFT; // 주간 AI 상담서 스타일 (다음주 상담 스타일. 기본은 "부드러움")
 
     // ========= 연관관계 매핑 ========= //
 
@@ -83,10 +85,18 @@ public class User extends BaseTimeEntity {
         }
     }
 
-    public void updateNickname(String nickname) {
-        this.nickname = nickname;
+    /**
+     * 사용자 닉네임을 업데이트 하는 Entity 비즈니스 메서드입니다.
+     * @param newNickname : 사용자가 업데이트 하고자 하는 새로운 닉네임
+     */
+    public void updateNickname(String newNickname) {
+        this.nickname = newNickname;
     }
 
+    /**
+     * 사용자가 탈퇴를 수행했을 때, 바로 삭제하지 않고 실제 삭제 예정 날짜를 설정하는 함수입니다.
+     * @param purgeTime : 실제 완전 삭제가 될 날짜
+     */
     public void deleteUser(LocalDateTime purgeTime) {
         this.status = UserStatus.DELETED_PENDING;
         this.deletedAt = LocalDateTime.now();
