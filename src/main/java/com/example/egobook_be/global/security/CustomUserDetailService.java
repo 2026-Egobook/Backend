@@ -8,12 +8,10 @@ import com.example.egobook_be.domain.auth.enums.Provider;
 import com.example.egobook_be.domain.auth.repository.AuthAccountRepository;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.global.exception.CustomException;
-import com.example.egobook_be.global.exception.GlobalErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -90,7 +88,7 @@ public class CustomUserDetailService implements UserDetailsService {
                 .authAccountId(authAccount.getId()) // AuthAccount 테이블의 PK (토큰 백업용)
                 .provider(authAccount.getProvider()) // provider 설정
                 .accountCode(user.getAccountCode())  // 사용자의 고유 공개용 id
-                .deviceUid(authAccount.getDeviceUid()) // 기기 고유 ID
+                .deviceUid(authAccount.getHashedDeviceUid()) // 기기 고유 ID
                 .role(user.getRole())           // 사용자 권한 (RoleType)
                 .build();
 

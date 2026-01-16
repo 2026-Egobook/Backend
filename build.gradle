@@ -98,7 +98,16 @@ sourceSets {
 }
 
 tasks.withType(JavaCompile).configureEach {
+    /**
+     * 1. 기존 QueryDSL 경로 설정
+      */
     options.generatedSourceOutputDirectory.set(querydslDir)
+
+    /**
+     * 2. ★ 컴파일 시 파라미터 이름 정보 유지 (-parameters)
+     * 이 옵션이 있어야 Jackson이 record의 변수명(deviceUid)을 인식할 수 있습니다.
+      */
+    options.compilerArgs.add("-parameters")
 }
 
 clean.doLast {

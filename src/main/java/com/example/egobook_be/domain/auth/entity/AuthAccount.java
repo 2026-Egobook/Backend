@@ -5,6 +5,8 @@ import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Builder
@@ -31,11 +33,11 @@ public class AuthAccount extends BaseTimeEntity {
     @Builder.Default
     private Provider provider = Provider.GUEST;
 
-    @Column(name = "device_uid", nullable = false)
-    private String deviceUid;
+    @Column(name = "hashed_device_uid", nullable = false)
+    private String hashedDeviceUid; // HmacSHA256 방식으로 해싱된 deviceUid
 
-    @Column(name = "recover_token")
-    private String recoverToken;
+    @Column(name = "hashed_recover_token", length = 1000)
+    private String hashedRecoverToken; // HmacSHA256 방식으로 해싱된 recoverToken
 
     // ========= 연관관계 매핑 ========= //
 
@@ -64,9 +66,14 @@ public class AuthAccount extends BaseTimeEntity {
      * ADD CONSTRAINT fk_auth_account_user
      * FOREIGN KEY (user_id) REFERENCES user (id)
      * ON DELETE CASCADE;
+     *
+     * => 위 3번 작업을 수행시켜주기 위해, @OnDelete라는 어노테이션을 사용하였다.
+     * @OnDelete(action = OnDeleteAction.CASCADE):
+     * - Hibernate 전용 어노테이션으로, Hibernate가 DDL을 생성할 때 FOREIGN KEY 정의 뒤에 ON DELETE CASCADE 구문을 자동으로 붙여준다.
      */
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
 
     /**
@@ -77,15 +84,21 @@ public class AuthAccount extends BaseTimeEntity {
     @OneToOne(mappedBy = "authAccount", cascade = CascadeType.ALL, orphanRemoval = true)
     private RefreshTokenBackup refreshTokenBackup;
 
-
     // ========= Entity 비즈니스 메서드 ========= //
 
+    /**
+     * 회원가입 & refreshToken 재발급 시, AuthAccount 객체에 연결된 RefreshToken을 업데이트 해주는 함수이다.
+     * @param refreshTokenBackup
+     */
+    public void updateRefreshTokenBackup(RefreshTokenBackup refreshTokenBackup) {
+        this.refreshTokenBackup = refreshTokenBackup;
+    }
 
     /**
      * 복구 토큰 업데이트를 위한 비즈니스 메서드
      * @param recoverToken
      */
     public void updateRecoverToken(String recoverToken) {
-        this.recoverToken = recoverToken;
+        this.hashedRecoverToken = recoverToken;
     }
 }
