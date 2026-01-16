@@ -69,7 +69,7 @@ jobs:
           sed -i "s|\${DB_USER}|${{ secrets.DEV_DB_USER }}|g" $FILE
           sed -i "s|\${DB_PW}|${{ secrets.DEV_DB_PW }}|g" $FILE
           sed -i "s|\${JWT_SECRET_KEY_DEV}|${{ secrets.JWT_SECRET_KEY_DEV }}|g" $FILE
-          sed -i "s|\${DEB_SALT}|${{ secrets.DEV_SALT }}|g" $FILE
+          sed -i "s|\${DEV_SALT}|${{ secrets.DEV_SALT }}|g" $FILE
         # 같은 값이 중복되면, 최근에 설정된 env값이 사용된다.
         shell: bash
 
