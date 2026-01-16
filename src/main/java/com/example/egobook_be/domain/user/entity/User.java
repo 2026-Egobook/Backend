@@ -66,6 +66,10 @@ public class User extends BaseTimeEntity {
     @Builder.Default
     private WeeklyReportStyle weeklyReportStyle = WeeklyReportStyle.SOFT; // 주간 AI 상담서 스타일 (다음주 상담 스타일. 기본은 "부드러움")
 
+    @Column(name = "ink")
+    @Builder.Default
+    private Integer ink = 0;
+
     // ========= 연관관계 매핑 ========= //
 
 
