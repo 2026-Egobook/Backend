@@ -41,3 +41,8 @@ management:
   endpoint:
     health:
       show-details: never # 상세 정보 숨김 (기본값) -> {"status": "UP"} 만 나옴
+
+app:
+  auth:
+    # HashingUtil(HmacSHA256 방식 Hashing)을 위한 설정값
+    device-salt: ${PROD_SALT}

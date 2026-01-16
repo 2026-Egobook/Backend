@@ -19,7 +19,6 @@ spring:
       s3:
         bucket: egobook-${spring.profiles.active} # profiles.active대로 버킷 이름 설정되도록 함
 
-
 server:
   servlet:
     session:
