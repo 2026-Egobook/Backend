@@ -47,4 +47,8 @@ public class FriendRequest extends BaseTimeEntity {
     public void reject() {
         this.status = FriendRequestStatus.REJECTED;
     }
+
+    public void reRequest() {
+        this.status = FriendRequestStatus.PENDING;
+    }
 }
