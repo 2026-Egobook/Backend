@@ -64,6 +64,7 @@ public class User extends BaseTimeEntity {
     private Boolean dailyPraise = true; // AI 칭찬서 수신 여부 (기본값 true)
 
     @Column(name = "weekly_report_style")
+    @Enumerated(EnumType.STRING)
     @Builder.Default
     private WeeklyReportStyle weeklyReportStyle = WeeklyReportStyle.SOFT; // 주간 AI 상담서 스타일 (다음주 상담 스타일. 기본은 "부드러움")
 
