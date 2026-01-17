@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 public record TokenInfo(
         String token,
+
         LocalDateTime expiresAt
 ) {
 }

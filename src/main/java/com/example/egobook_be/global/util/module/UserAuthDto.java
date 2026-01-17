@@ -12,7 +12,7 @@ import lombok.Builder;
  * @param authAccountId : AuthAccount Entity PK
  * @param provider : Provider
  * @param accountCode : 사용자에게 노출되는 고유 식별 코드 (예: EG7X9A21)
- * @param deviceUid : 기기의 고유 UID
+ * @param hashedDeviceUid : 해싱된 기기의 고유 UID
  * @param role : 사용자 권한
  */
 @Builder
@@ -21,7 +21,7 @@ public record UserAuthDto(
         Long authAccountId,
         Provider provider,
         String accountCode,
-        String deviceUid,
+        String hashedDeviceUid,
         RoleType role
 ) {
 }
