@@ -42,11 +42,11 @@ public interface AuthControllerDocs {
     @Operation(summary = "Guest Access Token 재발급", description = """
             Access Token이 만료되었을 때, Refresh Token을 이용하여 토큰을 갱신합니다.
             
-            - **기능**: 유효한 Refresh Token을 검증하고, **새로운 Access Token과 Refresh Token**을 발급합니다. (RTR 적용)
+            - **기능**: 유효한 Refresh Token을 검증하고, **새로운 Access Token**을 발급합니다.
             - **실패 시**: 401 Unauthorized 리턴 -> 클라이언트는 [Guest 복구(Recertification)] API를 호출해야 합니다.
             """)
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "토큰 갱신 성공 (Access/Refresh 모두 재발급)",
+            @ApiResponse(responseCode = "200", description = "토큰 갱신 성공 (Access 재발급. Refresh Token은 기존 토큰 그대로 반환합니다.)",
                     content = @Content(schema = @Schema(implementation = JwtTokenResDto.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청 (Token 누락)", content = @Content),
             @ApiResponse(responseCode = "401", description = "Refresh Token 만료 또는 유효하지 않음 (재로그인 필요)", content = @Content)

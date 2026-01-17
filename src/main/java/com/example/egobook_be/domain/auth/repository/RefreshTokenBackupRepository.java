@@ -24,4 +24,11 @@ public interface RefreshTokenBackupRepository extends JpaRepository<RefreshToken
      * @return
      */
     boolean existsByAuthAccount(AuthAccount authAccount);
+
+    /**
+     * hashedRefreshToken으로 해당 테이블에 존재하는 인스턴스 값을 가져오는 함수
+     * @param hashedRefreshToken
+     * @return
+     */
+    Optional<RefreshTokenBackup> findByHashedTokenValue(String hashedRefreshToken);
 }

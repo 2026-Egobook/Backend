@@ -6,7 +6,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
@@ -29,7 +28,7 @@ public class RedisUtil {
      * - Value: Value로 들어갈 Json 형태의 데이터들
      * - TTL: 만료 시간까지 남은 시간만큼 설정
      */
-    public void setRefreshToken(String hashedRefreshToken, RedisValue value, long durationInMillis) {
+    public void setRefreshTokenValue(String hashedRefreshToken, RedisValue value, long durationInMillis) {
         String key = "RT:" + hashedRefreshToken;
         try {
             String jsonValue = objectMapper.writeValueAsString(value);  // json 값을 String으로 변환한다.
@@ -45,7 +44,7 @@ public class RedisUtil {
      * 2. Refresh Token 정보 조회 (Get)
      * 해당 hashedRefreshToken으로 Redis에서 정보를 찾지 못하면 null을 반환한다.
      */
-    public RedisValue getRefreshToken(String hashedRefreshToken) {
+    public RedisValue getRefreshTokenValue(String hashedRefreshToken) {
         String key = "RT:" + hashedRefreshToken;
         ValueOperations<String, String> values = redisTemplate.opsForValue();
         String jsonValue = values.get(key); // key를 이용하여 해당 key의 String 형태의 value를 가져온다.

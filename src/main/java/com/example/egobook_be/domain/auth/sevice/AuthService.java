@@ -3,6 +3,7 @@ package com.example.egobook_be.domain.auth.sevice;
 import com.example.egobook_be.domain.auth.dto.req.GuestRefreshReqDto;
 import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
 import com.example.egobook_be.domain.auth.dto.req.GuestJoinReqDto;
+import com.example.egobook_be.domain.user.entity.RoleType;
 import com.example.egobook_be.global.util.*;
 import com.example.egobook_be.global.util.module.TokenInfo;
 import com.example.egobook_be.global.util.module.UserAuthDto;
@@ -19,7 +20,6 @@ import com.example.egobook_be.global.security.CustomUserDetails;
 import com.example.egobook_be.global.util.module.RedisValue;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -147,45 +147,82 @@ public class AuthService {
          * - Key: hashedRefreshToken
          * - Value: RedisValue Record Dto
          */
-        RedisValue redisValue = RedisValue.builder()
-                .subject(jwtUtil.createSubject(authAccount.getProvider(), authAccount.getHashedDeviceUid())) // provider:deviceUid
-                .role(user.getRole()) // RoleType Enum
-                .expiresAt(refreshTokenInfo.expiresAt()) // Refresh Token 만료 절대 시간
-                .build();
-        LocalDateTime now = LocalDateTime.now(); // 현재 시간 가져오기
-        Duration duration = Duration.between(now, refreshTokenInfo.expiresAt()); // refreshToken의 절대 만료시간, 현재 시간의 간격 계산
-        long ttlInMillis = duration.toMillis(); // 밀리초로 변환
-        if (ttlInMillis < 0) { // 만료시간이 이미 지난 경우 방어 (음수를 Redis에 저장하면 에러날 수 있으므로)
-            ttlInMillis = 0;
-        }
-        if(ttlInMillis > 0){
-            redisUtil.setRefreshToken(hashedRefreshToken, redisValue, ttlInMillis);
-        }
+        RedisValue redisValue = buildRedisValue(
+                jwtUtil.createSubject(authAccount.getProvider(), authAccount.getHashedDeviceUid()),
+                user.getRole(),
+                refreshTokenInfo.expiresAt()
+        );
+        registerToRedis(hashedRefreshToken, redisValue, refreshTokenInfo.expiresAt());
 
         /**
          * 9. 클라이언트에게 토큰을 반환
          * recoverToken은 회원가입, refreshToken 재발급 시에만 발급된다.
          */
-        return JwtTokenResDto.builder()
-                .accessToken(accessTokenInfo.token())
-                .refreshToken(refreshTokenInfo.token())
-                .recoverToken(recoverTokenInfo.token())
-                .build();
+        return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), recoverTokenInfo.token());
     }
 
 
     /**
-     * Guest로 연동된 상태에서 Access Token을 재발급하는 함수
-     * @param reqDto
-     * @return
+     * Guest로 연동된 상태에서 Refresh Token을 이용해 Access Token을 재발급하는 함수 (FallBack 전략 적용)
+     * 1. Hashed Refresh Token으로 Redis 조회 시도 -> 조회 성공 시, value에 있는 값들을 이용하여 Access Token, Refresh Token 즉시 재발급 (RTR 적용)
+     * 2. Redis에서 해당 정보 조회 실패 시 -> Refresh Token Backup 테이블 조회
+     * 3. DB 조회 성공 시 -> Redis에 데이터 복구 후 토큰 재발급
+     * 4. DB 조회 실패 시 -> Recover Token으로 Refresh Token 재발급 시도하라는 에러 클라이언트에게 반환
+     * @param reqDto : GuestRefreshReqDto
+     * @return JwtTokenResDto
      */
     @Transactional
     public JwtTokenResDto refreshGuestToken(GuestRefreshReqDto reqDto){
-        return null;
+        /**
+         * 1. 전달받은 Refresh Token Hashing
+         */
+        String hashedRefreshToken = hashingUtil.hashingValue(reqDto.refreshToken());
 
+        /**
+         * 2. Redis에서 조회 시도
+         * - 조회를 성공한 경우, RedisValue Record Class에 담겨있는 값으로 Access Token을 재발급한다.
+         * - 재발급 시 Recover Token은 안준다.
+         */
+        RedisValue redisValue = redisUtil.getRefreshTokenValue(hashedRefreshToken);
+        if(redisValue != null){
+            TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(redisValue.subject(), redisValue.role());
+            return buildJwtTokenResDto(newAccessTokenInfo.token(), reqDto.refreshToken(), null);
+        }
+
+        /**
+         * 3. Redis에서 조회를 실패했을 경우, Refresh Token Backup 테이블 조회 (Fallback)
+         * - Redis에서 해당 hashedRefreshToken을 못찾았을 경우, DB에서 확인한다.
+         */
+        log.warn("[Class:AuthService]: Redis에서 해당 HashedRefreshToken을 찾을 수 없습니다. RefreshTokenBackup Table을 조회합니다.");
+        RefreshTokenBackup backup = refreshTokenBackupRepository.findByHashedTokenValue(hashedRefreshToken)
+                .orElseThrow(() -> new CustomException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND));
+
+        /**
+         * 4. DB에서 가져온 데이터로 해당 Refresh Token의 만료 여부 검증
+         * - DB에서도 만료되었다면, 진짜 해당 Refresh Token이 만료된 것이다.
+         * - Recover Token을 이용하여 Refresh Token을 재발급 받으라는 에러 메시지 발송
+         */
+        if(backup.getExpiresAt().isBefore(LocalDateTime.now())){
+            throw new CustomException(AuthErrorCode.REFRESH_TOKEN_EXPIRED);
+        }
+
+        /**
+         * 5. DB와 비교하였을 때 모든 조건을 통과한 정상적인 Refresh Token인 경우, Access Token을 재발급한다.
+         * - Redis에 데이터를 복구한다.
+         * - Redis에 복구할 데이터 : RedisValue
+         */
+        AuthAccount authAccount = backup.getAuthAccount(); // 연결된 AuthAccount 객체 가져오기
+        User user = authAccount.getUser(); // 연결된 User 객체 가져오기
+        String subject = jwtUtil.createSubject(authAccount.getProvider(), authAccount.getHashedDeviceUid());
+        RedisValue restoreRedisValue = buildRedisValue(subject, user.getRole(), backup.getExpiresAt()); // RedisValue 생성
+        registerToRedis(hashedRefreshToken, restoreRedisValue, backup.getExpiresAt()); // Redis에 해당 데이터들 복구
+
+        /**
+         * 6. Access Token 재생성 후 Access, Refresh Token 반환
+         */
+        TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(subject, user.getRole());
+        return buildJwtTokenResDto(newAccessTokenInfo.token(), reqDto.refreshToken(), null);
     }
-
-
 
 
 
@@ -230,6 +267,55 @@ public class AuthService {
         }
     }
 
+    /**
+     * key, value, expiresAt(절대시간)을 입력받아 redis에 등록해주는 함수
+     * @param key
+     * @param value
+     * @param expiresAt
+     */
+    private void registerToRedis(String key, RedisValue value, LocalDateTime expiresAt){
+        long ttlInMillis = getDurationInMillis(expiresAt); // 현재 ~ refreshToken의 만료시간까지 남은 밀리초 계산
+        if (ttlInMillis < 0) { // 만료시간이 이미 지난 경우 방어 (음수를 Redis에 저장하면 에러날 수 있으므로)
+            ttlInMillis = 0;
+        }
+        if(ttlInMillis > 0){
+            redisUtil.setRefreshTokenValue(key, value, ttlInMillis);
+        }
+    }
 
+    /**
+     * LocalDateTime (절대시간)까지 남은 시간을 millis로 반환해주는 함수
+     * @param at : 목표 절대 시간
+     * @return
+     */
+    private long getDurationInMillis(LocalDateTime at){
+        return Duration.between(LocalDateTime.now(), at).toMillis(); // 밀리초로 변환
+    }
 
+    /**
+     * JwtTokenResDto를 빌드하는 함수
+     * @return
+     */
+    private JwtTokenResDto buildJwtTokenResDto(String accessToken, String refreshToken, String recoverToken){
+        return JwtTokenResDto.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .recoverToken(recoverToken)
+                .build();
+    }
+
+    /**
+     * RedisValue를 빌드하는 함수
+     * @param subject
+     * @param role
+     * @param expiresAt
+     * @return
+     */
+    private RedisValue buildRedisValue(String subject, RoleType role, LocalDateTime expiresAt){
+        return RedisValue.builder()
+                .subject(subject) // provider:deviceUid
+                .role(role) // RoleType Enum
+                .expiresAt(expiresAt) // Refresh Token 만료 절대 시간
+                .build();
+    }
 }
