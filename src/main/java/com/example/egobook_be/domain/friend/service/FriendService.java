@@ -3,6 +3,7 @@ package com.example.egobook_be.domain.friend.service;
 import com.example.egobook_be.domain.friend.dto.FriendRequestCreateReqDto;
 import com.example.egobook_be.domain.friend.dto.FriendRequestListResDto;
 import com.example.egobook_be.domain.friend.dto.FriendResDto;
+import com.example.egobook_be.domain.friend.dto.FriendSearchResDto;
 import com.example.egobook_be.domain.friend.entity.Friend;
 import com.example.egobook_be.domain.friend.entity.FriendRequest;
 import com.example.egobook_be.domain.friend.enums.FriendRequestStatus;
@@ -198,6 +199,29 @@ public class FriendService {
                 .map(friend -> FriendResDto.builder()
                         .friendId(friend.getFriend().getId())
                         .nickname(friend.getFriend().getNickname())
+                        .build()
+                )
+                .toList();
+    }
+
+    /** 친구 검색 **/
+    @Transactional(readOnly = true)
+    public List<FriendSearchResDto> searchFriends(Long userId, String keyword) {
+
+        User me = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
+
+        return userRepository
+                .findByNicknameContainingIgnoreCaseOrAccountCodeContainingIgnoreCase(keyword, keyword)
+                .stream()
+                // 자기 자신 제외
+                .filter(user -> !user.getId().equals(userId))
+                // 이미 친구인 경우 제외
+                .filter(user -> !friendRepository.existsByUserAndFriend(me, user))
+                .map(user -> FriendSearchResDto.builder()
+                        .userId(user.getId())
+                        .nickname(user.getNickname())
+                        .level(user.getLevel())
                         .build()
                 )
                 .toList();

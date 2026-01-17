@@ -3,6 +3,7 @@ package com.example.egobook_be.domain.friend.controller;
 import com.example.egobook_be.domain.friend.dto.FriendRequestCreateReqDto;
 import com.example.egobook_be.domain.friend.dto.FriendRequestListResDto;
 import com.example.egobook_be.domain.friend.dto.FriendResDto;
+import com.example.egobook_be.domain.friend.dto.FriendSearchResDto;
 import com.example.egobook_be.domain.friend.service.FriendService;
 import com.example.egobook_be.global.response.GlobalResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -175,6 +176,28 @@ public class FriendController {
                 GlobalResponse.success(
                         "친구 리스트 조회 성공",
                         friendService.getFriends(userId)
+                )
+        );
+    }
+
+    @Operation(
+            summary = "친구 검색",
+            description = """
+            닉네임 또는 친구 코드(검색어)를 기반으로 친구를 검색합니다.
+            
+            - 자기 자신은 검색 결과에서 제외됩니다.
+            - 이미 친구이거나, 이미 친구 신청을 보낸 사용자는 검색 결과에서 제외됩니다.
+            """
+    )
+    @GetMapping("/search")
+    public ResponseEntity<GlobalResponse<List<FriendSearchResDto>>> searchFriends(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestParam String keyword
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success(
+                        "친구 검색 성공",
+                        friendService.searchFriends(userId, keyword)
                 )
         );
     }
