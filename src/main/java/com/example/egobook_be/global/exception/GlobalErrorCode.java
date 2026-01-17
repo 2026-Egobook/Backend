@@ -23,8 +23,6 @@ public enum GlobalErrorCode implements BaseErrorCode {
      * 401 UNAUTHORIZED: 인증되지 않음(로그인 실패 등)
      */
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증되지 않은 사용자입니다."),
-    TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "토큰이 만료되었습니다."),
-    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
 
     /**
      * 403 FORBIDDEN: 권한 없음 (로그인은 했지만, 해당 리소스에 접근 불가한 경우)

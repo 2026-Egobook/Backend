@@ -32,4 +32,12 @@ public interface AuthAccountRepository extends JpaRepository<AuthAccount, Long> 
      * @return
      */
     boolean existsByHashedDeviceUidAndProvider(String hashedDeviceUid, Provider provider);
+
+    /**
+     * HashedDeviceUid & Provider로 AuthAccount 객체를 찾는 함수
+     * @param hashedDeviceUid String
+     * @param provider Provider
+     * @return Optional<AuthAccount></AuthAccount>
+     */
+    Optional<AuthAccount> findByHashedDeviceUidAndProvider(String hashedDeviceUid, Provider provider);
 }

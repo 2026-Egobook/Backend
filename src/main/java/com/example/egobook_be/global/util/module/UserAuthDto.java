@@ -1,4 +1,4 @@
-package com.example.egobook_be.domain.auth.dto;
+package com.example.egobook_be.global.util.module;
 
 import com.example.egobook_be.domain.auth.enums.Provider;
 import com.example.egobook_be.domain.user.entity.RoleType;
@@ -11,8 +11,7 @@ import lombok.Builder;
  * @param userId : User Entity PK
  * @param authAccountId : AuthAccount Entity PK
  * @param provider : Provider
- * @param accountCode : 사용자에게 노출되는 고유 식별 코드 (예: EG7X9A21)
- * @param deviceUid : 기기의 고유 UID
+ * @param hashedDeviceUid : 해싱된 기기의 고유 UID
  * @param role : 사용자 권한
  */
 @Builder
@@ -20,8 +19,7 @@ public record UserAuthDto(
         Long userId,
         Long authAccountId,
         Provider provider,
-        String accountCode,
-        String deviceUid,
+        String hashedDeviceUid,
         RoleType role
 ) {
 }

@@ -1,9 +1,12 @@
 package com.example.egobook_be.global.security;
 
 import com.example.egobook_be.domain.auth.enums.AuthErrorCode;
+import com.example.egobook_be.domain.auth.enums.Provider;
+import com.example.egobook_be.domain.user.entity.RoleType;
 import com.example.egobook_be.global.enums.JwtTokenType;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.util.JwtUtil;
+import com.example.egobook_be.global.util.module.UserAuthDto;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -12,6 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -39,6 +43,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private static final String AUTHORIZATION_HEADER = "Authorization"; // HTTP 헤더 키
     private static final String BEARER_PREFIX = "Bearer "; // 토큰 접두사
 
+    // ======================================================================
+    // [Protected]
+    // ======================================================================
     /**
      * [JWT Access Token 검증 필터 수행 함수]
      * - JwtAuthFilter 자체적으로 사용자를 검증한다
@@ -55,26 +62,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
-        /**
+        /*
          * 1. Request Header에서 토큰 추출
          * - Authorization Header에서 토큰만 추출한다.
          */
         String token = resolveToken(request);
 
-        /**
-         * 토큰이 없다면 바로 다음 필터로 넘김 (비로그인 허용 엔드포인트 등을 위해)
-         */
+        // 토큰이 없다면 바로 다음 필터로 넘김 (비로그인 허용 엔드포인트 등을 위해)
         if (token == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            /**
-             * 2. 토큰 유효성 검증 (위조, 만료 등 확인)
-             */
+            // 2. 토큰 유효성 검증 (위조, 만료 등 확인)
             if (jwtUtil.validateToken(token)) {
-                /**
+                /*
                  * 3. JwtTokenType을 가져와 Access Token인지 확인한다.
                  * - Refresh Token으로는 API 접근이 불가하도록 설정한다.
                  * - Access Token이 아닌 다른 토큰(Refresh, Recover)으로 요청이 왔다면 에러 로그 & 예외를 발생시킨다.
@@ -85,33 +88,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     throw new CustomException(AuthErrorCode.ACCESS_WITH_NON_ACCESS_TYPE_TOKEN);
                 }
 
-                /**
-                 * 4. Access 토큰에서 사용자 식별자(Subject) 추출 (형식: "provider:deviceUid")
-                 */
-                String compositeKey = jwtUtil.getSubjectFromToken(token);
+                // 4. DB 조회 없이 토큰 정보만으로 인증 객체 생성
+                Authentication authentication = createAuthentication(token);
 
-                /**
-                 * 5. CustomUserDetailService를 통해 유저 정보(UserDetails) 로드
-                 */
-                UserDetails userDetails = customUserDetailService.loadUserByUsername(compositeKey);
-
-                /**
-                 * 6. 인증 객체(Authentication) 생성
-                 * UsernamePasswordAuthenticationToken: Spring Security 표준 인증 객체
-                 * 비밀번호(credentials)는 이미 토큰 검증으로 대체되었으므로 null 처리
-                 */
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-
-                /**
-                 * 7. SecurityContext에 인증 객체 저장 (로그인 처리 완료)
-                 * - SecurityContext에 저장된 해당 인증 객체는 한번의 요청에서 사용되고 삭제된다.
-                 */
+                // 5. SecurityContext에 저장
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.debug("Security Context에 '{}' 인증 정보를 저장했습니다.", compositeKey);
-
-                // 7. 다음 필터로 요청 전달
-                filterChain.doFilter(request, response);
+                log.debug("Security Context에 인증 정보를 저장했습니다: {}", authentication.getName());
             }
         } catch (CustomException e) {
             log.error("인증 처리 중 비즈니스 예외 발생: {}", e.getMessage());
@@ -122,8 +104,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             request.setAttribute("exception", e);
             authenticationEntryPoint.commence(request, response, new AuthenticationException(e.getMessage(), e) {});
         }
+        // 8. 다음 필터로 요청 전달
+        filterChain.doFilter(request, response);
     }
 
+
+    // ======================================================================
+    // [Private]
+    // ======================================================================
     /**
      * [Http Request Header에서 토큰 정보를 꺼내오는 메서드]
      * - Authorization 헤더 값을 추출한다.
@@ -139,6 +127,43 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         return null;
     }
 
+    /**
+     * [Authentication 객체 생성 메서드]
+     * DB를 거치지 않고 JWT Claims에서 정보를 추출하여 Principal을 구성한다.
+     * @param accessToken : 클라이언트로부터 받은
+     * @return
+     */
+    private Authentication createAuthentication(String accessToken) {
+        // 1. Access Token에서 데이터 추출
+        Long userId = jwtUtil.getUserIdFromToken(accessToken);
+        Long authAccountId = jwtUtil.getAuthAccountIdFromToken(accessToken);
+        String subject = jwtUtil.getSubjectFromToken(accessToken);
+        String roleString = jwtUtil.getRoleFromToken(accessToken);
+
+        /*
+         * 2. Subject를 Provider와 HashedDeviceUid로 분리한다.
+         * - 만약 형식이 잘못되었다면, INVALID_TYPE_TOKEN으로 예외처리를 한다.
+         */
+        String[] parts = subject.split(":", 2);
+        if (parts.length < 2) {
+            throw new CustomException(AuthErrorCode.INVALID_TYPE_TOKEN);
+        }
+        Provider provider = Provider.valueOf(parts[0]);
+        String hashedDeviceUid = parts[1];
+
+        // 3. UserAuthDto & CustomUserDetails 생성
+        UserAuthDto userAuthDto = UserAuthDto.builder()
+                .userId(userId)
+                .authAccountId(authAccountId)
+                .hashedDeviceUid(hashedDeviceUid)
+                .provider(provider)
+                .role(RoleType.valueOf(roleString))
+                .build();
+        CustomUserDetails customUserDetails = new CustomUserDetails(userAuthDto);
+
+        // 4. Spring Security 인증 토큰 생성 및 반환
+        return new UsernamePasswordAuthenticationToken(customUserDetails, null, customUserDetails.getAuthorities());
+    }
 
 
 }

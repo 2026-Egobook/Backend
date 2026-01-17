@@ -70,6 +70,7 @@ jobs:
           sed -i "s|\${DB_PW}|${{ secrets.DEV_DB_PW }}|g" $FILE
           sed -i "s|\${JWT_SECRET_KEY_DEV}|${{ secrets.JWT_SECRET_KEY_DEV }}|g" $FILE
           sed -i "s|\${DEV_SALT}|${{ secrets.DEV_SALT }}|g" $FILE
+          sed -i "s|\${DEV_REDIS_PW}|${{ secrets.DEV_REDIS_PW }}|g" $FILE
         # 같은 값이 중복되면, 최근에 설정된 env값이 사용된다.
         shell: bash
 
@@ -85,6 +86,7 @@ jobs:
           sed -i "s|\${DB_PW}|${{ secrets.PROD_DB_PW }}|g" $FILE
           sed -i "s|\${JWT_SECRET_KEY_PROD}|${{ secrets.JWT_SECRET_KEY_PROD }}|g" $FILE
           sed -i "s|\${PROD_SALT}|${{ secrets.PROD_SALT }}|g" $FILE
+          sed -i "s|\${PROD_REDIS_PW}|${{ secrets.PROD_REDIS_PW }}|g" $FILE
         shell: bash
 
       # (5) gradlew 파일에 실행 권한 부여

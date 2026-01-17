@@ -33,16 +33,21 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
 
 
-    // 인증 없이 접근 가능한 화이트 리스트 URL 모음 String 배열 (로그인, 회원가입, 스웨거 등)
+    /*
+     * 인증 없이 접근 가능한 화이트 리스트 URL 모음 String 배열 (로그인, 회원가입, 스웨거 등)
+     */
     private static final String[] AUTH_WHITELIST = {
             "/auth/guest/join",
-            "/auth/google/login",
-            "/auth/guest/login",
+            "/auth/google/join",
+            "/auth/guest/refresh",
+            "/auth/google/refresh",
+            "/auth/guest/recertification",
+            "/auth/google/recertification",
             "/v3/api-docs/**",  // Swagger JSON 데이터
             "/swagger-ui/**",   // Swagger UI CSS, JS, 이미지
             "/swagger-ui-custom.html",  // Swagger UI 메인 페이지
             "/manage/health",  // AWS의 ALB 헬스 체크 경로
-            "/api/images", // 나중에 운영 단계에서 & JWT 구현을 한 뒤에는
+//            "/api/images", // 나중에 운영 단계에서 & JWT 구현을 한 뒤에는
     };
 
     /**
@@ -53,19 +58,19 @@ public class SecurityConfig {
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        /**
+        /*
          * 1. CSRF 방어 기능 비활성화
          * JWT 기반 Stateless API에서는 폼 로그인-세션 기반 인증이 아니므로 CSRF 방어 기능이 필요 없음
          */
         http.csrf(AbstractHttpConfigurer::disable);
 
-        /**
+        /*
          * 2. Cors 설정
          * http의 .cors() 안에 configurationSource를 명시적으로 지정한다.
          */
         http.cors(corsConfigurer -> corsConfigurer.configurationSource(corsConfigurationSource));
 
-        /**
+        /*
          * 3. 세션 관리
          * 세션을 사용하지 않도록 설정한다.
          */
@@ -73,14 +78,14 @@ public class SecurityConfig {
                 SessionCreationPolicy.STATELESS
         ));
 
-        /**
+        /*
          * 4. 폼 로그인 & HTTP Basic 끄기
          * 폼 로그인(세션)과 Basic 인증을 꺼서 JWT만 사용하도록 설정함
          */
         http.formLogin(AbstractHttpConfigurer::disable);
         http.httpBasic(AbstractHttpConfigurer::disable);
 
-        /**
+        /*
          * 5. JWT 필터 등록
          * UsernamePasswordAuthenticationFilter 앞에 직접 만든 JwtAuthFilter를 넣는다.
          * [ http.addFilterBefore("추가할 필터", 기존 필터) ]
@@ -88,7 +93,7 @@ public class SecurityConfig {
          */
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
-        /**
+        /*
          * 6. 예외 처리 핸들러 설정 - 인증 실패(401) 및 접근 거부(403) 예외를 처리하는 핸들러 설정
          */
         http.exceptionHandling(e -> e
@@ -96,7 +101,7 @@ public class SecurityConfig {
                 .accessDeniedHandler(jwtAccessDeniedHandler)            // 403 에러 핸들러
         );
 
-        /**
+        /*
          * 6. 권한 규칙 작성
          * - 화이트 리스트에 있는 경로는 누구나 접근할 수 있도록 허용한다.
          * - "/admin/**"로 요청이 왔을 때, 해당 사용자가 "ADMIN" Role을 갖고 있을 때만 접속을 허용한다.

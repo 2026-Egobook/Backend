@@ -50,9 +50,9 @@ public class RefreshTokenBackup extends BaseTimeEntity {
      * Refresh Token Rotation(RTR) 시, 엔티티를 새로 만들지 않고 기존 백업 데이터를 업데이트(Dirty Checking)하기 위한 메서드
      * deviceUid, tokenValue, expiresAt을 최신화한다.
      */
-    public void updateBackupInfo(String deviceUid, String newToken, LocalDateTime newExpiry) {
-        this.hashedDeviceUid = deviceUid;
-        this.hashedTokenValue = newToken;
+    public void updateBackupInfo(String hashedDeviceUid, String hashedTokenValue, LocalDateTime newExpiry) {
+        this.hashedDeviceUid = hashedDeviceUid;
+        this.hashedTokenValue = hashedTokenValue;
         this.expiresAt = newExpiry;
     }
 }

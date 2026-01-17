@@ -1,4 +1,4 @@
-package com.example.egobook_be.domain.auth.dto;
+package com.example.egobook_be.domain.auth.dto.req;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;

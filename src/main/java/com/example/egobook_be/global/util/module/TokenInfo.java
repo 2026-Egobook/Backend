@@ -1,4 +1,4 @@
-package com.example.egobook_be.domain.auth.dto;
+package com.example.egobook_be.global.util.module;
 
 import lombok.Builder;
 
@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 public record TokenInfo(
         String token,
+
         LocalDateTime expiresAt
 ) {
 }

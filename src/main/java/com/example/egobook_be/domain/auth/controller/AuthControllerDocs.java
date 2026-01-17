@@ -1,7 +1,9 @@
 package com.example.egobook_be.domain.auth.controller;
 
-import com.example.egobook_be.domain.auth.dto.GuestJoinReqDto;
-import com.example.egobook_be.domain.auth.dto.JwtTokenDto;
+import com.example.egobook_be.domain.auth.dto.req.GuestJoinReqDto;
+import com.example.egobook_be.domain.auth.dto.req.GuestRecertificationReqDto;
+import com.example.egobook_be.domain.auth.dto.req.GuestRefreshReqDto;
+import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
 import com.example.egobook_be.global.response.GlobalResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -13,8 +15,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+
 
 @Tag(name = "Auth Controller", description = "[인증/인가] 관련 API")
+@RequestMapping("/auth")
 public interface AuthControllerDocs {
     @Operation(summary = "Guest 회원가입 (기기 최초 등록)", description = """
             사용자가 앱을 처음 설치하고 실행했을 때 호출되는 API입니다.
@@ -26,12 +31,50 @@ public interface AuthControllerDocs {
             """)
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "회원가입 성공 및 토큰 발급 완료",
-                    content = @Content(schema = @Schema(implementation = JwtTokenDto.class))),
+                    content = @Content(schema = @Schema(implementation = JwtTokenResDto.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청 (기기 UID 누락 등)",
                     content = @Content),
             @ApiResponse(responseCode = "409", description = "이미 등록된 기기 (중복 가입 시도)",
                     content = @Content)
     })
     @PostMapping("/guest/join")
-    ResponseEntity<GlobalResponse<JwtTokenDto>> guestJoin(@RequestBody @Valid GuestJoinReqDto reqDto);
+    ResponseEntity<GlobalResponse<JwtTokenResDto>> guestJoin(@RequestBody @Valid GuestJoinReqDto reqDto);
+
+    @Operation(summary = "Guest Access Token 재발급", description = """
+            Access Token이 만료되었을 때, Refresh Token을 이용하여 토큰을 갱신합니다.
+            
+            - **기능**: 유효한 Refresh Token을 검증하고, **새로운 Access Token**을 발급합니다.
+            - **실패 시**: 401 Unauthorized 리턴 -> 클라이언트는 [Guest 복구(Recertification)] API를 호출해야 합니다.
+            """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "토큰 갱신 성공 (Access 재발급. Refresh Token은 기존 토큰 그대로 반환합니다.)",
+                    content = @Content(schema = @Schema(implementation = JwtTokenResDto.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (Token 누락)", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Refresh Token 만료 또는 유효하지 않음 (재로그인 필요)", content = @Content)
+    })
+    @PostMapping("/guest/refresh")
+    ResponseEntity<GlobalResponse<JwtTokenResDto>> guestRefresh(@RequestBody @Valid GuestRefreshReqDto reqDto);
+
+
+    @Operation(summary = "Guest 계정 복구 (Refresh Token 만료 시)", description = """
+            Refresh Token까지 만료되어(장기간 미접속 등) 로그인이 풀렸을 때 호출하는 API입니다.
+            기기에 영구 저장된 **Recover Token**을 사용하여 새로운 Access, Refresh Token을 발급합니다.
+            이때, **새로운 Recover Token 또한 발급합니다. 해당 Token을 다시 저장해야합니다.**
+            
+            - **기능**:
+              1. 기기의 Recover Token과 서버의 Recover Token을 대조하여 검증합니다.
+              2. 검증 성공 시, **새로운 Access Token과 Refresh Token**을 발급합니다.
+              3. 새로운 Recover Token이 발급되어, 서버에 갱신됩니다. 새롭게 발급된 Recover Token을 다시 저장하세요.
+            
+            - **실패 시(401)**: Recover Token이 유효하지 않음 -> 해당 사용자의 계정을 삭제 대기 상태로 변환시킵니다. 더 이상 해당 계정에 접근할 수 없습니다. 고객센터에 문의하세요.
+            """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Access/Refresh/Recover Token이 정상적으로 재발급되었습니다.",
+                    content = @Content(schema = @Schema(implementation = JwtTokenResDto.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (RecoverToken 누락)", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token 재발급 실패 (유효하지 않은 Recover Token 또는 기기 불일치)", content = @Content),
+            @ApiResponse(responseCode = "404", description = "사용자 정보를 찾을 수 없음 (탈퇴한 회원 등)", content = @Content)
+    })
+    @PostMapping("/guest/recertification")
+    ResponseEntity<GlobalResponse<JwtTokenResDto>> guestRecertification(@RequestBody @Valid GuestRecertificationReqDto reqDto);
 }

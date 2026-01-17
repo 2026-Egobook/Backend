@@ -1,6 +1,8 @@
 package com.example.egobook_be.global.util;
 
-import com.example.egobook_be.domain.auth.dto.TokenInfo;
+import com.example.egobook_be.domain.user.entity.RoleType;
+import com.example.egobook_be.global.util.module.TokenInfo;
+import com.example.egobook_be.domain.auth.enums.Provider;
 import com.example.egobook_be.global.enums.JwtTokenType;
 import com.example.egobook_be.global.security.CustomUserDetails;
 import io.jsonwebtoken.*;
@@ -51,22 +53,36 @@ public class JwtUtil {
         this.recoverExpiration = Duration.ofMillis(recoverTokenExpTime);
     }
 
+    // ===============================================================
+    // 1. [Create] DB 데이터(CustomUserDetails)를 이용한 토큰 생성
+    // ===============================================================
     /**
-     * Access Token 생성 함수
+     * Access Token 생성 함수 - DB에 있는 값 이용 (Access Token에는 다른 토큰들보다 2개의 Claim이 더 들어간다.)
      * @param userDetails CustomUserDetails
      * @return String 액세스 토큰
      */
     public TokenInfo createAccessToken(CustomUserDetails userDetails) {
-        return createToken(userDetails, accessExpiration, JwtTokenType.ACCESS.toString());
+        return createToken(
+                userDetails.getUserAuthDto().userId(), // PK 전달
+                userDetails.getUserAuthDto().authAccountId(), // PK 전달
+                userDetails.getUsername(),
+                extractAuthorities(userDetails),
+                accessExpiration,
+                JwtTokenType.ACCESS);
     }
 
     /**
-     * Refresh Token 생성 함수
+     * Refresh Token 생성 함수 - DB에 있는 값 이용
      * @param userDetails CustomUserDetails
      * @return String Refresh 토큰
      */
     public TokenInfo createRefreshToken(CustomUserDetails userDetails) {
-        return createToken(userDetails, refreshExpiration, JwtTokenType.REFRESH.toString());
+        return createToken(
+                null, null,
+                userDetails.getUsername(),
+                extractAuthorities(userDetails),
+                refreshExpiration,
+                JwtTokenType.REFRESH);
     }
 
     /**
@@ -75,7 +91,139 @@ public class JwtUtil {
      * @return String. Recover 토큰
      */
     public TokenInfo createRecoverToken(CustomUserDetails userDetails) {
-        return createToken(userDetails, recoverExpiration, JwtTokenType.RECOVER.toString());
+        return createToken(
+                null, null,
+                userDetails.getUsername(),
+                extractAuthorities(userDetails),
+                recoverExpiration,
+                JwtTokenType.RECOVER);
+    }
+
+    // ===============================================================
+    // 2. [Create] Redis 데이터(RedisValue)를 이용한 토큰 생성
+    // ===============================================================
+    /**
+     * Access Token 생성 함수 - Redis의 value에 있는 값 이용
+     * @param subject : provider:hashedDeviceUid
+     * @param role : 사용자 권한
+     * @return String 액세스 토큰
+     */
+    public TokenInfo createAccessToken(Long userId, Long authAccountId, String subject, RoleType role) {
+        return createToken(
+                userId,
+                authAccountId,
+                subject,
+                role.name(), // Enum -> String 변환
+                accessExpiration,
+                JwtTokenType.ACCESS
+        );
+    }
+
+    /**
+     * Refresh Token 생성 함수 - Redis의 value에 있는 값 이용
+     * @param subject : provider:hashedDeviceUid
+     * @param role : 사용자 권한
+     * @return String Refresh 토큰
+     */
+    public TokenInfo createRefreshToken(String subject, RoleType role) {
+        return createToken(
+                null, null,
+                subject,
+                role.name(), // Enum -> String 변환
+                refreshExpiration,
+                JwtTokenType.REFRESH
+        );
+    }
+
+
+
+
+    // ===============================================================
+    // [Create]
+    // ===============================================================
+    /**
+     * JWT Token을 생성하는 함수
+     * @param userId : 사용자 전용 PK
+     * @param authAccountId : AuthAccount Pk
+     * @param subject Provider:HashedDeviceUid
+     * @param expiration Duration. 유효기간
+     * @param type 해당 토큰의 유형.
+     * @return
+     */
+    private TokenInfo createToken(Long userId, Long authAccountId, String subject, String role, Duration expiration, JwtTokenType type) {
+        /*
+         * 1. 현재 순간의 정보들을 Instant로 가져온다.
+         * Instant: 타임라인 상의 특정 순간을 나타낸다.
+         * - 즉, 절대적인 시간을 다룰 때 사용하는 표준이다.
+         */
+        Instant now = Instant.now();
+        Instant expiresInstant = now.plus(expiration);
+
+        // 2. JWT 생성을 위한 Date 변환
+        Date nowDate = Date.from(now);
+        Date expirationDate = Date.from(expiresInstant);
+
+        // 3. Service/DB 반환을 위해, expirationDate을 Date -> LocalDateTime으로 변경한다.
+        LocalDateTime expiresAt = LocalDateTime.ofInstant(expiresInstant, ZoneId.systemDefault());
+
+        // 4. UUID를 생성하여 Jti로 할당
+        String jti = UUID.randomUUID().toString();
+
+        // 5. Jwt Builder 생성
+        JwtBuilder builder = Jwts.builder()
+                .id(jti) // Jwt Id 설정
+                .subject(subject)                      // "provider:deviceUid" 형식의 융합 키
+                .claim("role", role)     // Custom Claim: 사용자 권한
+                .claim("type", type.toString())     // Custom Claim: 토큰 타입
+                .issuedAt(nowDate)                     // 발행 시간
+                .expiration(expirationDate)            // 만료 시간
+                .signWith(secretKey);                   // 서명
+
+        // 6. Access Token일 때만 ID 정보들을 Claim에 추가한다.
+        if (JwtTokenType.ACCESS.equals(type)) {
+            if (userId != null) builder.claim("userId", userId);
+            if (authAccountId != null) builder.claim("authAccountId", authAccountId);
+        }
+
+        /*
+         * 7. TokenInfo로 묶어서 반환 (LocalDateTime 사용)
+         * Service에서 해당 토큰의 만료 시간을 알아야 하기에, TokenInfo Dto에 해당 값을 LocalDateTime으로 저장해서 반환한다.
+         */
+        return TokenInfo.builder()
+                .token(builder.compact())
+                .expiresAt(expiresAt)
+                .build();
+    }
+
+    /**
+     * Provider + HashedDeviceUid로 Token에 들어갈 Subject를 만드는 util 함수
+     * @return Provider:HashedDeviceUid
+     */
+    public String createSubject(Provider provider, String hashedDeviceUid) {
+        return provider.toString() + ":" + hashedDeviceUid;
+    }
+
+
+    // ===============================================================
+    // [Getter]
+    // ===============================================================
+
+    /**
+     * Token에 담겨있는 Claim들 중 User Id 정보를 추출해서 가져오는 함수
+     * @param token :JWT Token
+     * @return User Id
+     */
+    public Long getUserIdFromToken(String token) {
+        return getPayload(token).get("userId", Long.class);
+    }
+
+    /**
+     * Token에 담겨있는 Claim들 중 AuthAccount Id 정보를 추출해서 가져오는 함수
+     * @param token :JWT Token
+     * @return AuthAccount Id
+     */
+    public Long getAuthAccountIdFromToken(String token) {
+        return getPayload(token).get("authAccountId", Long.class);
     }
 
     /**
@@ -88,12 +236,59 @@ public class JwtUtil {
     }
 
     /**
+     * Token에 담겨있는 Claim들 중 role 정보를 추출해서 String으로 가져오는 함수
+     * @param token Jwt Token
+     * @return 해당 토큰에 저장되어있는 Role
+     */
+    public String getRoleFromToken(String token) {
+        return getPayload(token).get("role").toString();
+    }
+
+    /**
      * Token에 담겨있는 Claim들 중 Jti(JWT Id)를 추출하는 함수
      * - 로그아웃(블랙리스트) 처리나 Refresh Token Rotation 검증 시 사용된다.
      */
     public String getJtiFromToken(String token) {
         return getPayload(token).getId();
     }
+
+    /**
+     * 해당 토큰의 Type(ACCESS, REFRESH, RECOVER)을 추출하는 함수
+     * @param token
+     * @return
+     */
+    public JwtTokenType getTokenType(String token) {
+        return JwtTokenType.valueOf(getPayload(token).get("type", String.class));
+    }
+
+    /**
+     * JWT Token에서 Claims를 추출하는 함수
+     * @param token JWT Token
+     * @return
+     */
+    private Claims getPayload(String token) {
+        return Jwts.parser() // JWT Parser를 만들기 위한 Builder 객체를 생성 (JWT를 해석, 검증할 도구를 조립하겠다고 선언하는 시작점)
+                .verifyWith(secretKey) // 토큰의 Signature을 검증할 때 사용할 키를 설정
+                .clockSkewSeconds(60) // 1분의 시간 오차 허용. 서버마다 시간이 다를 수 있으므로, JWT의 iat, exp같은 시간을 비교할 때 1분의 오차를 허용한다.
+                .build()// JwtParser 객체 생성(JWT 문자열을 parsing하고, 클레임 검증 등을 수행할 수 있는 객체)
+                .parseSignedClaims(token) // 실제 들어온 token 문자열을 파싱, 검증한다. (JWS<Claims> 객체 반환, JWS: 서명된 JWT)
+                .getPayload(); // JWS<Claims>에서 Payload만 빼오는 함수
+    }
+
+    /** 
+     * CustomUserDetails에서 권한 문자열을 추출하는 함수
+     * @param userDetails
+     * @return 권한1,권한2,.. 형식으로 반환됨
+     */
+    private String extractAuthorities(CustomUserDetails userDetails) {
+        return userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(","));
+    }
+
+    // ===============================================================
+    // [Validate]
+    // ===============================================================
 
     /**
      * 해당 Token이 유효한지 확인하는 함수
@@ -116,93 +311,4 @@ public class JwtUtil {
         }
         return false;
     }
-
-    /**
-     * JWT Token을 생성하는 함수
-     * @param userDetails CustomUserDetails. 사용자의 정보가 담겨있음
-     * @param expiration Duration. 유효기간
-     * @param type 해당 토큰의 유형.
-     * @return
-     */
-    private TokenInfo createToken(CustomUserDetails userDetails, Duration expiration, String type) {
-        /**
-         * 1. 현재 순간의 정보들을 Instant로 가져온다.
-         * Instant: 타임라인 상의 특정 순간을 나타낸다.
-         * - 즉, 절대적인 시간을 다룰 때 사용하는 표준이다.
-         */
-        Instant now = Instant.now();
-        Instant expiresInstant = now.plus(expiration);
-
-        /**
-         * 2. JWT 생성을 위한 Date 변환
-         */
-        Date nowDate = Date.from(now);
-        Date expirationDate = Date.from(expiresInstant);
-
-        /**
-         * 3. Service/DB 반환을 위해, expirationDate을 Date -> LocalDateTime으로 변경한다.
-         */
-        LocalDateTime expiresAt = LocalDateTime.ofInstant(expiresInstant, ZoneId.systemDefault());
-
-        /**
-         * 4. 권한 정보 가져오기
-         * 함수 인자로 받은 CustomUserDetails를 이용하여 사용자의 권한들을 가져온다.
-         * => "권한1,권한2" 형식으로
-         */
-        String authorities = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.joining(","));
-
-        /**
-         * 5. UUID를 생성하여 Jti로 할당
-         */
-        String jti = UUID.randomUUID().toString();
-
-        /**
-         * 6. Jwt Token 생성
-         */
-        String token = Jwts.builder()
-                .id(jti) // Jwt Id 설정
-                .subject(userDetails.getUsername())    // "provider:deviceUid" 형식의 융합 키
-                .claim("role", authorities)         // Custom Claim: 권한
-                .claim("type", type)                // Custom Claim: 토큰 타입
-                .issuedAt(nowDate)                     // 발행 시간
-                .expiration(expirationDate)            // 만료 시간
-                .signWith(secretKey)                   // 서명
-                .compact();
-
-        /**
-         * 5. TokenInfo로 묶어서 반환 (LocalDateTime 사용)
-         * Service에서 해당 토큰의 만료 시간을 알아야 하기에, TokenInfo Dto에 해당 값을 LocalDateTime으로 저장해서 반환한다.
-         */
-        return TokenInfo.builder()
-                .token(token)
-                .expiresAt(expiresAt)
-                .build();
-    }
-
-
-    /**
-     * 해당 토큰의 Type(ACCESS, REFRESH, RECOVER
-     * @param token
-     * @return
-     */
-    public JwtTokenType getTokenType(String token) {
-        return JwtTokenType.valueOf(getPayload(token).get("type", String.class));
-    }
-
-    /**
-     * JWT Token에서 Claims를 추출하는 함수
-     * @param token JWT Token
-     * @return
-     */
-    private Claims getPayload(String token) {
-        return Jwts.parser() // JWT Parser를 만들기 위한 Builder 객체를 생성 (JWT를 해석, 검증할 도구를 조립하겠다고 선언하는 시작점)
-                .verifyWith(secretKey) // 토큰의 Signature을 검증할 때 사용할 키를 설정
-                .clockSkewSeconds(60) // 1분의 시간 오차 허용. 서버마다 시간이 다를 수 있으므로, JWT의 iat, exp같은 시간을 비교할 때 1분의 오차를 허용한다.
-                .build()// JwtParser 객체 생성(JWT 문자열을 parsing하고, 클레임 검증 등을 수행할 수 있는 객체)
-                .parseSignedClaims(token) // 실제 들어온 token 문자열을 파싱, 검증한다. (JWS<Claims> 객체 반환, JWS: 서명된 JWT)
-                .getPayload(); // JWS<Claims>에서 Payload만 빼오는 함수
-    }
-
 }
