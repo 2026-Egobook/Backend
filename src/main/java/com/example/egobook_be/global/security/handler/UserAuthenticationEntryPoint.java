@@ -48,7 +48,7 @@ public class UserAuthenticationEntryPoint implements AuthenticationEntryPoint {
          * 2. 응답 메시지 구성
          * - HttpServletResponse 객체에 반환 형식을 지정한다.
          */
-        sendErrorResponse(response, GlobalErrorCode.UNAUTHORIZED.getStatus(), GlobalErrorCode.UNAUTHORIZED.getMessage());
+        sendErrorResponse(response, GlobalErrorCode.UNAUTHORIZED.getStatus(), authException.getMessage());
     }
 
     /**

@@ -38,7 +38,7 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
         log.warn("[권한 거부] 접근 시도 URL: {}, Error: {}", requestURI, accessDeniedException.getMessage());
 
         // 2. 응답 전송
-        sendErrorResponse(response, GlobalErrorCode.ACCESS_DENIED.getStatus(), GlobalErrorCode.ACCESS_DENIED.getMessage());
+        sendErrorResponse(response, GlobalErrorCode.ACCESS_DENIED.getStatus(), accessDeniedException.getMessage());
     }
 
     /**
