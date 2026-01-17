@@ -1,6 +1,7 @@
 package com.example.egobook_be.global.util;
 
-import com.example.egobook_be.domain.auth.dto.TokenInfo;
+import com.example.egobook_be.global.util.module.TokenInfo;
+import com.example.egobook_be.domain.auth.enums.Provider;
 import com.example.egobook_be.global.enums.JwtTokenType;
 import com.example.egobook_be.global.security.CustomUserDetails;
 import io.jsonwebtoken.*;
@@ -203,6 +204,14 @@ public class JwtUtil {
                 .build()// JwtParser 객체 생성(JWT 문자열을 parsing하고, 클레임 검증 등을 수행할 수 있는 객체)
                 .parseSignedClaims(token) // 실제 들어온 token 문자열을 파싱, 검증한다. (JWS<Claims> 객체 반환, JWS: 서명된 JWT)
                 .getPayload(); // JWS<Claims>에서 Payload만 빼오는 함수
+    }
+
+    /**
+     * Provider + HashedDeviceUid로 Token에 들어갈 Subject를 만드는 util 함수
+     * @return Provider:HashedDeviceUid
+     */
+    public String createSubject(Provider provider, String hashedDeviceUid) {
+        return provider.toString() + hashedDeviceUid;
     }
 
 }

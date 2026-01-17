@@ -1,6 +1,6 @@
 package com.example.egobook_be.global.security;
 
-import com.example.egobook_be.domain.auth.dto.UserAuthDto;
+import com.example.egobook_be.global.util.module.UserAuthDto;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
@@ -54,14 +54,14 @@ public class CustomUserDetails implements UserDetails {
     }
 
     /**
-     * [Username 처리 -> Provider:DeviceUid]
+     * [Username 처리 -> Provider:HashedDeviceUid]
      * JWT의 Subject에 들어갈 값이자, Spring Security 내에서 이 유저를 식별하는 고유 ID입니다.
      * 단순히 deviceUid만 반환하면 Guest/Google 계정이 중복될 수 있으므로,
      * 반드시 "PROVIDER:UID" 형태로 조합해서 반환해야 합니다.
      */
     @Override
     public String getUsername() {
-        return userAuthDto.provider().toString() + ":" + userAuthDto.deviceUid();
+        return userAuthDto.provider().toString() + ":" + userAuthDto.hashedDeviceUid();
     }
 
     // ======= 계정 상태 관리 함수 ======= //

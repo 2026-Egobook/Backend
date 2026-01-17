@@ -1,7 +1,7 @@
 package com.example.egobook_be.global.security;
 
 
-import com.example.egobook_be.domain.auth.dto.UserAuthDto;
+import com.example.egobook_be.global.util.module.UserAuthDto;
 import com.example.egobook_be.domain.auth.entity.AuthAccount;
 import com.example.egobook_be.domain.auth.enums.AuthErrorCode;
 import com.example.egobook_be.domain.auth.enums.Provider;
@@ -88,7 +88,7 @@ public class CustomUserDetailService implements UserDetailsService {
                 .authAccountId(authAccount.getId()) // AuthAccount 테이블의 PK (토큰 백업용)
                 .provider(authAccount.getProvider()) // provider 설정
                 .accountCode(user.getAccountCode())  // 사용자의 고유 공개용 id
-                .deviceUid(authAccount.getHashedDeviceUid()) // 기기 고유 ID
+                .hashedDeviceUid(authAccount.getHashedDeviceUid()) // hashing된 기기 고유 ID
                 .role(user.getRole())           // 사용자 권한 (RoleType)
                 .build();
 

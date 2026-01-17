@@ -33,11 +33,24 @@ public class AuthAccount extends BaseTimeEntity {
     @Builder.Default
     private Provider provider = Provider.GUEST;
 
+    /**
+     * HmacSHA256 방식으로 해싱된 deviceUid
+     * **주의사항**
+     * - Provider가 GOOGLE인 경우, 접속된 기기가 달라진 경우, deviceUid는 매번 달라집니다.
+     * - Google로 다른 기기에서 접속한 경우, 이전 기기에서는 더이상 접속할 수 없도록 하기 위함입니다. (동시성 문제 해결)
+     */
     @Column(name = "hashed_device_uid", nullable = false)
-    private String hashedDeviceUid; // HmacSHA256 방식으로 해싱된 deviceUid
+    private String hashedDeviceUid;
 
+    /**
+     * HmacSHA256 방식으로 해싱된 recoverToken.
+     * **주의사항**
+     * - Provider가 GOOGLE인 경우, 해당 값은 null이 된다.
+     * - GOOGLE Auth 과정에서는 refresh Token이 만료되었을 시, 프론트에서 조용한 Google Login을 통해 새로운 Refresh Token과 Access Token을 재발급받기 때문에,
+     *   recoverToken이 필요 없다.
+     */
     @Column(name = "hashed_recover_token", length = 1000)
-    private String hashedRecoverToken; // HmacSHA256 방식으로 해싱된 recoverToken
+    private String hashedRecoverToken;
 
     // ========= 연관관계 매핑 ========= //
 
@@ -96,9 +109,9 @@ public class AuthAccount extends BaseTimeEntity {
 
     /**
      * 복구 토큰 업데이트를 위한 비즈니스 메서드
-     * @param recoverToken
+     * @param hashedRecoverToken
      */
-    public void updateRecoverToken(String recoverToken) {
-        this.hashedRecoverToken = recoverToken;
+    public void updateRecoverToken(String hashedRecoverToken) {
+        this.hashedRecoverToken = hashedRecoverToken;
     }
 }

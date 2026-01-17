@@ -1,9 +1,11 @@
 package com.example.egobook_be.domain.auth.sevice;
 
-import com.example.egobook_be.domain.auth.dto.GuestJoinReqDto;
-import com.example.egobook_be.domain.auth.dto.JwtTokenDto;
-import com.example.egobook_be.domain.auth.dto.TokenInfo;
-import com.example.egobook_be.domain.auth.dto.UserAuthDto;
+import com.example.egobook_be.domain.auth.dto.req.GuestRefreshReqDto;
+import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
+import com.example.egobook_be.domain.auth.dto.req.GuestJoinReqDto;
+import com.example.egobook_be.global.util.*;
+import com.example.egobook_be.global.util.module.TokenInfo;
+import com.example.egobook_be.global.util.module.UserAuthDto;
 import com.example.egobook_be.domain.auth.entity.AuthAccount;
 import com.example.egobook_be.domain.auth.entity.RefreshTokenBackup;
 import com.example.egobook_be.domain.auth.enums.AuthErrorCode;
@@ -14,15 +16,14 @@ import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.security.CustomUserDetails;
-import com.example.egobook_be.global.util.AccountCodeGenerator;
-import com.example.egobook_be.global.util.HashingUtil;
-import com.example.egobook_be.global.util.JwtUtil;
-import com.example.egobook_be.global.util.UserNicknameGenerator;
+import com.example.egobook_be.global.util.module.RedisValue;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 /**
@@ -38,6 +39,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final HashingUtil hashingUtil;
     private final UserNicknameGenerator userNicknameGenerator;
+    private final RedisUtil redisUtil;
 
     /**
      * Guest로 회원가입을 수행하는 함수이다.
@@ -48,15 +50,16 @@ public class AuthService {
      *   (1) Recover Token은 이 함수와 "Recover Token으로 Refresh Token을 새로 발급하는 함수"에서만 재발급된다.
      *   (2) DeviceUid, Refresh Token, Recover Token은 HmacSHA256 알고리즘으로 해싱된다.
      * @param reqDto : GuestJoinReqDto
-     * @return JwtTokenDto : Access, Refresh, Recover Token이 담겨있다.
+     * @return JwtTokenResDto : Access, Refresh, Recover Token이 담겨있다.
      */
     @Transactional
-    public JwtTokenDto registerGuest(GuestJoinReqDto reqDto){
+    public JwtTokenResDto registerGuest(GuestJoinReqDto reqDto){
         /**
          * 1. 중복 가입 방지
          * 이미 Guest로 등록된 기기인지 확인한다.
          */
-        if(authAccountRepository.existsByHashedDeviceUidAndProvider(reqDto.deviceUid(), Provider.GUEST)){
+        String hashedDeviceUid = hashingUtil.hashingValue(reqDto.deviceUid()); // 단방향 해싱
+        if(authAccountRepository.existsByHashedDeviceUidAndProvider(hashedDeviceUid, Provider.GUEST)){
             throw new CustomException(AuthErrorCode.ALREADY_REGISTERED_DEVICE);
         }
 
@@ -93,11 +96,10 @@ public class AuthService {
          * 3. AuthAccount 엔티티 생성 (Guest Provider)
          * - recoverToken은 token을 발급받은 뒤 AuthAccount Entity의 updateRecoverToken()을 활용하여 설정합니다.
          *  (1) provider: Guest로 설정
-         *  (2) deviceId: reqDto에 있는 deviceUid 설정 (HmacSHA256으로 암호화 하여 저장. 단방향 해싱)
+         *  (2) hashedDeviceUid: reqDto에 있는 deviceUid 설정 (HmacSHA256으로 암호화 하여 저장. 단방향 해싱)
          *  (3) user: 위에서 생성한 newUser 설정
          *  (4) recoverToken: 아래 다른 로직에서 AuthAccount Entity의 updateRecoverToken()을 활용하여 설정합니다.
          */
-        String hashedDeviceUid = hashingUtil.hashingValue(reqDto.deviceUid()); // 단방향 해싱
         AuthAccount authAccount = AuthAccount.builder()
                 .provider(Provider.GUEST)
                 .hashedDeviceUid(hashedDeviceUid)
@@ -115,7 +117,7 @@ public class AuthService {
                 .authAccountId(authAccount.getId())
                 .provider(authAccount.getProvider())
                 .accountCode(user.getAccountCode())
-                .deviceUid(authAccount.getHashedDeviceUid()) // authAccount에 들어있는 deviceUid는 해싱된 상태이다.
+                .hashedDeviceUid(authAccount.getHashedDeviceUid()) // authAccount에 들어있는 deviceUid는 해싱된 상태이다.
                 .role(user.getRole())
                 .build();
         CustomUserDetails userDetails = new CustomUserDetails(userAuthDto);
@@ -137,18 +139,55 @@ public class AuthService {
         /**
          * 7. Refresh Token을 RefreshTokenBackup Table에 추가(Update)
          */
-        saveRefreshTokenBackup(authAccount, hashedRecoverToken, recoverTokenInfo.expiresAt());
+        String hashedRefreshToken = hashingUtil.hashingValue(refreshTokenInfo.token());
+        updateRefreshTokenBackup(authAccount, hashedRefreshToken, refreshTokenInfo.expiresAt());
 
         /**
-         * 8. 클라이언트에게 토큰을 반환
+         * 8. Redis에 해당 RefreshToken 저장
+         * - Key: hashedRefreshToken
+         * - Value: RedisValue Record Dto
+         */
+        RedisValue redisValue = RedisValue.builder()
+                .subject(jwtUtil.createSubject(authAccount.getProvider(), authAccount.getHashedDeviceUid())) // provider:deviceUid
+                .role(user.getRole()) // RoleType Enum
+                .expiresAt(refreshTokenInfo.expiresAt()) // Refresh Token 만료 절대 시간
+                .build();
+        LocalDateTime now = LocalDateTime.now(); // 현재 시간 가져오기
+        Duration duration = Duration.between(now, refreshTokenInfo.expiresAt()); // refreshToken의 절대 만료시간, 현재 시간의 간격 계산
+        long ttlInMillis = duration.toMillis(); // 밀리초로 변환
+        if (ttlInMillis < 0) { // 만료시간이 이미 지난 경우 방어 (음수를 Redis에 저장하면 에러날 수 있으므로)
+            ttlInMillis = 0;
+        }
+        if(ttlInMillis > 0){
+            redisUtil.setRefreshToken(hashedRefreshToken, redisValue, ttlInMillis);
+        }
+
+        /**
+         * 9. 클라이언트에게 토큰을 반환
          * recoverToken은 회원가입, refreshToken 재발급 시에만 발급된다.
          */
-        return JwtTokenDto.builder()
+        return JwtTokenResDto.builder()
                 .accessToken(accessTokenInfo.token())
                 .refreshToken(refreshTokenInfo.token())
                 .recoverToken(recoverTokenInfo.token())
                 .build();
     }
+
+
+    /**
+     * Guest로 연동된 상태에서 Access Token을 재발급하는 함수
+     * @param reqDto
+     * @return
+     */
+    @Transactional
+    public JwtTokenResDto refreshGuestToken(GuestRefreshReqDto reqDto){
+        return null;
+
+    }
+
+
+
+
 
     /**
      * registerGuest - 6. Refresh Token을 RefreshTokenBackup Table에 추가(Update)
@@ -166,7 +205,7 @@ public class AuthService {
      * @param hashedRefreshToken : 새로 발급한 refreshToken을 해싱한 결과값
      * @param expiresAt : refreshToken의 만료 시간
      */
-    private void saveRefreshTokenBackup(AuthAccount authAccount, String hashedRefreshToken, LocalDateTime expiresAt){
+    private void updateRefreshTokenBackup(AuthAccount authAccount, String hashedRefreshToken, LocalDateTime expiresAt){
         RefreshTokenBackup backup = null;
         /**
          * 1. RefreshTokenBackup Table에 해당 authAccount PK가 존재하는 경우
@@ -190,4 +229,7 @@ public class AuthService {
             authAccount.updateRefreshTokenBackup(backup);
         }
     }
+
+
+
 }
