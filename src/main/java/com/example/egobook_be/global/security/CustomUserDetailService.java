@@ -87,7 +87,6 @@ public class CustomUserDetailService implements UserDetailsService {
                 .userId(user.getId())           // User 테이블의 PK (비즈니스 로직용)
                 .authAccountId(authAccount.getId()) // AuthAccount 테이블의 PK (토큰 백업용)
                 .provider(authAccount.getProvider()) // provider 설정
-                .accountCode(user.getAccountCode())  // 사용자의 고유 공개용 id
                 .hashedDeviceUid(authAccount.getHashedDeviceUid()) // hashing된 기기 고유 ID
                 .role(user.getRole())           // 사용자 권한 (RoleType)
                 .build();

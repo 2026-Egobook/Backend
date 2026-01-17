@@ -152,6 +152,8 @@ public class AuthService {
          * - Value: RedisValue Record Dto
          */
         RedisValue redisValue = buildRedisValue(
+                user.getId(),
+                authAccount.getId(),
                 jwtUtil.createSubject(authAccount.getProvider(), authAccount.getHashedDeviceUid()),
                 user.getRole(),
                 refreshTokenInfo.expiresAt()
@@ -177,9 +179,7 @@ public class AuthService {
      */
     @Transactional
     public JwtTokenResDto refreshGuestToken(GuestRefreshReqDto reqDto){
-        /*
-         * 1. 전달받은 Refresh Token Hashing
-         */
+        // 1. 전달받은 Refresh Token Hashing
         String hashedRefreshToken = hashingUtil.hashingValue(reqDto.refreshToken());
 
         /*
@@ -189,7 +189,7 @@ public class AuthService {
          */
         RedisValue redisValue = redisUtil.getRefreshTokenValue(hashedRefreshToken);
         if(redisValue != null){
-            TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(redisValue.subject(), redisValue.role());
+            TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(redisValue.userId(), redisValue.authAccountId(), redisValue.subject(), redisValue.role());
             return buildJwtTokenResDto(newAccessTokenInfo.token(), reqDto.refreshToken(), null);
         }
 
@@ -218,13 +218,13 @@ public class AuthService {
         AuthAccount authAccount = backup.getAuthAccount(); // 연결된 AuthAccount 객체 가져오기
         User user = authAccount.getUser(); // 연결된 User 객체 가져오기
         String subject = jwtUtil.createSubject(authAccount.getProvider(), authAccount.getHashedDeviceUid());
-        RedisValue restoreRedisValue = buildRedisValue(subject, user.getRole(), backup.getExpiresAt()); // RedisValue 생성
+        RedisValue restoreRedisValue = buildRedisValue(user.getId(), authAccount.getId(), subject, user.getRole(), backup.getExpiresAt()); // RedisValue 생성
         registerToRedis(hashedRefreshToken, restoreRedisValue, backup.getExpiresAt()); // Redis에 해당 데이터들 복구
 
         /*
          * 6. Access Token 재생성 후 Access, Refresh Token 반환
          */
-        TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(subject, user.getRole());
+        TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(user.getId(), authAccount.getId(), subject, user.getRole());
         return buildJwtTokenResDto(newAccessTokenInfo.token(), reqDto.refreshToken(), null);
     }
 
@@ -264,7 +264,7 @@ public class AuthService {
         User user = authAccount.getUser();
         CustomUserDetails userDetails = buildCustomUserDetails(user, authAccount);
         String subject = jwtUtil.createSubject(authAccount.getProvider(), authAccount.getHashedDeviceUid()); // 토큰에 넣을 subject 생성
-        TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(subject, user.getRole());
+        TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(user.getId(), authAccount.getId(), subject, user.getRole());
         TokenInfo newRefreshTokenInfo = jwtUtil.createRefreshToken(subject, user.getRole());
         TokenInfo newRecoverTokenInfo = jwtUtil.createRecoverToken(userDetails);
         authAccount.updateHashedRecoverToken(hashingUtil.hashingValue(newRecoverTokenInfo.token())); // authAccount Table의 HashedRecoverToken값 최신화
@@ -283,7 +283,7 @@ public class AuthService {
          * 6. Redis 업데이트
          * - 새로운 Refresh Token을 Redis에 등록하여 바로 사용 가능하도록 처리
          */
-        RedisValue newRedisValue = buildRedisValue(subject, user.getRole(), newRefreshTokenInfo.expiresAt());
+        RedisValue newRedisValue = buildRedisValue(user.getId(), authAccount.getId(), subject, user.getRole(), newRefreshTokenInfo.expiresAt());
         registerToRedis(hashedRefreshToken, newRedisValue, newRefreshTokenInfo.expiresAt());
 
         // 7. 결과 반환
@@ -380,8 +380,10 @@ public class AuthService {
      * @param expiresAt : Refresh Token의 만료 절대 시간
      * @return RedisValue
      */
-    private RedisValue buildRedisValue(String subject, RoleType role, LocalDateTime expiresAt){
+    private RedisValue buildRedisValue(Long userId, Long authAccountId, String subject, RoleType role, LocalDateTime expiresAt){
         return RedisValue.builder()
+                .userId(userId)
+                .authAccountId(authAccountId)
                 .subject(subject) // provider:deviceUid
                 .role(role) // RoleType Enum
                 .expiresAt(expiresAt) // Refresh Token 만료 절대 시간
@@ -410,7 +412,6 @@ public class AuthService {
                 .userId(user.getId())
                 .authAccountId(authAccount.getId())
                 .provider(authAccount.getProvider())
-                .accountCode(user.getAccountCode())
                 .hashedDeviceUid(authAccount.getHashedDeviceUid()) // authAccount에 들어있는 deviceUid는 해싱된 상태이다.
                 .role(user.getRole())
                 .build();

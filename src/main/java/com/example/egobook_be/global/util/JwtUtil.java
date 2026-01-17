@@ -57,12 +57,14 @@ public class JwtUtil {
     // 1. [Create] DB 데이터(CustomUserDetails)를 이용한 토큰 생성
     // ===============================================================
     /**
-     * Access Token 생성 함수 - DB에 있는 값 이용
+     * Access Token 생성 함수 - DB에 있는 값 이용 (Access Token에는 다른 토큰들보다 2개의 Claim이 더 들어간다.)
      * @param userDetails CustomUserDetails
      * @return String 액세스 토큰
      */
     public TokenInfo createAccessToken(CustomUserDetails userDetails) {
         return createToken(
+                userDetails.getUserAuthDto().userId(), // PK 전달
+                userDetails.getUserAuthDto().authAccountId(), // PK 전달
                 userDetails.getUsername(),
                 extractAuthorities(userDetails),
                 accessExpiration,
@@ -76,6 +78,7 @@ public class JwtUtil {
      */
     public TokenInfo createRefreshToken(CustomUserDetails userDetails) {
         return createToken(
+                null, null,
                 userDetails.getUsername(),
                 extractAuthorities(userDetails),
                 refreshExpiration,
@@ -89,6 +92,7 @@ public class JwtUtil {
      */
     public TokenInfo createRecoverToken(CustomUserDetails userDetails) {
         return createToken(
+                null, null,
                 userDetails.getUsername(),
                 extractAuthorities(userDetails),
                 recoverExpiration,
@@ -104,8 +108,10 @@ public class JwtUtil {
      * @param role : 사용자 권한
      * @return String 액세스 토큰
      */
-    public TokenInfo createAccessToken(String subject, RoleType role) {
+    public TokenInfo createAccessToken(Long userId, Long authAccountId, String subject, RoleType role) {
         return createToken(
+                userId,
+                authAccountId,
                 subject,
                 role.name(), // Enum -> String 변환
                 accessExpiration,
@@ -121,6 +127,7 @@ public class JwtUtil {
      */
     public TokenInfo createRefreshToken(String subject, RoleType role) {
         return createToken(
+                null, null,
                 subject,
                 role.name(), // Enum -> String 변환
                 refreshExpiration,
@@ -136,12 +143,14 @@ public class JwtUtil {
     // ===============================================================
     /**
      * JWT Token을 생성하는 함수
+     * @param userId : 사용자 전용 PK
+     * @param authAccountId : AuthAccount Pk
      * @param subject Provider:HashedDeviceUid
      * @param expiration Duration. 유효기간
      * @param type 해당 토큰의 유형.
      * @return
      */
-    private TokenInfo createToken(String subject, String role, Duration expiration, JwtTokenType type) {
+    private TokenInfo createToken(Long userId, Long authAccountId, String subject, String role, Duration expiration, JwtTokenType type) {
         /*
          * 1. 현재 순간의 정보들을 Instant로 가져온다.
          * Instant: 타임라인 상의 특정 순간을 나타낸다.
@@ -160,23 +169,28 @@ public class JwtUtil {
         // 4. UUID를 생성하여 Jti로 할당
         String jti = UUID.randomUUID().toString();
 
-        // 5. Jwt Token 생성
-        String token = Jwts.builder()
+        // 5. Jwt Builder 생성
+        JwtBuilder builder = Jwts.builder()
                 .id(jti) // Jwt Id 설정
                 .subject(subject)                      // "provider:deviceUid" 형식의 융합 키
                 .claim("role", role)     // Custom Claim: 사용자 권한
                 .claim("type", type.toString())     // Custom Claim: 토큰 타입
                 .issuedAt(nowDate)                     // 발행 시간
                 .expiration(expirationDate)            // 만료 시간
-                .signWith(secretKey)                   // 서명
-                .compact();
+                .signWith(secretKey);                   // 서명
+
+        // 6. Access Token일 때만 ID 정보들을 Claim에 추가한다.
+        if (JwtTokenType.ACCESS.equals(type)) {
+            if (userId != null) builder.claim("userId", userId);
+            if (authAccountId != null) builder.claim("authAccountId", authAccountId);
+        }
 
         /*
-         * 6. TokenInfo로 묶어서 반환 (LocalDateTime 사용)
+         * 7. TokenInfo로 묶어서 반환 (LocalDateTime 사용)
          * Service에서 해당 토큰의 만료 시간을 알아야 하기에, TokenInfo Dto에 해당 값을 LocalDateTime으로 저장해서 반환한다.
          */
         return TokenInfo.builder()
-                .token(token)
+                .token(builder.compact())
                 .expiresAt(expiresAt)
                 .build();
     }
@@ -186,13 +200,32 @@ public class JwtUtil {
      * @return Provider:HashedDeviceUid
      */
     public String createSubject(Provider provider, String hashedDeviceUid) {
-        return provider.toString() + hashedDeviceUid;
+        return provider.toString() + ":" + hashedDeviceUid;
     }
 
 
     // ===============================================================
     // [Getter]
     // ===============================================================
+
+    /**
+     * Token에 담겨있는 Claim들 중 User Id 정보를 추출해서 가져오는 함수
+     * @param token :JWT Token
+     * @return User Id
+     */
+    public Long getUserIdFromToken(String token) {
+        return getPayload(token).get("userId", Long.class);
+    }
+
+    /**
+     * Token에 담겨있는 Claim들 중 AuthAccount Id 정보를 추출해서 가져오는 함수
+     * @param token :JWT Token
+     * @return AuthAccount Id
+     */
+    public Long getAuthAccountIdFromToken(String token) {
+        return getPayload(token).get("authAccountId", Long.class);
+    }
+
     /**
      * Token에 담겨있는 Claim들 중 subject 정보를 추출해서 가져오는 함수
      * @param token JWT Token
@@ -200,6 +233,15 @@ public class JwtUtil {
      */
     public String getSubjectFromToken(String token) {
         return getPayload(token).getSubject(); // subject: 해당 토큰이 누구에 대한 것인지를 지정함
+    }
+
+    /**
+     * Token에 담겨있는 Claim들 중 role 정보를 추출해서 String으로 가져오는 함수
+     * @param token Jwt Token
+     * @return 해당 토큰에 저장되어있는 Role
+     */
+    public String getRoleFromToken(String token) {
+        return getPayload(token).get("role").toString();
     }
 
     /**
