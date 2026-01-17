@@ -55,13 +55,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
-        /**
+        /*
          * 1. Request Header에서 토큰 추출
          * - Authorization Header에서 토큰만 추출한다.
          */
         String token = resolveToken(request);
 
-        /**
+        /*
          * 토큰이 없다면 바로 다음 필터로 넘김 (비로그인 허용 엔드포인트 등을 위해)
          */
         if (token == null) {
@@ -70,11 +70,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         try {
-            /**
+            /*
              * 2. 토큰 유효성 검증 (위조, 만료 등 확인)
              */
             if (jwtUtil.validateToken(token)) {
-                /**
+                /*
                  * 3. JwtTokenType을 가져와 Access Token인지 확인한다.
                  * - Refresh Token으로는 API 접근이 불가하도록 설정한다.
                  * - Access Token이 아닌 다른 토큰(Refresh, Recover)으로 요청이 왔다면 에러 로그 & 예외를 발생시킨다.
@@ -85,17 +85,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     throw new CustomException(AuthErrorCode.ACCESS_WITH_NON_ACCESS_TYPE_TOKEN);
                 }
 
-                /**
+                /*
                  * 4. Access 토큰에서 사용자 식별자(Subject) 추출 (형식: "provider:deviceUid")
                  */
                 String compositeKey = jwtUtil.getSubjectFromToken(token);
 
-                /**
+                /*
                  * 5. CustomUserDetailService를 통해 유저 정보(UserDetails) 로드
                  */
                 UserDetails userDetails = customUserDetailService.loadUserByUsername(compositeKey);
 
-                /**
+                /*
                  * 6. 인증 객체(Authentication) 생성
                  * UsernamePasswordAuthenticationToken: Spring Security 표준 인증 객체
                  * 비밀번호(credentials)는 이미 토큰 검증으로 대체되었으므로 null 처리
@@ -103,14 +103,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
-                /**
+                /*
                  * 7. SecurityContext에 인증 객체 저장 (로그인 처리 완료)
                  * - SecurityContext에 저장된 해당 인증 객체는 한번의 요청에서 사용되고 삭제된다.
                  */
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 log.debug("Security Context에 '{}' 인증 정보를 저장했습니다.", compositeKey);
 
-                // 7. 다음 필터로 요청 전달
+                // 8. 다음 필터로 요청 전달
                 filterChain.doFilter(request, response);
             }
         } catch (CustomException e) {

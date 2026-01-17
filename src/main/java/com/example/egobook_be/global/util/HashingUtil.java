@@ -33,32 +33,32 @@ public class HashingUtil {
      */
     public String hashingValue(String value) {
         try {
-            /**
+            /*
              * 1. 자바의 보안 팩토리에서 Mac(메시지 인증 코드) 생성 기계 빌려오기
              * - Mac Class: 데이터의 무결성을 검증하고 인증하는 데 사용되는 암호화 엔진
              * - Mac.getInstance(ALGORITHM): HmacSHA256 알고리즘을 처리할 수 있는 기계를 요청하는 것
              */
             Mac mac = Mac.getInstance(ALGORITHM);
 
-            /**
+            /*
              * 2. salt 값을 암호화 알고리즘이 이해할 수 있는 Key 객체(SecretKeySpec)로 변환한다.
              * salt의 byte값(utf-8)을 받아 SecretKeySpec 인스턴스를 생성한다.
              * - SecretKeySpec: 단순한 byte 배열(bute[])을 자바가 이해할 수 있는 Key 객체로 변환해주는 Wrapper
              */
             SecretKeySpec secretKeySpec = new SecretKeySpec(salt.getBytes(StandardCharsets.UTF_8), ALGORITHM);
 
-            /**
+            /*
              * 3. 준비된 암호화 엔진(Mac)에 비밀키를 초기화한다.
              */
             mac.init(secretKeySpec);
 
-            /**
+            /*
              * 4. 암호화 엔진에 value 값을 넣어 암호화된 Byte 배열로 변환한다.
              * - mac.doFinal(...): 입력받은 byte 배열과 비밀키(salt)를 SHA-256 알고리즘으로 섞는다.
              */
             byte[] hashBytes = mac.doFinal(value.getBytes(StandardCharsets.UTF_8));
 
-            /**
+            /*
              * 5. byte 배열(이진 데이터)을 Base64(ASCII)로 인코딩한다.
              */
             return Base64.getEncoder().encodeToString(hashBytes);

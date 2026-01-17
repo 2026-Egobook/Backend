@@ -36,7 +36,7 @@ public class CustomUserDetailService implements UserDetailsService {
     @Override
     @Transactional(readOnly = true) // readOnly 설정을 킴으로써 Dirty Checking 수행 안함
     public UserDetails loadUserByUsername(String compositeKey) {
-        /**
+        /*
          * 1. 전달받은 "provider:deviceUid" 형식의 혼합 키(Jwt에 지정된 Subject)를 ":" 기준으로 분리한다(문자열 파싱).
          * - 분리한 코드들을 각각 providerStr, deviceUid에 지정한다.
          *
@@ -49,7 +49,7 @@ public class CustomUserDetailService implements UserDetailsService {
         String providerStr = seperated[0];
         String deviceUid = seperated[1];
 
-        /**
+        /*
          * 2. providerStr을 Provider Enum Class로 변환한다.
          * - Provider 내부에 선언되어있는 resolve 함수를 사용하여, 해당 문자열이 Provider 내부에 존재하는 Enum인지 확인한다.
          * - 존재한다면 Provider 객체를, 없다면 null을 반환한다.
@@ -59,7 +59,7 @@ public class CustomUserDetailService implements UserDetailsService {
             throw new CustomException(AuthErrorCode.INVALID_PROVIDER);
         }
 
-        /**
+        /*
          * 3. deviceUid, AuthAccountRepository로 기기 정보를 조회한다.
          * - AuthAccountRepository에서 fetch join으로 영속성 컨텍스트에 User 정보까지 같이 가져온 상태이다.
          * throw 해당 UID 기기를 찾을 수 없다는 예외
@@ -67,7 +67,7 @@ public class CustomUserDetailService implements UserDetailsService {
         AuthAccount authAccount = authAccountRepository.findByDeviceUidAndProvider(deviceUid, provider)
                 .orElseThrow(() -> new CustomException(AuthErrorCode.UID_NOT_FOUND));
 
-        /**
+        /*
          * 4. 해당 인증 데이터가 User와 연결되어있는지 확인한다.
          * - User가 연결 안되어있는 고아객체인지 확인
          * throw AuthAccount에 연결된 user가 누락되었다는 예외
@@ -78,7 +78,7 @@ public class CustomUserDetailService implements UserDetailsService {
             throw new CustomException(AuthErrorCode.AUTH_ACCOUNT_USER_MISSING);
         }
 
-        /**
+        /*
          * 5. Entity -> DTO 변환
          * - 인증 객체(CustomUserDetails)에 엔티티를 직접 넣지 않고, 필요한 데이터만 담은 DTO로 변환하여 주입한다.
          * - 위에서 영속성 컨텍스트로 AuthAccount에 User도 같이 가져왔기에, N+1 문제가 발생하지 않는다.
@@ -92,7 +92,7 @@ public class CustomUserDetailService implements UserDetailsService {
                 .role(user.getRole())           // 사용자 권한 (RoleType)
                 .build();
 
-        /**
+        /*
          * 6. CustomUserDetails 생성 후 반환
          */
         return new CustomUserDetails(userAuthDto);

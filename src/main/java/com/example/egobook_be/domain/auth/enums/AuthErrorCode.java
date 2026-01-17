@@ -17,6 +17,7 @@ public enum AuthErrorCode implements BaseErrorCode {
     INVALID_TYPE_TOKEN(HttpStatus.BAD_REQUEST, "유효하지 않은 토큰 형식입니다."),
     INVALID_PROVIDER(HttpStatus.BAD_REQUEST, "유효하지 않은 Provider명입니다."),
     UNFULFILLED_REQUEST_VALUES(HttpStatus.BAD_REQUEST, "요청 값이 전부 충족되지 않았습니다."),
+    INVALID_RECOVER_TOKEN(HttpStatus.BAD_REQUEST, "유효하지 않은 Recover Token으로 Refresh Token 복원 시도를 하였습니다."),
 
     /**
      * 401 UNAUTHORIZED: 인증되지 않음

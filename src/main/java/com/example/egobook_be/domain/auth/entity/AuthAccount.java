@@ -52,8 +52,9 @@ public class AuthAccount extends BaseTimeEntity {
     @Column(name = "hashed_recover_token", length = 1000)
     private String hashedRecoverToken;
 
-    // ========= 연관관계 매핑 ========= //
-
+    // =====================================================================
+    // [연관관계 매핑]
+    // =====================================================================
     /**
      * [Account -> User 단방향 Lazy Loading]
      * User -> AuthAccount으로의 양방향 매핑을 하지 않았음
@@ -111,7 +112,7 @@ public class AuthAccount extends BaseTimeEntity {
      * 복구 토큰 업데이트를 위한 비즈니스 메서드
      * @param hashedRecoverToken
      */
-    public void updateRecoverToken(String hashedRecoverToken) {
+    public void updateHashedRecoverToken(String hashedRecoverToken) {
         this.hashedRecoverToken = hashedRecoverToken;
     }
 }

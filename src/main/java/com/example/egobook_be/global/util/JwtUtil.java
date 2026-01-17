@@ -142,7 +142,7 @@ public class JwtUtil {
      * @return
      */
     private TokenInfo createToken(String subject, String role, Duration expiration, JwtTokenType type) {
-        /**
+        /*
          * 1. 현재 순간의 정보들을 Instant로 가져온다.
          * Instant: 타임라인 상의 특정 순간을 나타낸다.
          * - 즉, 절대적인 시간을 다룰 때 사용하는 표준이다.
@@ -150,25 +150,17 @@ public class JwtUtil {
         Instant now = Instant.now();
         Instant expiresInstant = now.plus(expiration);
 
-        /**
-         * 2. JWT 생성을 위한 Date 변환
-         */
+        // 2. JWT 생성을 위한 Date 변환
         Date nowDate = Date.from(now);
         Date expirationDate = Date.from(expiresInstant);
 
-        /**
-         * 3. Service/DB 반환을 위해, expirationDate을 Date -> LocalDateTime으로 변경한다.
-         */
+        // 3. Service/DB 반환을 위해, expirationDate을 Date -> LocalDateTime으로 변경한다.
         LocalDateTime expiresAt = LocalDateTime.ofInstant(expiresInstant, ZoneId.systemDefault());
 
-        /**
-         * 4. UUID를 생성하여 Jti로 할당
-         */
+        // 4. UUID를 생성하여 Jti로 할당
         String jti = UUID.randomUUID().toString();
 
-        /**
-         * 5. Jwt Token 생성
-         */
+        // 5. Jwt Token 생성
         String token = Jwts.builder()
                 .id(jti) // Jwt Id 설정
                 .subject(subject)                      // "provider:deviceUid" 형식의 융합 키
@@ -179,7 +171,7 @@ public class JwtUtil {
                 .signWith(secretKey)                   // 서명
                 .compact();
 
-        /**
+        /*
          * 6. TokenInfo로 묶어서 반환 (LocalDateTime 사용)
          * Service에서 해당 토큰의 만료 시간을 알아야 하기에, TokenInfo Dto에 해당 값을 LocalDateTime으로 저장해서 반환한다.
          */

@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Email;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 @Entity
 @Builder
@@ -99,12 +100,12 @@ public class User extends BaseTimeEntity {
 
     /**
      * 사용자가 탈퇴를 수행했을 때, 바로 삭제하지 않고 실제 삭제 예정 날짜를 설정하는 함수입니다.
-     * @param purgeTime : 실제 완전 삭제가 될 날짜
+     * @param purgeDurationInMs : 완전 삭제까지의 기간(일주일)
      */
-    public void deleteUser(LocalDateTime purgeTime) {
+    public void deleteUser(Long purgeDurationInMs) {
         this.status = UserStatus.DELETED_PENDING;
         this.deletedAt = LocalDateTime.now();
-        this.purgeAt = purgeTime;
+        this.purgeAt = this.deletedAt.plus(purgeDurationInMs, ChronoUnit.MILLIS);
     }
 
 

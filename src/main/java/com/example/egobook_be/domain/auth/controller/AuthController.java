@@ -2,6 +2,7 @@ package com.example.egobook_be.domain.auth.controller;
 
 
 import com.example.egobook_be.domain.auth.dto.req.GuestJoinReqDto;
+import com.example.egobook_be.domain.auth.dto.req.GuestRecertificationReqDto;
 import com.example.egobook_be.domain.auth.dto.req.GuestRefreshReqDto;
 import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
 import com.example.egobook_be.domain.auth.sevice.AuthService;
@@ -37,12 +38,21 @@ public class AuthController implements AuthControllerDocs{
     @Override
     public ResponseEntity<GlobalResponse<JwtTokenResDto>> guestRefresh(@RequestBody @Valid GuestRefreshReqDto reqDto) {
         JwtTokenResDto jwtTokenResDto = authService.refreshGuestToken(reqDto);
-
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(GlobalResponse.success("Access Token이 정상적으로 갱신되었습니다.", jwtTokenResDto));
+                .body(GlobalResponse.success("Access Token이 정상적으로 재발급되었습니다.", jwtTokenResDto));
     }
 
-
+    /**
+     * [Guest Refresh 토큰 재발급]
+     * Post /auth/guest/recertification
+     */
+    @Override
+    public ResponseEntity<GlobalResponse<JwtTokenResDto>> guestRecertification(@RequestBody @Valid GuestRecertificationReqDto reqDto){
+        JwtTokenResDto jwtTokenResDto = authService.recertificationGuestToken(reqDto);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(GlobalResponse.success("Access/Refresh/Recover Token이 정상적으로 재발급되었습니다.", jwtTokenResDto));
+    }
 
 }

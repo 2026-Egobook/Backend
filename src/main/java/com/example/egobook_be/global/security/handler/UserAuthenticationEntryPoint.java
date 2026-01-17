@@ -37,14 +37,14 @@ public class UserAuthenticationEntryPoint implements AuthenticationEntryPoint {
     public void commence(HttpServletRequest request,
                          HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
-        /**
+        /*
          * 1. 로그 기록
          * - 어떤 url 요청에서 어떤 오류가 발생했는지 서버 로그 찍기
          */
         String requestURI = request.getRequestURI();
         log.warn("[인증 실패] 접근 시도 URL: {}, Error: {}", requestURI, authException.getMessage());
 
-        /**
+        /*
          * 2. 응답 메시지 구성
          * - HttpServletResponse 객체에 반환 형식을 지정한다.
          */
