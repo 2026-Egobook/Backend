@@ -1,9 +1,7 @@
 package com.example.egobook_be.domain.user.entity;
 
-import com.example.egobook_be.domain.auth.entity.AuthAccount;
 import com.example.egobook_be.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -108,5 +106,7 @@ public class User extends BaseTimeEntity {
         this.purgeAt = this.deletedAt.plus(purgeDurationInMs, ChronoUnit.MILLIS);
     }
 
-
+    public void addInk(int amount) {
+        this.ink += amount;
+    }
 }
