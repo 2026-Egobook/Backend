@@ -1,6 +1,7 @@
 package com.example.egobook_be.domain.question.controller;
 
 import com.example.egobook_be.domain.question.dto.AnswerCreateReqDto;
+import com.example.egobook_be.domain.question.dto.AnswerUpdateReqDto;
 import com.example.egobook_be.domain.question.dto.PublicAnswerResDto;
 import com.example.egobook_be.domain.question.dto.TodayQuestionResDto;
 import com.example.egobook_be.domain.question.service.TodayQuestionService;
@@ -75,6 +76,23 @@ public class TodayQuestionController {
                         "오늘의 질문 PUBLIC 답변 조회 성공",
                         todayQuestionService.getPublicAnswers()
                 )
+        );
+    }
+
+    @Operation(
+            summary = "답변 수정",
+            description = """
+                오늘의 질문에 대한 자신의 답변을 수정합니다.
+                """
+    )
+    @PutMapping("/answers")
+    public ResponseEntity<GlobalResponse<Void>> updateAnswer(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestBody @Valid AnswerUpdateReqDto reqDto
+    ) {
+        todayQuestionService.updateAnswer(userId, reqDto);
+        return ResponseEntity.ok(
+                GlobalResponse.success("답변 수정 완료", null)
         );
     }
 }

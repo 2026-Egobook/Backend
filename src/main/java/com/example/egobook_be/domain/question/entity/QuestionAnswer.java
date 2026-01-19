@@ -42,4 +42,9 @@ public class QuestionAnswer extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private AnswerVisibility visibility;
+
+    public void update(String content, AnswerVisibility visibility) {
+        this.content = content;
+        this.visibility = visibility;
+    }
 }
