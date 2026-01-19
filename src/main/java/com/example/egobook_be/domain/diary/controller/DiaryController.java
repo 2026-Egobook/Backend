@@ -16,11 +16,15 @@ import java.time.LocalDate;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/diaries")
-public class DiaryController {
+public class DiaryController implements DiaryControllerDocs{
 
     private final DiaryService diaryService;
 
-    @PostMapping("")
+    /**
+     * [감정 일기 생성]
+     * POST /diaries
+     */
+    @Override
     public ResponseEntity<GlobalResponse<DiaryCreateResDto>> createDiary(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @RequestBody @Valid DiaryCreateReqDto dto
@@ -30,7 +34,11 @@ public class DiaryController {
         );
     }
 
-    @GetMapping("")
+    /**
+     * [작성된 감정 일기 목록]
+     * GET /diaries
+     */
+    @Override
     public ResponseEntity<GlobalResponse<DiaryListResDto>> getDiaries(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @RequestParam
@@ -42,7 +50,11 @@ public class DiaryController {
         );
     }
 
-    @GetMapping("/{diaryId}")
+    /**
+     * [작성된 감정 일기 상세 확인]
+     * GET /diaries/{diaryId}
+     */
+    @Override
     public ResponseEntity<GlobalResponse<DiaryResDto>> getDiary(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @PathVariable Long diaryId
@@ -52,7 +64,11 @@ public class DiaryController {
         );
     }
 
-    @PatchMapping("/{diaryId}")
+    /**
+     * [감정 일기 수정]
+     * PATCH /diaries/{diaryId}
+     */
+    @Override
     public ResponseEntity<GlobalResponse<DiaryResDto>> updateDiary(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @PathVariable Long diaryId,
@@ -63,7 +79,11 @@ public class DiaryController {
         );
     }
 
-    @DeleteMapping("/{diaryId}")
+    /**
+     * [감정 일기 삭제]
+     * DELETE /diaries/{diaryId}
+     */
+    @Override
     public ResponseEntity<GlobalResponse<Boolean>> deleteDiary(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @PathVariable Long diaryId
