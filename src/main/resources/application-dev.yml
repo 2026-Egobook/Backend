@@ -44,6 +44,10 @@ management:
       show-details: always # 상세 정보(DB 에러 내용 등) 표시 O
 
 app:
+  oauth:
+    google:
+      android-client-ids: ${DEV_ANDROID_CLIENT_IDS}
+
   auth:
     # HashingUtil(HmacSHA256 방식 Hashing)을 위한 설정값
     device-salt: ${DEV_SALT}

@@ -1,6 +1,7 @@
 package com.example.egobook_be.domain.auth.controller;
 
 
+import com.example.egobook_be.domain.auth.dto.req.GoogleJoinReqDto;
 import com.example.egobook_be.domain.auth.dto.req.GuestJoinReqDto;
 import com.example.egobook_be.domain.auth.dto.req.GuestRecertificationReqDto;
 import com.example.egobook_be.domain.auth.dto.req.GuestRefreshReqDto;
@@ -53,6 +54,18 @@ public class AuthController implements AuthControllerDocs{
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(GlobalResponse.success("Access/Refresh/Recover Token이 정상적으로 재발급되었습니다.", jwtTokenResDto));
+    }
+
+    /**
+     * [Google 회원가입]
+     * Post /auth/google/join
+     */
+    @Override
+    public ResponseEntity<GlobalResponse<JwtTokenResDto>> googleJoin(@RequestBody @Valid GoogleJoinReqDto reqDto){
+        JwtTokenResDto jwtTokenResDto = authService.registerGoogle(reqDto);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(GlobalResponse.success("Google 회원가입 성공.", jwtTokenResDto));
     }
 
 }

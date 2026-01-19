@@ -36,8 +36,7 @@ public class AuthAccount extends BaseTimeEntity {
     /**
      * HmacSHA256 방식으로 해싱된 deviceUid
      * **주의사항**
-     * - Provider가 GOOGLE인 경우, 접속된 기기가 달라진 경우, deviceUid는 매번 달라집니다.
-     * - Google로 다른 기기에서 접속한 경우, 이전 기기에서는 더이상 접속할 수 없도록 하기 위함입니다. (동시성 문제 해결)
+     * - Provider가 Google일 때, 해당 필드는 hashed_device_uid가 아니라 hashed_google_sub로서 동작한다.
      */
     @Column(name = "hashed_device_uid", nullable = false)
     private String hashedDeviceUid;
