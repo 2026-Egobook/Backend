@@ -74,4 +74,16 @@ public interface QuestionAnswerRepository extends JpaRepository<QuestionAnswer, 
             @Param("visibility") AnswerVisibility visibility,
             Pageable pageable
     );
+
+    @Query("""
+        select qa
+        from QuestionAnswer qa
+        join fetch qa.question q
+        where qa.user = :user
+        order by qa.createdAt desc
+    """)
+    Slice<QuestionAnswer> findMyAnswerHistorySlice(
+            @Param("user") User user,
+            Pageable pageable
+    );
 }
