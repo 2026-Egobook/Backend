@@ -71,7 +71,12 @@ public class User extends BaseTimeEntity {
 
     // ========= 연관관계 매핑 ========= //
 
-
+    @OneToOne(
+            mappedBy = "user",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private Ability ability;
 
 
     // ========= Entity 비즈니스 메서드 ========= //

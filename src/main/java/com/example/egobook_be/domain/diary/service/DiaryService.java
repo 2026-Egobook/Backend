@@ -6,6 +6,7 @@ import com.example.egobook_be.domain.diary.enums.DiaryType;
 import com.example.egobook_be.domain.diary.enums.RewardType;
 import com.example.egobook_be.domain.diary.exception.DiaryErrorCode;
 import com.example.egobook_be.domain.diary.repository.DiaryRepository;
+import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
@@ -108,16 +109,29 @@ public class DiaryService {
             ));
         }
 
+        Ability ability = user.getAbility();
+
         if (isFirstConcernToday) {
+            ability.addEmotionRegulation(1);
             rewards.add(new DiaryCreateResDto.RewardResDto(
                     RewardType.EMOTION_REGULATION, 1, "고민 일기를 작성하여 감정조절이 상승했어요"
             ));
         }
 
         if (isFirstPositiveToday) {
-            rewards.add(new DiaryCreateResDto.RewardResDto(
-                    RewardType.POSITIVE_THINKING, 1, "감사 혹은 칭찬 일기를 작성하여 긍정적 사고가 상승했어요"
-            ));
+            int amount = 1;
+            ability.addPositiveThinking(1);
+            if (dto.type().contains(DiaryType.PRAISE)) {
+                rewards.add(new DiaryCreateResDto.RewardResDto(
+                        RewardType.POSITIVE_THINKING, amount, "오늘 첫 칭찬 일기를 작성하여 긍정적 사고가 상승했어요"
+                ));
+                amount = 0;
+            }
+            if (dto.type().contains(DiaryType.GRATITUDE)) {
+                rewards.add(new DiaryCreateResDto.RewardResDto(
+                        RewardType.POSITIVE_THINKING, amount, "오늘 첫 감사 일기를 작성하여 긍정적 사고가 상승했어요"
+                ));
+            }
         }
 
         return DiaryCreateResDto.builder()
