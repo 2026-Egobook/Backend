@@ -9,18 +9,6 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum DiaryErrorCode implements BaseErrorCode {
 
-    USER_NOT_FOUND(
-            "DIARY_404_001",
-            "해당 사용자를 찾을 수 없습니다.",
-            HttpStatus.NOT_FOUND
-    ),
-
-    DIARY_NOT_FOUND(
-            "DIARY_404_002",
-            "일기를 찾을 수 없습니다.",
-            HttpStatus.NOT_FOUND
-    ),
-
     DIARY_EMOTION_LEVEL_REQUIRED(
             "DIARY_400_001",
             "EMOTION 타입 선택 시 감정 레벨이 필요합니다.",
@@ -30,12 +18,6 @@ public enum DiaryErrorCode implements BaseErrorCode {
     DIARY_EMOTION_LEVEL_INVALID(
             "DIARY_400_002",
             "감정 레벨은 1부터 5 사이여야 합니다.",
-            HttpStatus.BAD_REQUEST
-    ),
-
-    DIARY_EMOTION_LEVEL_NOT_ALLOWED(
-            "DIARY_400_005",
-            "감정 레벨을 선택할 수 없습니다.",
             HttpStatus.BAD_REQUEST
     ),
 
@@ -51,10 +33,34 @@ public enum DiaryErrorCode implements BaseErrorCode {
             HttpStatus.BAD_REQUEST
     ),
 
+    DIARY_EMOTION_LEVEL_NOT_ALLOWED(
+            "DIARY_400_005",
+            "감정 레벨을 선택할 수 없습니다.",
+            HttpStatus.BAD_REQUEST
+    ),
+
+    DIARY_TYPE_REQUIRED(
+            "DIARY_400_006",
+            "일기 유형을 최소 1개 이상 선택해야 합니다.",
+            HttpStatus.BAD_REQUEST
+    ),
+
     DIARY_ACCESS_DENIED(
             "DIARY_403_001",
             "해당 일기에 접근할 권한이 없습니다.",
             HttpStatus.FORBIDDEN
+    ),
+
+    USER_NOT_FOUND(
+            "DIARY_404_001",
+            "해당 사용자를 찾을 수 없습니다.",
+            HttpStatus.NOT_FOUND
+    ),
+
+    DIARY_NOT_FOUND(
+            "DIARY_404_002",
+            "일기를 찾을 수 없습니다.",
+            HttpStatus.NOT_FOUND
     ),
     ;
 

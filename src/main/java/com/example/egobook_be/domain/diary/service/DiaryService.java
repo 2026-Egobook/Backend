@@ -34,6 +34,11 @@ public class DiaryService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(DiaryErrorCode.USER_NOT_FOUND));
 
+        // 일기 타입 선택 검증
+        if (dto.type() == null || dto.type().isEmpty()) {
+            throw new CustomException(DiaryErrorCode.DIARY_TYPE_REQUIRED);
+        }
+
         // '감정(EMOTION)' 일기 감정 레벨 검증
         if (dto.type().contains(DiaryType.EMOTION)) {
             if (dto.emotionLevel() == null) {
@@ -162,6 +167,11 @@ public class DiaryService {
 
         if (!diary.getUser().getId().equals(userId)) {
             throw new CustomException(DiaryErrorCode.DIARY_ACCESS_DENIED);
+        }
+
+        // 일기 타입 선택 검증
+        if (dto.type() == null || dto.type().isEmpty()) {
+            throw new CustomException(DiaryErrorCode.DIARY_TYPE_REQUIRED);
         }
 
         // '감정(EMOTION)' 일기 감정 레벨 검증
