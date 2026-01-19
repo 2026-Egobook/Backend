@@ -65,7 +65,7 @@ public class CustomUserDetailService implements UserDetailsService {
          * throw 해당 UID 기기를 찾을 수 없다는 예외
          */
         AuthAccount authAccount = authAccountRepository.findByDeviceUidAndProvider(deviceUid, provider)
-                .orElseThrow(() -> new CustomException(AuthErrorCode.UID_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
 
         /*
          * 4. 해당 인증 데이터가 User와 연결되어있는지 확인한다.

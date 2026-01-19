@@ -1,9 +1,7 @@
 package com.example.egobook_be.domain.auth.controller;
 
 
-import com.example.egobook_be.domain.auth.dto.req.GuestJoinReqDto;
-import com.example.egobook_be.domain.auth.dto.req.GuestRecertificationReqDto;
-import com.example.egobook_be.domain.auth.dto.req.GuestRefreshReqDto;
+import com.example.egobook_be.domain.auth.dto.req.*;
 import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
 import com.example.egobook_be.domain.auth.sevice.AuthService;
 import com.example.egobook_be.global.response.GlobalResponse;
@@ -32,11 +30,23 @@ public class AuthController implements AuthControllerDocs{
     }
 
     /**
-     * [Guest Access 토큰 재발급]
-     * Post /auth/guest/refresh
+     * [Google 회원가입]
+     * Post /auth/google/join
      */
     @Override
-    public ResponseEntity<GlobalResponse<JwtTokenResDto>> guestRefresh(@RequestBody @Valid GuestRefreshReqDto reqDto) {
+    public ResponseEntity<GlobalResponse<JwtTokenResDto>> googleJoin(@RequestBody @Valid GoogleJoinReqDto reqDto){
+        JwtTokenResDto jwtTokenResDto = authService.registerGoogle(reqDto);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(GlobalResponse.success("Google 회원가입 성공.", jwtTokenResDto));
+    }
+
+    /**
+     * [Access 토큰 재발급]
+     * Post /auth/refresh
+     */
+    @Override
+    public ResponseEntity<GlobalResponse<JwtTokenResDto>> refreshAccessToken(@RequestBody @Valid RefreshReqDto reqDto) {
         JwtTokenResDto jwtTokenResDto = authService.refreshGuestToken(reqDto);
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -53,6 +63,18 @@ public class AuthController implements AuthControllerDocs{
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(GlobalResponse.success("Access/Refresh/Recover Token이 정상적으로 재발급되었습니다.", jwtTokenResDto));
+    }
+
+    /**
+     * [Google Refresh 토큰 재발급]
+     * Post /auth/google/recertification
+     */
+    @Override
+    public ResponseEntity<GlobalResponse<JwtTokenResDto>> googleRecertification(@RequestBody @Valid GoogleRecertificationReqDto reqDto){
+        JwtTokenResDto jwtTokenResDto = authService.recertificationGoogleToken(reqDto);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(GlobalResponse.success("Access/Refresh Token이 정상적으로 재발급되었습니다.", jwtTokenResDto));
     }
 
 }

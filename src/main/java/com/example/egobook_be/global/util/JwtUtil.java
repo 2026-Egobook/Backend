@@ -220,7 +220,7 @@ public class JwtUtil {
     /**
      * Token에 담겨있는 Claim들 중 AuthAccount Id 정보를 추출해서 가져오는 함수
      * @param token :JWT Token
-     * @return AuthAccount Id
+     * @return AuthAccount PK
      */
     public Long getAuthAccountIdFromToken(String token) {
         return getPayload(token).get("authAccountId", Long.class);

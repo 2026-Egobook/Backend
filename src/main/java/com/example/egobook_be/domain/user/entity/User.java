@@ -64,6 +64,7 @@ public class User extends BaseTimeEntity {
     private Boolean dailyPraise = true; // AI 칭찬서 수신 여부 (기본값 true)
 
     @Column(name = "weekly_report_style")
+    @Enumerated(EnumType.STRING)
     @Builder.Default
     private WeeklyReportStyle weeklyReportStyle = WeeklyReportStyle.SOFT; // 주간 AI 상담서 스타일 (다음주 상담 스타일. 기본은 "부드러움")
 
@@ -98,6 +99,7 @@ public class User extends BaseTimeEntity {
         this.nickname = newNickname;
     }
 
+    public void updateEmail(String newEmail) {this.email = newEmail;}
     /**
      * 사용자가 탈퇴를 수행했을 때, 바로 삭제하지 않고 실제 삭제 예정 날짜를 설정하는 함수입니다.
      * @param purgeDurationInMs : 완전 삭제까지의 기간(일주일)

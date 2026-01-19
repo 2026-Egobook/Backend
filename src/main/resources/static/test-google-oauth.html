@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8"> <title>Google OAuth Test</title>
+</head>
+<body>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  
+  <div id="g_id_onload"
+       data-client_id="401138447452-er7cueaj1resfjjs8v6g99hma73f92bc.apps.googleusercontent.com"
+       data-callback="handleCredentialResponse"
+       data-auto_prompt="false">
+  </div>
+  
+  <div class="g_id_signin" data-type="standard"></div>
+
+  <h3>Console(F12)을 열어서 ID Token을 확인하세요.</h3>
+
+  <script>
+    function handleCredentialResponse(response) {
+      console.log("============== ID TOKEN ==============");
+      console.log(response.credential); // 이 값이 우리가 필요한 idToken입니다.
+      console.log("======================================");
+      alert("토큰이 콘솔에 출력되었습니다! F12를 눌러 확인하세요.");
+    }
+  </script>
+</body>
+</html>

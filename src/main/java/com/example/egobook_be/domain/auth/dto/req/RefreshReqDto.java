@@ -11,7 +11,7 @@ import lombok.extern.jackson.Jacksonized;
  */
 @Builder
 @Jacksonized
-public record GuestRefreshReqDto(
+public record RefreshReqDto(
         @Schema(description = "만료되지 않은 Refresh Token (Bearer 제외)", example = "eyJhbGciOiJIUzI1NiJ9...")
         @NotBlank(message = "Refresh Token은 필수입니다.")
         String refreshToken
