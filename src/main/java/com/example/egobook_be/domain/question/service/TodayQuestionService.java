@@ -1,9 +1,11 @@
 package com.example.egobook_be.domain.question.service;
 
 import com.example.egobook_be.domain.question.dto.AnswerCreateReqDto;
+import com.example.egobook_be.domain.question.dto.PublicAnswerResDto;
 import com.example.egobook_be.domain.question.dto.TodayQuestionResDto;
 import com.example.egobook_be.domain.question.entity.QuestionAnswer;
 import com.example.egobook_be.domain.question.entity.TodayQuestion;
+import com.example.egobook_be.domain.question.enums.AnswerVisibility;
 import com.example.egobook_be.domain.question.exception.QuestionErrorCode;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
 import com.example.egobook_be.domain.question.repository.TodayQuestionRepository;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -80,5 +83,29 @@ public class TodayQuestionService {
                         .visibility(reqDto.visibility())
                         .build()
         );
+    }
+
+    /** 오늘의 질문 PUBLIC 답변 전체 조회 **/
+    @Transactional(readOnly = true)
+    public List<PublicAnswerResDto> getPublicAnswers() {
+
+        TodayQuestion todayQuestion = todayQuestionRepository
+                .findByQuestionDate(LocalDate.now())
+                .orElseThrow(() ->
+                        new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND)
+                );
+
+        return questionAnswerRepository
+                .findByQuestionAndVisibility(todayQuestion, AnswerVisibility.PUBLIC)
+                .stream()
+                .map(answer -> PublicAnswerResDto.builder()
+                        .answerId(answer.getId())
+                        .userId(answer.getUser().getId())
+                        .nickname(answer.getUser().getNickname())
+                        .content(answer.getContent())
+                        .createdAt(answer.getCreatedAt())
+                        .build()
+                )
+                .toList();
     }
 }
