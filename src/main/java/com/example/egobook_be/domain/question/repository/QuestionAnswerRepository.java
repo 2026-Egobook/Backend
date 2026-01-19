@@ -23,4 +23,10 @@ public interface QuestionAnswerRepository extends JpaRepository<QuestionAnswer, 
             TodayQuestion question,
             AnswerVisibility visibility
     );
+
+    List<QuestionAnswer> findByQuestionAndVisibilityAndUserIn(
+            TodayQuestion question,
+            AnswerVisibility visibility,
+            List<User> users
+    );
 }
