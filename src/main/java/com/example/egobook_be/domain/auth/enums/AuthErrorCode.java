@@ -38,7 +38,7 @@ public enum AuthErrorCode implements BaseErrorCode {
     /**
      * 409 CONFLICT : 충돌 (ex: 중복 데이터)
      */
-    ALREADY_REGISTERED_USER(HttpStatus.CONFLICT, "이미 서버에 등록된 사용자입니다. /auth/guest/login이나 /auth/google/login을 시도해주세요."),
+    ALREADY_REGISTERED_USER(HttpStatus.CONFLICT, "이미 서버에 등록된 사용자입니다."),
     
 
     /**
