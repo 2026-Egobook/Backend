@@ -1,9 +1,8 @@
 package com.example.egobook_be.domain.question.service;
 
-import com.example.egobook_be.domain.question.dto.AnswerCreateReqDto;
-import com.example.egobook_be.domain.question.dto.AnswerUpdateReqDto;
-import com.example.egobook_be.domain.question.dto.PublicAnswerResDto;
-import com.example.egobook_be.domain.question.dto.TodayQuestionResDto;
+import com.example.egobook_be.domain.friend.entity.Friend;
+import com.example.egobook_be.domain.friend.repository.FriendRepository;
+import com.example.egobook_be.domain.question.dto.*;
 import com.example.egobook_be.domain.question.entity.QuestionAnswer;
 import com.example.egobook_be.domain.question.entity.TodayQuestion;
 import com.example.egobook_be.domain.question.enums.AnswerVisibility;
@@ -27,6 +26,7 @@ public class TodayQuestionService {
     private final TodayQuestionRepository todayQuestionRepository;
     private final QuestionAnswerRepository questionAnswerRepository;
     private final UserRepository userRepository;
+    private final FriendRepository friendRepository;
 
     /** 오늘의 질문 조회 **/
     @Transactional(readOnly = true)
@@ -135,5 +135,49 @@ public class TodayQuestionService {
                 reqDto.content(),
                 reqDto.visibility()
         );
+    }
+
+    /** 친구 답변 조회 **/
+    @Transactional(readOnly = true)
+    public List<FriendAnswerResDto> getFriendsAnswers(Long userId) {
+
+        User me = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
+                );
+
+        TodayQuestion todayQuestion = todayQuestionRepository
+                .findByQuestionDate(LocalDate.now())
+                .orElseThrow(() ->
+                        new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND)
+                );
+
+        // 내 친구 목록 조회
+        List<User> friends = friendRepository.findByUser(me)
+                .stream()
+                .map(Friend::getFriend)
+                .toList();
+
+        if (friends.isEmpty()) {
+            return List.of();
+        }
+
+        // 친구들의 FRIENDS 공개 답변 조회
+        return questionAnswerRepository
+                .findByQuestionAndVisibilityAndUserIn(
+                        todayQuestion,
+                        AnswerVisibility.FRIEND,
+                        friends
+                )
+                .stream()
+                .map(answer -> FriendAnswerResDto.builder()
+                        .answerId(answer.getId())
+                        .userId(answer.getUser().getId())
+                        .nickname(answer.getUser().getNickname())
+                        .content(answer.getContent())
+                        .createdAt(answer.getCreatedAt())
+                        .build()
+                )
+                .toList();
     }
 }
