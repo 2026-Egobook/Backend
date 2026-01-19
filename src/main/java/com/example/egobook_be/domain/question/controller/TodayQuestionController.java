@@ -110,4 +110,22 @@ public class TodayQuestionController {
                 )
         );
     }
+
+    @Operation(
+            summary = "내가 작성한 모든 질문 답변 조회",
+            description = """
+                로그인한 사용자가 지금까지 작성한 모든 질문 답변을 조회합니다.
+                """
+    )
+    @GetMapping("/answers/me/history")
+    public ResponseEntity<GlobalResponse<List<MyAnswerHistoryResDto>>> getMyAnswerHistory(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success(
+                        "내 답변 전체 조회 성공",
+                        todayQuestionService.getMyAnswerHistory(userId)
+                )
+        );
+    }
 }
