@@ -3,17 +3,18 @@ package com.example.egobook_be.domain.letters.service;
 import com.example.egobook_be.domain.letters.domain.PlazaLetter;
 import com.example.egobook_be.domain.letters.domain.PlazaLetterReply;
 import com.example.egobook_be.domain.letters.domain.PlazaLetterStatus;
-import com.example.egobook_be.domain.letters.dto.DeferResponse;
-import com.example.egobook_be.domain.letters.dto.GiveUpResponse;
-import com.example.egobook_be.domain.letters.dto.InboxNextResponse;
-import com.example.egobook_be.domain.letters.dto.ReplyResponse;
+import com.example.egobook_be.domain.letters.dto.*;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.global.exception.CustomException;
+import com.example.egobook_be.global.response.SliceResponse;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -196,4 +197,28 @@ public class PlazaLetterService {
         }
         return true;
     }
+
+    @Transactional(readOnly = true)
+    public SliceResponse<ReplyItemDto> getMyReplies(Long userId, int page, int size) {
+
+        int safePage = Math.max(page, 0); // 0부터 시작
+        int safeSize = Math.min(Math.max(size, 1), 50);
+
+        Pageable pageable = PageRequest.of(safePage, safeSize);
+
+        return SliceResponse.of(
+                plazaLetterReplyRepository.findByReplierIdOrderByReplyIdDesc(userId, pageable),
+                this::toReplyItemDto
+        );
+    }
+
+    private ReplyItemDto toReplyItemDto(PlazaLetterReply reply) {
+        return ReplyItemDto.builder()
+                .replyId(reply.getReplyId())
+                .letterId(reply.getLetterId())
+                .replyText(reply.getText())
+                .createdAt(reply.getCreatedAt())
+                .build();
+    }
+
 }

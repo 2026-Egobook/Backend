@@ -3,6 +3,7 @@ package com.example.egobook_be.domain.letters.controller;
 import com.example.egobook_be.domain.letters.dto.*;
 import com.example.egobook_be.domain.letters.service.PlazaLetterService;
 import com.example.egobook_be.global.response.GlobalResponse;
+import com.example.egobook_be.global.response.SliceResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.*;
@@ -134,4 +135,26 @@ public class PlazaLetterController {
         GiveUpResponse result = plazaLetterService.giveUpLetter(userId, letterId);
         return GlobalResponse.success(result);
     }
+
+
+    @Operation(
+            summary = "내가 작성한 답장 목록 조회 (Slice 무한스크롤)",
+            description = """
+            로그인한 사용자가 작성한 답장을 최신순으로 Slice 조회합니다.
+            - page는 0부터 시작합니다.
+            - size는 1~50 범위로 제한합니다.
+            """
+    )
+    @GetMapping("/replies")
+    public GlobalResponse<SliceResponse<ReplyItemDto>> getMyReplies(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        SliceResponse<ReplyItemDto> result = plazaLetterService.getMyReplies(userId, page, size);
+        return GlobalResponse.success(result);
+    }
+
+
 }
