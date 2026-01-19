@@ -1,12 +1,12 @@
 package com.example.egobook_be.domain.question.service;
 
-import com.example.egobook_be.domain.friend.entity.Friend;
 import com.example.egobook_be.domain.friend.repository.FriendRepository;
 import com.example.egobook_be.domain.question.dto.*;
 import com.example.egobook_be.domain.question.entity.QuestionAnswer;
 import com.example.egobook_be.domain.question.entity.TodayQuestion;
 import com.example.egobook_be.domain.question.enums.AnswerVisibility;
 import com.example.egobook_be.domain.question.exception.QuestionErrorCode;
+import com.example.egobook_be.domain.question.mapper.MyAnswerHistoryMapper;
 import com.example.egobook_be.domain.question.mapper.PublicAnswerMapper;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
 import com.example.egobook_be.domain.question.repository.TodayQuestionRepository;
@@ -232,31 +232,53 @@ public class TodayQuestionService {
     }
 
     /** 내가 지금까지 작성한 모든 답변 조회 **/
+//    @Transactional(readOnly = true)
+//    public List<MyAnswerHistoryResDto> getMyAnswerHistory(Long userId) {
+//
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(() ->
+//                        new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
+//                );
+//
+//        return questionAnswerRepository
+//                .findByUserOrderByCreatedAtDesc(user)
+//                .stream()
+//                .map(answer -> {
+//                    TodayQuestion question = answer.getQuestion();
+//
+//                    return MyAnswerHistoryResDto.builder()
+//                            .questionId(question.getId())
+//                            .questionDate(question.getQuestionDate())
+//                            .questionContent(question.getContent())
+//                            .answerId(answer.getId())
+//                            .answerContent(answer.getContent())
+//                            .visibility(answer.getVisibility())
+//                            .answeredAt(answer.getCreatedAt())
+//                            .build();
+//                })
+//                .toList();
+//    }
     @Transactional(readOnly = true)
-    public List<MyAnswerHistoryResDto> getMyAnswerHistory(Long userId) {
-
+    public SliceResponse<MyAnswerHistoryResDto> getMyAnswerHistory(
+            Long userId,
+            int page,
+            int size
+    ) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() ->
                         new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
                 );
 
-        return questionAnswerRepository
-                .findByUserOrderByCreatedAtDesc(user)
-                .stream()
-                .map(answer -> {
-                    TodayQuestion question = answer.getQuestion();
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
 
-                    return MyAnswerHistoryResDto.builder()
-                            .questionId(question.getId())
-                            .questionDate(question.getQuestionDate())
-                            .questionContent(question.getContent())
-                            .answerId(answer.getId())
-                            .answerContent(answer.getContent())
-                            .visibility(answer.getVisibility())
-                            .answeredAt(answer.getCreatedAt())
-                            .build();
-                })
-                .toList();
+        Slice<QuestionAnswer> slice =
+                questionAnswerRepository.findMyAnswerHistorySlice(user, pageable);
+
+        return SliceResponse.of(slice, MyAnswerHistoryMapper::toDto);
     }
 
     /** 내가 작성한 오늘의 질문 답변 삭제 **/

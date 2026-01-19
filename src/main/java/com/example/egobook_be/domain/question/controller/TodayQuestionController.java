@@ -132,13 +132,15 @@ public class TodayQuestionController {
                 """
     )
     @GetMapping("/answers/me/history")
-    public ResponseEntity<GlobalResponse<List<MyAnswerHistoryResDto>>> getMyAnswerHistory(
-            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    public ResponseEntity<GlobalResponse<SliceResponse<MyAnswerHistoryResDto>>> getMyAnswerHistory(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
     ) {
         return ResponseEntity.ok(
                 GlobalResponse.success(
                         "내 답변 전체 조회 성공",
-                        todayQuestionService.getMyAnswerHistory(userId)
+                        todayQuestionService.getMyAnswerHistory(userId, page, size)
                 )
         );
     }
