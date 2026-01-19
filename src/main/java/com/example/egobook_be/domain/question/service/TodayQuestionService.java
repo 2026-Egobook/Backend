@@ -1,6 +1,7 @@
 package com.example.egobook_be.domain.question.service;
 
 import com.example.egobook_be.domain.question.dto.AnswerCreateReqDto;
+import com.example.egobook_be.domain.question.dto.AnswerUpdateReqDto;
 import com.example.egobook_be.domain.question.dto.PublicAnswerResDto;
 import com.example.egobook_be.domain.question.dto.TodayQuestionResDto;
 import com.example.egobook_be.domain.question.entity.QuestionAnswer;
@@ -107,5 +108,32 @@ public class TodayQuestionService {
                         .build()
                 )
                 .toList();
+    }
+
+    /** 답변 수정 **/
+    @Transactional
+    public void updateAnswer(Long userId, AnswerUpdateReqDto reqDto) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
+                );
+
+        TodayQuestion todayQuestion = todayQuestionRepository
+                .findByQuestionDate(LocalDate.now())
+                .orElseThrow(() ->
+                        new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND)
+                );
+
+        QuestionAnswer answer = questionAnswerRepository
+                .findByUserAndQuestion(user, todayQuestion)
+                .orElseThrow(() ->
+                        new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND)
+                );
+
+        answer.update(
+                reqDto.content(),
+                reqDto.visibility()
+        );
     }
 }
