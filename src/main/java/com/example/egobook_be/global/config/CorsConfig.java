@@ -20,7 +20,7 @@ public class CorsConfig {
         // CorsConfiguration: Cors 규칙을 담고 있는 Class
         CorsConfiguration config = new CorsConfiguration();
 
-        /**
+        /*
          * 서버가 응답 헤더로 아래 헤더를 프론트에게 내려주게 만드는 설정
          *  [ Access-Control-Allow-Credentials: true ]
          *  Access-Control-Allow-Credentials: CORS에서 브라우저가 "인증 정보(credentials)를 포함한 요청 & 응답"을 허용해도 되는지를 서버가 선언하는 응답 헤더
@@ -28,7 +28,7 @@ public class CorsConfig {
          */
         config.setAllowCredentials(true);
 
-        /**
+        /*
          * 서버가 응답 헤더로 아래 헤더를 프론트에게 내려주게 만드는 설정
          *  [ Access-Control-Allow-Origin: <요청한_Origin_주소들> ]
          *  Access-Control-Allow-Origin: 허용할 클라이언트의 주소 Origin을 담는 헤더. 프론트는 해당 값을 보고 본인의 Origin과 비교하여, 값이 같지 않은 경우에는 사용자에게 응답을 주지 않는다.
@@ -40,14 +40,14 @@ public class CorsConfig {
                 "https://*.egobook.site" // 프론트 배포 도메인에 따라서 달라짐
         ));
 
-        /**
+        /*
          * 서버가 응답 헤더로 아래 헤더를 프론트에게 내려주게 만드는 설정
          *  [ Access-Control-Allow-Methods: <허용할 http 메서드들> ]
          *  Access-Control-Allow-Methods: 브라우저가 보내는 Preflight Request(사전요청, OPTIONS 메서드)에 대한 응답으로, 서버가 허용하는 HTTP Method의 리스트를 명시하는 헤더
          */
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
 
-        /**
+        /*
          * 서버가 응답 헤더로 아래 헤더를 프론트에게 내려주게 만드는 설정
          *  [ Access-Control-Allow-Headers: <허용할 헤더들> ]
          *  Access-Control-Allow-Headers: 프론트엔드가 요청을 보낼 때, 어떤 커스텀 헤더를 달아서 보내도 되는지 설정해주는 헤더
@@ -64,7 +64,7 @@ public class CorsConfig {
                 "Access-Control-Request-Headers"
         ));
 
-        /**
+        /*
          * 서버가 응답 헤더로 아래 헤더를 프론트에게 내려주게 만드는 설정
          *  [ Access-Control-Expose-Headers: <허용할 헤더들> ]
          *  Access-Control-Expose-Headers: 서버가 클라이언트에게 보내는 응답에 포함된 헤더들 중, 클라이언트가 접근할 수 없는 헤더들에 대해 접근할 수 있도록 설정하는 헤더

@@ -19,7 +19,6 @@ spring:
       s3:
         bucket: egobook-${spring.profiles.active} # profiles.active대로 버킷 이름 설정되도록 함
 
-
 server:
   servlet:
     session:
@@ -39,6 +38,19 @@ springdoc:
     operations-sorter: method # 한 컨트롤러 안에서 엔드포인트(API) 목록 정렬 방식을 지정함 => method: HTTP 메서드 순서(GET, POST, PUT, DELETE)로 정렬
   api-docs:
     path: /v3/api-docs # OpenAPI JSON 문서가 노출되는 엔드포인트. (기본값도 /v3/api-docs임) => 브라우저/REST 클라이언트에서 접근하면 전체 API 스펙(JSON) 확인 가능함
+
+jwt:
+  # 30분 (1000 * 60 * 30)
+  access-token-validity-in-ms: 1800000
+  # 3개월 (1000 * 60 * 60 * 24 * 90)
+  refresh-token-validity-in-ms: 7776000000
+  # 100년 = 100 * 365 * 24 * 60 * 60 * 1000 = 3153600000000 ms
+  recover-token-validity-in-ms: 3153600000000
+
+app:
+  data:
+    # 일주일 (1000 * 60 * 60 * 24 * 7)
+    purge-duration-in-ms: 604800000
 
 # health check 설정
 management:

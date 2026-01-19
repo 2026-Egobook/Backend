@@ -14,6 +14,11 @@ spring:
   logging:
     level:
       root: INFO
+  data:
+    redis:
+      host: localhost # 같은 EC2 안에 있으므로 localhost
+      port: 6379
+      password: ${PROD_REDIS_PW}
 
 server:
   url: https://www.egobook.site
@@ -32,8 +37,6 @@ springdoc:
 jwt:
   token:
     secretKey: ${JWT_SECRET_KEY_PROD}
-    expiration:
-      access: 14400000
 
 management:
   endpoints:
@@ -43,3 +46,12 @@ management:
   endpoint:
     health:
       show-details: never # 상세 정보 숨김 (기본값) -> {"status": "UP"} 만 나옴
+
+app:
+  oauth:
+    google:
+      android-client-ids: ${DEV_ANDROID_CLIENT_IDS}
+
+  auth:
+    # HashingUtil(HmacSHA256 방식 Hashing)을 위한 설정값
+    device-salt: ${PROD_SALT}
