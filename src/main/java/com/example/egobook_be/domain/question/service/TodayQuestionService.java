@@ -15,9 +15,7 @@ import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -143,9 +141,54 @@ public class TodayQuestionService {
     }
 
     /** 친구 답변 조회 **/
+//    @Transactional(readOnly = true)
+//    public List<FriendAnswerResDto> getFriendsAnswers(Long userId) {
+//
+//        User me = userRepository.findById(userId)
+//                .orElseThrow(() ->
+//                        new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
+//                );
+//
+//        TodayQuestion todayQuestion = todayQuestionRepository
+//                .findByQuestionDate(LocalDate.now())
+//                .orElseThrow(() ->
+//                        new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND)
+//                );
+//
+//        // 내 친구 목록 조회
+//        List<User> friends = friendRepository.findByUser(me)
+//                .stream()
+//                .map(Friend::getFriend)
+//                .toList();
+//
+//        if (friends.isEmpty()) {
+//            return List.of();
+//        }
+//
+//        // 친구들의 FRIENDS 공개 답변 조회
+//        return questionAnswerRepository
+//                .findByQuestionAndVisibilityAndUserIn(
+//                        todayQuestion,
+//                        AnswerVisibility.FRIEND,
+//                        friends
+//                )
+//                .stream()
+//                .map(answer -> FriendAnswerResDto.builder()
+//                        .answerId(answer.getId())
+//                        .userId(answer.getUser().getId())
+//                        .nickname(answer.getUser().getNickname())
+//                        .content(answer.getContent())
+//                        .createdAt(answer.getCreatedAt())
+//                        .build()
+//                )
+//                .toList();
+//    }
     @Transactional(readOnly = true)
-    public List<FriendAnswerResDto> getFriendsAnswers(Long userId) {
-
+    public SliceResponse<FriendAnswerResDto> getFriendsAnswers(
+            Long userId,
+            int page,
+            int size
+    ) {
         User me = userRepository.findById(userId)
                 .orElseThrow(() ->
                         new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
@@ -157,33 +200,35 @@ public class TodayQuestionService {
                         new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND)
                 );
 
-        // 내 친구 목록 조회
-        List<User> friends = friendRepository.findByUser(me)
-                .stream()
-                .map(Friend::getFriend)
-                .toList();
+        // 친구 ID만 조회
+        List<Long> friendIds = friendRepository.findFriendIdsByUser(me);
 
-        if (friends.isEmpty()) {
-            return List.of();
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        // 친구 없으면 빈 Slice 반환
+        if (friendIds.isEmpty()) {
+            Slice<FriendAnswerResDto> emptySlice =
+                    new SliceImpl<>(List.of(), pageable, false);
+
+            return SliceResponse.of(emptySlice);
         }
 
-        // 친구들의 FRIENDS 공개 답변 조회
-        return questionAnswerRepository
-                .findByQuestionAndVisibilityAndUserIn(
+        Slice<FriendAnswerResDto> slice =
+                questionAnswerRepository.findFriendsAnswersSlice(
                         todayQuestion,
-                        AnswerVisibility.FRIEND,
-                        friends
-                )
-                .stream()
-                .map(answer -> FriendAnswerResDto.builder()
-                        .answerId(answer.getId())
-                        .userId(answer.getUser().getId())
-                        .nickname(answer.getUser().getNickname())
-                        .content(answer.getContent())
-                        .createdAt(answer.getCreatedAt())
-                        .build()
-                )
-                .toList();
+                        List.of(
+                                AnswerVisibility.PUBLIC,
+                                AnswerVisibility.FRIEND
+                        ),
+                        friendIds,
+                        pageable
+                );
+
+        return SliceResponse.of(slice);
     }
 
     /** 내가 지금까지 작성한 모든 답변 조회 **/

@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.question.repository;
 
+import com.example.egobook_be.domain.question.dto.FriendAnswerResDto;
 import com.example.egobook_be.domain.question.entity.QuestionAnswer;
 import com.example.egobook_be.domain.question.entity.TodayQuestion;
 import com.example.egobook_be.domain.question.enums.AnswerVisibility;
@@ -28,10 +29,31 @@ public interface QuestionAnswerRepository extends JpaRepository<QuestionAnswer, 
             AnswerVisibility visibility
     );
 
-    List<QuestionAnswer> findByQuestionAndVisibilityAndUserIn(
-            TodayQuestion question,
-            AnswerVisibility visibility,
-            List<User> users
+//    List<QuestionAnswer> findByQuestionAndVisibilityAndUserIn(
+//            TodayQuestion question,
+//            AnswerVisibility visibility,
+//            List<User> users
+//    );
+    @Query("""
+        select new com.example.egobook_be.domain.question.dto.FriendAnswerResDto(
+            qa.id,
+            u.id,
+            u.nickname,
+            qa.content,
+            qa.createdAt
+        )
+        from QuestionAnswer qa
+        join qa.user u
+        where qa.question = :question
+          and qa.visibility in :visibilities
+          and u.id in :friendIds
+        order by qa.createdAt desc
+    """)
+    Slice<FriendAnswerResDto> findFriendsAnswersSlice(
+            @Param("question") TodayQuestion question,
+            @Param("visibilities") List<AnswerVisibility> visibilities,
+            @Param("friendIds") List<Long> friendIds,
+            Pageable pageable
     );
 
     List<QuestionAnswer> findByUserOrderByCreatedAtDesc(User user);
@@ -41,12 +63,12 @@ public interface QuestionAnswerRepository extends JpaRepository<QuestionAnswer, 
     boolean existsByUserIdAndQuestionId(Long userId, Long questionId);
 
     @Query("""
-    select qa
-    from QuestionAnswer qa
-    join fetch qa.user u
-    where qa.question = :question
-      and qa.visibility = :visibility
-""")
+        select qa
+        from QuestionAnswer qa
+        join fetch qa.user u
+        where qa.question = :question
+          and qa.visibility = :visibility
+    """)
     Slice<QuestionAnswer> findPublicAnswersWithUser(
             @Param("question") TodayQuestion question,
             @Param("visibility") AnswerVisibility visibility,

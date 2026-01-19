@@ -112,13 +112,15 @@ public class TodayQuestionController {
                 """
     )
     @GetMapping("/answers/friends")
-    public ResponseEntity<GlobalResponse<List<FriendAnswerResDto>>> getFriendsAnswers(
-            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    public ResponseEntity<GlobalResponse<SliceResponse<FriendAnswerResDto>>> getFriendsAnswers(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
     ) {
         return ResponseEntity.ok(
                 GlobalResponse.success(
                         "친구 공개 답변 조회 성공",
-                        todayQuestionService.getFriendsAnswers(userId)
+                        todayQuestionService.getFriendsAnswers(userId, page, size)
                 )
         );
     }
