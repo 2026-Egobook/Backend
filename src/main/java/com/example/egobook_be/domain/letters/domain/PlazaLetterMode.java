@@ -1,4 +1,4 @@
-package com.example.egobook_be.plaza.letters.domain;
+package com.example.egobook_be.domain.letters.domain;
 
 public enum PlazaLetterMode {
     RANDOM,

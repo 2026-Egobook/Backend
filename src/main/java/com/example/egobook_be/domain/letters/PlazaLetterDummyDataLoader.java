@@ -1,7 +1,9 @@
-package com.example.egobook_be.plaza.letters;
+package com.example.egobook_be.domain.letters;
 
-import com.example.egobook_be.plaza.letters.domain.*;
-import com.example.egobook_be.plaza.letters.repository.PlazaLetterRepository;
+import com.example.egobook_be.domain.letters.domain.PlazaLetter;
+import com.example.egobook_be.domain.letters.domain.PlazaLetterMode;
+import com.example.egobook_be.domain.letters.domain.PlazaLetterStatus;
+import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.boot.CommandLineRunner;
