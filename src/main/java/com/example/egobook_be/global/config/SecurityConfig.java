@@ -37,11 +37,7 @@ public class SecurityConfig {
      * 인증 없이 접근 가능한 화이트 리스트 URL 모음 String 배열 (로그인, 회원가입, 스웨거 등)
      */
     private static final String[] AUTH_WHITELIST = {
-            "/auth/guest/join",
-            "/auth/google/join",
-            "/auth/refresh",
-            "/auth/guest/recertification",
-            "/auth/google/recertification",
+            "/auth/**", // /auth로 오는 요청은 전부 허용
             "/v3/api-docs/**",  // Swagger JSON 데이터
             "/swagger-ui/**",   // Swagger UI CSS, JS, 이미지
             "/swagger-ui-custom.html",  // Swagger UI 메인 페이지

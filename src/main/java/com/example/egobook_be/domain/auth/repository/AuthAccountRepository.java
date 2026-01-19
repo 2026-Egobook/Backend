@@ -24,6 +24,17 @@ public interface AuthAccountRepository extends JpaRepository<AuthAccount, Long> 
             @Param("hashedDeviceUid") String hashedDeviceUid,
             @Param("provider") Provider provider
     );
+    /**
+     * HashedDeviceUid & Provider로 AuthAccount 객체를 찾는 함수
+     * @param hashedDeviceUid String
+     * @param provider Provider
+     * @return Optional<AuthAccount></AuthAccount>
+     */
+    Optional<AuthAccount> findByHashedDeviceUidAndProvider(String hashedDeviceUid, Provider provider);
+    /**
+     * 특정 유저의 특정 Provider 계정 조회 (Guest 계정 찾기용)
+     */
+    Optional<AuthAccount> findByUserIdAndProvider(Long userId, Provider provider);
 
     /**
      * DeviceUid & Provider로 해당 인증 정보가 존재하는지 찾는 함수 (중복 가입 방지용)
@@ -32,12 +43,4 @@ public interface AuthAccountRepository extends JpaRepository<AuthAccount, Long> 
      * @return
      */
     boolean existsByHashedDeviceUidAndProvider(String hashedDeviceUid, Provider provider);
-
-    /**
-     * HashedDeviceUid & Provider로 AuthAccount 객체를 찾는 함수
-     * @param hashedDeviceUid String
-     * @param provider Provider
-     * @return Optional<AuthAccount></AuthAccount>
-     */
-    Optional<AuthAccount> findByHashedDeviceUidAndProvider(String hashedDeviceUid, Provider provider);
 }
