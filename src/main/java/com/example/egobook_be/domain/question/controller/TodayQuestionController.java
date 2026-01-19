@@ -3,6 +3,7 @@ package com.example.egobook_be.domain.question.controller;
 import com.example.egobook_be.domain.question.dto.*;
 import com.example.egobook_be.domain.question.service.TodayQuestionService;
 import com.example.egobook_be.global.response.GlobalResponse;
+import com.example.egobook_be.global.response.SliceResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -67,14 +68,25 @@ public class TodayQuestionController {
                 """
     )
     @GetMapping("/answers/all")
-    public ResponseEntity<GlobalResponse<List<PublicAnswerResDto>>> getPublicAnswers() {
+    public ResponseEntity<GlobalResponse<SliceResponse<PublicAnswerResDto>>> getPublicAnswers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
         return ResponseEntity.ok(
                 GlobalResponse.success(
                         "오늘의 질문 PUBLIC 답변 조회 성공",
-                        todayQuestionService.getPublicAnswers()
+                        todayQuestionService.getPublicAnswers(page, size)
                 )
         );
     }
+//    public ResponseEntity<GlobalResponse<List<PublicAnswerResDto>>> getPublicAnswers() {
+//        return ResponseEntity.ok(
+//                GlobalResponse.success(
+//                        "오늘의 질문 PUBLIC 답변 조회 성공",
+//                        todayQuestionService.getPublicAnswers()
+//                )
+//        );
+//    }
 
     @Operation(
             summary = "답변 수정",

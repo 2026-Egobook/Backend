@@ -7,12 +7,17 @@ import com.example.egobook_be.domain.question.entity.QuestionAnswer;
 import com.example.egobook_be.domain.question.entity.TodayQuestion;
 import com.example.egobook_be.domain.question.enums.AnswerVisibility;
 import com.example.egobook_be.domain.question.exception.QuestionErrorCode;
+import com.example.egobook_be.domain.question.mapper.PublicAnswerMapper;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
 import com.example.egobook_be.domain.question.repository.TodayQuestionRepository;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
+import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -86,7 +91,7 @@ public class TodayQuestionService {
 
     /** 오늘의 질문 PUBLIC 답변 전체 조회 **/
     @Transactional(readOnly = true)
-    public List<PublicAnswerResDto> getPublicAnswers() {
+    public SliceResponse<PublicAnswerResDto> getPublicAnswers(int page, int size) {
 
         TodayQuestion todayQuestion = todayQuestionRepository
                 .findByQuestionDate(LocalDate.now())
@@ -94,18 +99,20 @@ public class TodayQuestionService {
                         new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND)
                 );
 
-        return questionAnswerRepository
-                .findByQuestionAndVisibility(todayQuestion, AnswerVisibility.PUBLIC)
-                .stream()
-                .map(answer -> PublicAnswerResDto.builder()
-                        .answerId(answer.getId())
-                        .userId(answer.getUser().getId())
-                        .nickname(answer.getUser().getNickname())
-                        .content(answer.getContent())
-                        .createdAt(answer.getCreatedAt())
-                        .build()
-                )
-                .toList();
+        PageRequest pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        Slice<QuestionAnswer> slice =
+                questionAnswerRepository.findPublicAnswersWithUser(
+                        todayQuestion,
+                        AnswerVisibility.PUBLIC,
+                        pageable
+                );
+
+        return SliceResponse.of(slice, PublicAnswerMapper::toDto);
     }
 
     /** 답변 수정 **/
