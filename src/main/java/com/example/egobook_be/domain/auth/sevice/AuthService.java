@@ -1,10 +1,7 @@
 package com.example.egobook_be.domain.auth.sevice;
 
-import com.example.egobook_be.domain.auth.dto.req.GoogleJoinReqDto;
-import com.example.egobook_be.domain.auth.dto.req.GuestRecertificationReqDto;
-import com.example.egobook_be.domain.auth.dto.req.GuestRefreshReqDto;
+import com.example.egobook_be.domain.auth.dto.req.*;
 import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
-import com.example.egobook_be.domain.auth.dto.req.GuestJoinReqDto;
 import com.example.egobook_be.domain.user.entity.RoleType;
 import com.example.egobook_be.global.util.*;
 import com.example.egobook_be.global.util.module.TokenInfo;
@@ -183,16 +180,16 @@ public class AuthService {
 
 
     /**
-     * Guest로 연동된 상태에서 Refresh Token을 이용해 Access Token을 재발급하는 함수 (FallBack 전략 적용)
+     * Refresh Token을 이용해 Access Token을 재발급하는 함수 (FallBack 전략 적용)
      * 1. Hashed Refresh Token으로 Redis 조회 시도 -> 조회 성공 시, value에 있는 값들을 이용하여 Access Token, Refresh Token 즉시 재발급 (RTR 적용)
      * 2. Redis에서 해당 정보 조회 실패 시 -> Refresh Token Backup 테이블 조회
      * 3. DB 조회 성공 시 -> Redis에 데이터 복구 후 토큰 재발급
      * 4. DB 조회 실패 시 -> Recover Token으로 Refresh Token 재발급 시도하라는 에러 클라이언트에게 반환
-     * @param reqDto : GuestRefreshReqDto
+     * @param reqDto : RefreshReqDto
      * @return JwtTokenResDto
      */
     @Transactional
-    public JwtTokenResDto refreshGuestToken(GuestRefreshReqDto reqDto){
+    public JwtTokenResDto refreshGuestToken(RefreshReqDto reqDto){
         // 1. 전달받은 Refresh Token Hashing
         String hashedRefreshToken = hashingUtil.hashingValue(reqDto.refreshToken());
 
@@ -218,12 +215,21 @@ public class AuthService {
         /*
          * 4. DB에서 가져온 데이터로 해당 Refresh Token의 만료 여부 검증
          * - DB에서도 만료되었다면, 진짜 해당 Refresh Token이 만료된 것이다.
-         * - Recover Token을 이용하여 Refresh Token을 재발급 받으라는 에러 메시지 발송
+         *  [ Provider 에러 분기 처리 ]
+         *  (1) Guest인 경우: Recover Token을 이용하여 Refresh Token을 재발급 받으라는 에러 메시지 발송
+         *  (2) Google인 경우: Google 로그인을 다시 시도해서
          */
         if(backup.getExpiresAt().isBefore(LocalDateTime.now())){
-            throw new CustomException(AuthErrorCode.REFRESH_TOKEN_EXPIRED);
+            Provider provider = backup.getAuthAccount().getProvider();
+            // 만료된 토큰의 주인이 GUEST인 경우
+            if(provider == Provider.GUEST){
+                throw new CustomException(AuthErrorCode.REFRESH_TOKEN_EXPIRED_GUEST);
+            }
+            // 만료된 토큰의 주인이 GOOGLE인 경우
+            else {
+                throw new CustomException(AuthErrorCode.REFRESH_TOKEN_EXPIRED_GOOGLE);
+            }
         }
-
         /*
          * 5. DB와 비교하였을 때 모든 조건을 통과한 정상적인 Refresh Token인 경우, Access Token을 재발급한다.
          * - Redis에 데이터를 복구한다.
@@ -245,9 +251,6 @@ public class AuthService {
     /**
      * Guest RefreshToken 재발급
      * Refresh Token이 만료되었을 때, 기기에 영구 저장된 Recover Token을 검증하여 세션을 복구하는 함수
-     *  1. RecoverToken 해싱
-     * @param reqDto
-     * @return
      */
     @Transactional
     public JwtTokenResDto recertificationGuestToken(GuestRecertificationReqDto reqDto){
@@ -304,6 +307,38 @@ public class AuthService {
         return buildJwtTokenResDto(newAccessTokenInfo.token(), newRefreshTokenInfo.token(), newRecoverTokenInfo.token());
     }
 
+    /**
+     * Google RefreshToken 재발급
+     * Refresh Token이 만료되었을 때, 프론트엔드가 Google Slient Login 후 받은 ID Token으로 호출하는 API
+     * - 회원가입(Register)과 달리, 이미 존재하는 계정이어야만 성공한다.
+     * - Recover Token은 여전히 null이다.
+     */
+    @Transactional
+    public JwtTokenResDto recertificationGoogleToken(GoogleRecertificationReqDto reqDto){
+        // 1. 구글 토큰 검증
+        GoogleIdToken.Payload payload = googleOAuthService.verifyToken(reqDto.idToken());
+        String hashedGoogleSub = hashingUtil.hashingValue(payload.getSubject());
+
+        /*
+         * 2. 기존 계정 존재 여부 확인 (없으면 에러 -> 재인증 API이므로 가입되어 있어야 함)
+         * - Google Id Token에 들어있는 사용자 고유 번호(sub) & Provider AuthAccount Table에 이미 존재하는지 검사한다.
+         */
+        AuthAccount authAccount = authAccountRepository.findByHashedDeviceUidAndProvider(hashedGoogleSub, Provider.GOOGLE)
+                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
+
+        User user = authAccount.getUser();
+
+        // 3. 토큰 재발급 (Access + Refresh)
+        CustomUserDetails userDetails = buildCustomUserDetails(user, authAccount);
+        TokenInfo accessTokenInfo = jwtUtil.createAccessToken(userDetails);
+        TokenInfo refreshTokenInfo = jwtUtil.createRefreshToken(userDetails);
+
+        // 4. Refresh Token 저장 (DB + Redis)
+        processRefreshTokenSaving(user, authAccount, refreshTokenInfo);
+
+        // 5. 반환
+        return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), null);
+    }
 
 
     // ==================================================================
@@ -466,7 +501,7 @@ public class AuthService {
      */
     private AuthAccount findAuthAccountByHashedDeviceUidAndProvider(String hashedDeviceUid, Provider provider){
         return authAccountRepository.findByHashedDeviceUidAndProvider(hashedDeviceUid, provider)
-                .orElseThrow(() -> new CustomException(AuthErrorCode.UID_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
     }
 
     /**

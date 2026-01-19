@@ -25,12 +25,13 @@ public enum AuthErrorCode implements BaseErrorCode {
      */
     ACCESS_WITH_NON_ACCESS_TYPE_TOKEN(HttpStatus.UNAUTHORIZED, "Access Token이 아닌 토큰으로 접근을 시도하였습니다."),
     ACCESS_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Access Token이 만료되었습니다. Refresh Token을 사용하여 Access Token을 재발급받으세요."),
-    REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Refresh Token이 만료되었습니다. Recover Token을 사용하여 Refresh Token을 재발급받으세요."),
+    REFRESH_TOKEN_EXPIRED_GUEST(HttpStatus.UNAUTHORIZED, "GUEST Refresh Token이 만료되었습니다. GUEST의 Recover Token을 사용하여 Refresh Token을 재발급받으세요."),
+    REFRESH_TOKEN_EXPIRED_GOOGLE(HttpStatus.UNAUTHORIZED, "GOOGLE Refresh Token이 만료되었습니다. Google 로그인을 다시 시도하세요."),
 
     /**
      * 404 NOT_FOUND: 리소스 없음
      */
-    UID_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 기기 식별자(UID)를 찾을 수 없습니다."),
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 사용자를 찾을 수 없습니다."),
     AUTH_ACCOUNT_NOT_FOUND_IN_REFRESH_TOKEN_BACKUP(HttpStatus.NOT_FOUND , "Refresh Token Backup Table에서 해당 Auth Account 인스턴스를 찾을 수 없습니다."),
     REFRESH_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 Refresh Token에 대한 정보를 서버에서 찾을 수 없습니다. Recover Token을 사용하여 Refresh Token을 재발급받으세요."),
 

@@ -39,8 +39,7 @@ public class SecurityConfig {
     private static final String[] AUTH_WHITELIST = {
             "/auth/guest/join",
             "/auth/google/join",
-            "/auth/guest/refresh",
-            "/auth/google/refresh",
+            "/auth/refresh",
             "/auth/guest/recertification",
             "/auth/google/recertification",
             "/v3/api-docs/**",  // Swagger JSON 데이터
