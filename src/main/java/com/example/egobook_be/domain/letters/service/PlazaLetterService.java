@@ -7,6 +7,7 @@ import com.example.egobook_be.domain.letters.dto.*;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
+import com.example.egobook_be.domain.letters.repository.PlazaLetterThreadRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import org.springframework.data.domain.PageRequest;
@@ -14,9 +15,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.example.egobook_be.domain.letters.domain.*;
+import com.example.egobook_be.domain.letters.dto.*;
 
 
-import java.time.OffsetDateTime;
+
+import java.time.*;
 import java.util.List;
 
 @Service
@@ -24,9 +28,11 @@ import java.util.List;
 public class PlazaLetterService {
 
     private static final int REPLY_TEXT_LIMIT = 350;
+    private static final int LETTER_TEXT_LIMIT = 360;
 
     private final PlazaLetterRepository plazaLetterRepository;
     private final PlazaLetterReplyRepository plazaLetterReplyRepository;
+    private final PlazaLetterThreadRepository plazaLetterThreadRepository;
 
     @Transactional(readOnly = true)
     public InboxNextResponse getNextArrivedLetter(Long userId) {
@@ -51,16 +57,111 @@ public class PlazaLetterService {
     }
 
     @Transactional
+    public CreateLetterResponse createLetter(Long userId, CreateLetterRequest request) {
+        validateCreateLetterRequest(request);
+
+        OffsetDateTime now = OffsetDateTime.now();
+
+        // 하루 1회 제한 (KST 기준)
+        ZoneId zoneId = ZoneId.of("Asia/Seoul");
+        LocalDate today = LocalDate.now(zoneId);
+        OffsetDateTime start = today.atStartOfDay(zoneId).toOffsetDateTime();
+        OffsetDateTime end = today.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
+
+        if (plazaLetterRepository.existsBySenderIdAndCreatedAtBetween(userId, start, end)) {
+            throw new CustomException(LettersErrorCode.DAILY_LETTER_LIMIT);
+        }
+
+        if (!passesModeration(request.getText())) {
+            throw new CustomException(LettersErrorCode.AI_MODERATION_FAILED);
+        }
+
+        // 1) 스레드 먼저 생성
+        PlazaLetterThread thread = plazaLetterThreadRepository.save(PlazaLetterThread.createNow());
+
+        // 2) 편지 생성 (RANDOM/FRIEND 매칭 로직은 다음 단계에서 붙이기)
+        PlazaLetter letter = PlazaLetter.builder()
+                .threadId(thread.getThreadId())
+                .senderId(userId)
+                .receiverId(null)
+                .status(PlazaLetterStatus.SENT)
+                .mode(request.getMode())
+                .fromLabel("익명")
+                .content(request.getText())
+                .createdAt(now)
+                .backgroundColor(request.getBackgroundColor())
+                .arrivedAt(null)
+                .replyDeadlineAt(null)
+                .repliedAt(null)
+                .gaveUpAt(null)
+                .build();
+
+        PlazaLetter saved = plazaLetterRepository.save(letter);
+
+        return CreateLetterResponse.builder()
+                .letterId(saved.getLetterId())
+                .threadId(saved.getThreadId())
+                .status(saved.getStatus())
+                .mode(saved.getMode())
+                .createdAt(saved.getCreatedAt())
+                .build();
+    }
+
+    private void validateCreateLetterRequest(CreateLetterRequest request) {
+        if (request == null || request.getMode() == null) {
+            throw new CustomException(LettersErrorCode.INVALID_MODE);
+        }
+        String text = request.getText();
+        if (text == null || text.isBlank() || text.length() > LETTER_TEXT_LIMIT) {
+            throw new CustomException(LettersErrorCode.LETTER_TEXT_LIMIT);
+        }
+        if (request.getMode() == PlazaLetterMode.FRIEND && request.getToFriendId() == null) {
+            throw new CustomException(LettersErrorCode.FRIEND_ID_REQUIRED);
+        }
+    }
+
+    @Transactional
+    public DeleteThreadResponse deleteThread(Long userId, Long threadId) {
+        // 스레드 존재 체크
+        if (!plazaLetterThreadRepository.existsById(threadId)) {
+            throw new CustomException(LettersErrorCode.THREAD_NOT_FOUND);
+        }
+
+        // 스레드에 속한 편지 조회 (스레드당 편지 1개라는 전제)
+        PlazaLetter letter = plazaLetterRepository.findByThreadId(threadId)
+                .orElseThrow(() -> new CustomException(LettersErrorCode.THREAD_NOT_FOUND));
+
+        // 권한: senderId 또는 receiverId가 나일 때만 삭제 가능
+        boolean mine = userId != null
+                && (userId.equals(letter.getSenderId()) || (letter.getReceiverId() != null && userId.equals(letter.getReceiverId())));
+
+        if (!mine) {
+            throw new CustomException(LettersErrorCode.FORBIDDEN);
+        }
+
+        // replies -> letters -> thread 순서로 삭제
+        plazaLetterReplyRepository.deleteByThreadId(threadId);
+        plazaLetterRepository.deleteByThreadId(threadId);
+        plazaLetterThreadRepository.deleteById(threadId);
+
+        return DeleteThreadResponse.builder()
+                .threadId(threadId)
+                .deleted(true)
+                .build();
+    }
+
+    @Transactional
     public ReplyResponse replyToLetter(Long userId, Long letterId, String text) {
         validateReplyText(text);
 
-        PlazaLetter letter = getLetterOrThrow(letterId);
+        PlazaLetter letter = plazaLetterRepository.findById(letterId)
+                .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+
         validateOwnership(letter, userId);
 
         OffsetDateTime now = OffsetDateTime.now();
         validateReplyable(letter, now);
 
-        // (선택) DB 기준으로도 멱등/레이스 방어 (Repository에 existsByLetterId가 있어야 함)
         if (plazaLetterReplyRepository.existsByLetterId(letter.getLetterId())) {
             throw new CustomException(LettersErrorCode.ALREADY_REPLIED);
         }
@@ -70,25 +171,19 @@ public class PlazaLetterService {
         }
 
         plazaLetterReplyRepository.save(PlazaLetterReply.builder()
+                .threadId(letter.getThreadId())   // 중요
                 .letterId(letter.getLetterId())
                 .replierId(userId)
                 .text(text)
+                .isAiGenerated(false)
                 .createdAt(now)
                 .build());
 
         letter.markReplied(now);
 
         List<ReplyResponse.RewardDto> rewards = List.of(
-                ReplyResponse.RewardDto.builder()
-                        .kind(ReplyResponse.RewardKind.INK)
-                        .amount(1)
-                        .toastMessage(null)
-                        .build(),
-                ReplyResponse.RewardDto.builder()
-                        .kind(ReplyResponse.RewardKind.SINCERITY)
-                        .amount(1)
-                        .toastMessage(null)
-                        .build()
+                ReplyResponse.RewardDto.builder().kind(ReplyResponse.RewardKind.INK).amount(1).toastMessage(null).build(),
+                ReplyResponse.RewardDto.builder().kind(ReplyResponse.RewardKind.SINCERITY).amount(1).toastMessage(null).build()
         );
 
         return ReplyResponse.builder()
@@ -172,7 +267,7 @@ public class PlazaLetterService {
         if (letter.getStatus() == PlazaLetterStatus.GAVE_UP || isDeadlinePassed(letter, now)) {
             throw new CustomException(LettersErrorCode.ALREADY_GAVE_UP);
         }
-        // DEFERRED는 멱등 허용 (그대로 OK)
+
     }
 
     private void validateGiveUpable(PlazaLetter letter, OffsetDateTime now) {
@@ -189,7 +284,7 @@ public class PlazaLetterService {
     }
 
     private boolean passesModeration(String text) {
-        // TODO: 실제 AI moderation 연결 전까지 스텁
+        //목록은 pm과 이야기해봐야함
         String lowered = text.toLowerCase();
         String[] banned = {"시발", "ㅅㅂ", "병신", "멍청", "죽어", "꺼져"};
         for (String b : banned) {
@@ -220,5 +315,9 @@ public class PlazaLetterService {
                 .createdAt(reply.getCreatedAt())
                 .build();
     }
+
+
+
+
 
 }

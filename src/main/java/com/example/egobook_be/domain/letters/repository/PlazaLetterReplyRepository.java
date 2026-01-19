@@ -11,5 +11,6 @@ public interface PlazaLetterReplyRepository extends JpaRepository<PlazaLetterRep
 
     Slice<PlazaLetterReply> findByReplierIdOrderByReplyIdDesc(Long replierId, Pageable pageable);
 
+    void deleteByThreadId(Long threadId);
 
 }

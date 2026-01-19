@@ -23,8 +23,14 @@ public class PlazaLetterReply {
     @Column(nullable = false)
     private Long replierId;
 
+    @Column(nullable = false)
+    private Long threadId;
+
     @Column(nullable = false, length = 350)
     private String text;
+
+    @Column(nullable = false)
+    private boolean isAiGenerated;
 
     @Column(nullable = false)
     private OffsetDateTime createdAt;

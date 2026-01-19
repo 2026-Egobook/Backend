@@ -17,9 +17,21 @@ public class PlazaLetter {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long letterId;
 
-    // "내가 답장해야 할 편지" 기준: receiverId = 내 userId
     @Column(nullable = false)
-    private Long receiverId;
+    private Long threadId;
+
+    @Column(nullable = false)
+    private Long senderId;
+
+    @Column
+    private Long receiverId; // RANDOM 매칭 전이면 null 가능
+
+
+    @Column(nullable = false)
+    private OffsetDateTime createdAt;
+
+    @Column(length = 20)
+    private String backgroundColor;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

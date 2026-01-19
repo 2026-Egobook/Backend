@@ -27,13 +27,17 @@ public class PlazaLetterDummyDataLoader implements CommandLineRunner {
         OffsetDateTime now = OffsetDateTime.now();
 
         repo.save(PlazaLetter.builder()
+                .senderId(1L)
                 .receiverId(1L)
                 .status(PlazaLetterStatus.ARRIVED)
                 .mode(PlazaLetterMode.RANDOM)
                 .fromLabel("익명")
                 .content("요즘 너무 지치는데… 어떻게 버티지?")
                 .arrivedAt(now)
+                .createdAt(now)
+                .threadId(1L)
                 .replyDeadlineAt(now.plusHours(24))
+                .backgroundColor("BLUE")
                 .build());
     }
 }

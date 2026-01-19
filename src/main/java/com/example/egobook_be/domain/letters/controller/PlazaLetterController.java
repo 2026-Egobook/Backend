@@ -156,5 +156,48 @@ public class PlazaLetterController {
         return GlobalResponse.success(result);
     }
 
+    @Operation(
+            summary = "편지 작성",
+            description = """
+            광장 편지를 작성해 전송합니다.
+            - text: 360자 이하
+            - 하루 1회 제한
+            - AI 검사 실패 시 거절
+            """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "성공"),
+            @ApiResponse(responseCode = "400", description = "글자수 초과/하루 1회 초과/AI 검사 실패/모드 오류"),
+            @ApiResponse(responseCode = "401", description = "인증 실패")
+    })
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public GlobalResponse<CreateLetterResponse> createLetter(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @Valid @RequestBody CreateLetterRequest request
+    ) {
+        return GlobalResponse.success(plazaLetterService.createLetter(userId, request));
+    }
+
+    @Operation(
+            summary = "답장 스레드 삭제(내 편지 + 답장 함께 삭제)",
+            description = """
+            threadId 기준으로 스레드에 속한 편지와 답장을 함께 삭제합니다.
+            - senderId 또는 receiverId가 본인인 경우에만 삭제 가능
+            """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "스레드 없음")
+    })
+    @DeleteMapping("/threads/{threadId}")
+    public GlobalResponse<DeleteThreadResponse> deleteThread(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @PathVariable Long threadId
+    ) {
+        return GlobalResponse.success(plazaLetterService.deleteThread(userId, threadId));
+    }
 
 }
