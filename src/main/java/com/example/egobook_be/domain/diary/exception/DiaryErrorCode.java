@@ -33,6 +33,12 @@ public enum DiaryErrorCode implements BaseErrorCode {
             HttpStatus.BAD_REQUEST
     ),
 
+    DIARY_EMOTION_LEVEL_NOT_ALLOWED(
+            "DIARY_400_005",
+            "감정 레벨을 선택할 수 없습니다.",
+            HttpStatus.BAD_REQUEST
+    ),
+
     DIARY_TEXT_LIMIT_EXCEEDED(
             "DIARY_400_003",
             "일기는 최대 400자까지 입력할 수 있습니다.",

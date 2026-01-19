@@ -43,6 +43,8 @@ public class DiaryService {
             if (dto.emotionLevel() < 1 || dto.emotionLevel() > 5) {
                 throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_INVALID);
             }
+        } else if (dto.emotionLevel() != null) {
+            throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_NOT_ALLOWED);
         }
 
         // 일기 400자 이하 검증
@@ -170,6 +172,8 @@ public class DiaryService {
             if (dto.emotionLevel() < 1 || dto.emotionLevel() > 5) {
                 throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_INVALID);
             }
+        } else if (dto.emotionLevel() != null) {
+            throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_NOT_ALLOWED);
         }
 
         diary.update(dto.content(), dto.type(), dto.emotionLevel());
