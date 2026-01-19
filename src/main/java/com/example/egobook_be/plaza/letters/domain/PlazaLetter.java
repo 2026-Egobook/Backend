@@ -52,5 +52,12 @@ public class PlazaLetter {
         this.status = PlazaLetterStatus.DEFERRED;
     }
 
+    @Column
+    private OffsetDateTime gaveUpAt;
+
+    public void markGaveUp(OffsetDateTime gaveUpAt) {
+        this.status = PlazaLetterStatus.GAVE_UP;
+        this.gaveUpAt = gaveUpAt;
+    }
 
 }

@@ -2,6 +2,7 @@ package com.example.egobook_be.plaza.letters.service;
 
 import com.example.egobook_be.plaza.letters.domain.*;
 import com.example.egobook_be.plaza.letters.dto.DeferResponse;
+import com.example.egobook_be.plaza.letters.dto.GiveUpResponse;
 import com.example.egobook_be.plaza.letters.dto.InboxNextResponse;
 import com.example.egobook_be.plaza.letters.dto.ReplyResponse;
 import com.example.egobook_be.plaza.letters.repository.PlazaLetterReplyRepository;
@@ -154,6 +155,38 @@ public class PlazaLetterService {
                 .build();
     }
 
+    @Transactional
+    public GiveUpResponse giveUpLetter(Long userId, Long letterId) {
+        PlazaLetter letter = plazaLetterRepository.findById(letterId)
+                .orElseThrow(() -> new PlazaLetterException("PLAZA404_LETTER_NOT_FOUND", "편지를 찾을 수 없어요"));
+
+        // 내 편지인지 체크
+        if (!letter.getReceiverId().equals(userId)) {
+            throw new PlazaLetterException("PLAZA403_FORBIDDEN", "접근 권한이 없어요");
+        }
+
+        // 이미 답장했으면 포기 불가
+        if (letter.getStatus() == PlazaLetterStatus.REPLIED || letter.getStatus() == PlazaLetterStatus.AI_REPLIED) {
+            throw new PlazaLetterException("PLAZA409_ALREADY_REPLIED", "이미 답장한 편지예요");
+        }
+
+        // 이미 포기면 그대로 반환(또는 409)
+        if (letter.getStatus() == PlazaLetterStatus.GAVE_UP) {
+            throw new PlazaLetterException("PLAZA409_ALREADY_GAVE_UP", "이미 포기된 편지예요");
+        }
+
+        OffsetDateTime now = OffsetDateTime.now();
+
+        // 24시간 자동 포기 규칙이 이미 적용된 상태인지(마감 지남) 체크하고 싶으면 여기서 검사 가능
+        // 지금은 수동 포기니까 그냥 markGaveUp 처리
+        letter.markGaveUp(now);
+
+        return GiveUpResponse.builder()
+                .letterId(letter.getLetterId())
+                .status(letter.getStatus())
+                .gaveUpAt(letter.getGaveUpAt())
+                .build();
+    }
 
 
 

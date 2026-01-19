@@ -1,8 +1,7 @@
 package com.example.egobook_be.plaza.letters.controller;
 
 import com.example.egobook_be.global.response.GlobalResponse;
-import com.example.egobook_be.plaza.letters.dto.DeferResponse;
-import com.example.egobook_be.plaza.letters.dto.InboxNextResponse;
+import com.example.egobook_be.plaza.letters.dto.*;
 import com.example.egobook_be.plaza.letters.service.PlazaLetterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,8 +11,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import com.example.egobook_be.plaza.letters.dto.ReplyRequest;
-import com.example.egobook_be.plaza.letters.dto.ReplyResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -119,6 +116,40 @@ public class PlazaLetterController {
         DeferResponse result = plazaLetterService.deferLetter(resolvedUserId, letterId);
         return GlobalResponse.success(result);
     }
+
+    @Operation(
+            summary = "포기하기 처리",
+            description = """
+                답장하지 않기로 선택한 편지를 포기 상태로 변경합니다.
+                - status를 GAVE_UP으로 변경하고 gaveUpAt을 저장합니다.
+                - 이미 답장된 편지는 포기할 수 없습니다.
+                - (배치) 24시간 답장 없으면 자동 포기, 포기 후 4시간 뒤 재매칭은 추후 스케줄러로 처리합니다.
+                """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음(내 편지가 아님)"),
+            @ApiResponse(responseCode = "404", description = "편지 없음"),
+            @ApiResponse(responseCode = "409", description = "이미 답장/이미 포기됨")
+    })
+    @PostMapping("/{letterId}/give-up")
+    public GlobalResponse<GiveUpResponse> giveUp(
+            @Parameter(
+                    name = "X-USER-ID",
+                    description = "테스트용 유저 ID(초기에는 헤더로 받음). JWT 적용 후 제거 예정",
+                    in = ParameterIn.HEADER,
+                    required = false,
+                    example = "1"
+            )
+            @RequestHeader(name = "X-USER-ID", required = false) Long userId,
+            @Parameter(description = "대상 편지 ID", example = "301")
+            @PathVariable Long letterId
+    ) {
+        Long resolvedUserId = (userId == null) ? 1L : userId;
+        GiveUpResponse result = plazaLetterService.giveUpLetter(resolvedUserId, letterId);
+        return GlobalResponse.success(result);
+    }
+
 
 }
 
