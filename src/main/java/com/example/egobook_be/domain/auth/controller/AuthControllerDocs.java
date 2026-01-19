@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.auth.controller;
 
+import com.example.egobook_be.domain.auth.dto.req.GoogleJoinReqDto;
 import com.example.egobook_be.domain.auth.dto.req.GuestJoinReqDto;
 import com.example.egobook_be.domain.auth.dto.req.GuestRecertificationReqDto;
 import com.example.egobook_be.domain.auth.dto.req.GuestRefreshReqDto;
@@ -77,4 +78,32 @@ public interface AuthControllerDocs {
     })
     @PostMapping("/guest/recertification")
     ResponseEntity<GlobalResponse<JwtTokenResDto>> guestRecertification(@RequestBody @Valid GuestRecertificationReqDto reqDto);
+
+
+    @Operation(summary = "Google 회원가입 (소셜 계정 연동)", description = """
+            안드로이드 앱에서 Google 로그인을 수행한 후, 발급받은 **ID Token**을 전송하여 회원가입을 수행합니다.
+            
+            - **기능**: 
+              1. Google ID Token의 서명 및 Audience(Client ID)를 검증합니다.
+              2. 검증된 정보로 신규 가입을 진행하고 **Access, Refresh Token**을 발급합니다.
+            
+            - **주의사항**: 
+              1. **Google 로그인은 Recover Token을 발급하지 않습니다.** (Response의 recoverToken 값은 null입니다.)
+                 - 이유: 계정 복구 및 신원 증명은 Google이 담당하기 때문입니다.
+              2. 이미 가입된 Google 계정이라면 409 Conflict 에러가 발생합니다.
+            """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "회원가입 성공 및 토큰 발급 완료 (RecoverToken is NULL)",
+                    content = @Content(schema = @Schema(implementation = JwtTokenResDto.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (ID Token 누락 등)",
+                    content = @Content),
+            @ApiResponse(responseCode = "401", description = "유효하지 않은 ID Token (위조되거나 만료된 토큰)",
+                    content = @Content),
+            @ApiResponse(responseCode = "409", description = "이미 가입된 계정 (중복 가입 시도)",
+                    content = @Content)
+    })
+    @PostMapping("/google/join")
+    ResponseEntity<GlobalResponse<JwtTokenResDto>> googleJoin(@RequestBody @Valid GoogleJoinReqDto reqDto);
+
+
 }
