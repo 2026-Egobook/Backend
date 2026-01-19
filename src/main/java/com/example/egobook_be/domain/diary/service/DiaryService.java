@@ -89,6 +89,7 @@ public class DiaryService {
                 .user(user)
                 .type(dto.type())
                 .content(dto.content())
+                .emotionLevel(dto.emotionLevel())
                 .writtenAt(writtenAt)
                 .build());
 
@@ -145,10 +146,13 @@ public class DiaryService {
                 .type(diary.getType())
                 .emotionLevel(diary.getEmotionLevel())
                 .content(diary.getContent())
+                .createdAt(diary.getCreatedAt())
+                .updatedAt(diary.getUpdatedAt())
                 .build();
     }
 
     /** 감정 일기 수정 */
+    @Transactional
     public DiaryResDto updateDiary(Long userId, Long diaryId, DiaryUpdateReqDto dto) {
 
         Diary diary = diaryRepository.findById(diaryId)
@@ -178,6 +182,8 @@ public class DiaryService {
                 .type(diary.getType())
                 .emotionLevel(diary.getEmotionLevel())
                 .content(diary.getContent())
+                .createdAt(diary.getCreatedAt())
+                .updatedAt(diary.getUpdatedAt())
                 .build();
     }
 
@@ -220,6 +226,8 @@ public class DiaryService {
                                 .type(diary.getType())
                                 .emotionLevel(diary.getEmotionLevel())
                                 .content(diary.getContent())
+                                .createdAt(diary.getCreatedAt())
+                                .updatedAt(diary.getUpdatedAt())
                                 .build()
                         ).toList()
                 )

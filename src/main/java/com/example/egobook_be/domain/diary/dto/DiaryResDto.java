@@ -14,6 +14,8 @@ public record DiaryResDto(
         LocalDateTime writtenAt,
         Set<DiaryType> type,
         Integer emotionLevel,
-        String content
+        String content,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
 ) {}
 
