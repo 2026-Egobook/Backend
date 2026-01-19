@@ -41,12 +41,10 @@ public class TodayQuestionService {
         boolean answered = false;
 
         if (userId != null) {
-            User user = userRepository.findById(userId)
-                    .orElseThrow();
-
-            answered = questionAnswerRepository
-                    .findByUserAndQuestion(user, question)
-                    .isPresent();
+            answered = questionAnswerRepository.existsByUserIdAndQuestionId(
+                    userId,
+                    question.getId()
+            );
         }
 
         return TodayQuestionResDto.builder()

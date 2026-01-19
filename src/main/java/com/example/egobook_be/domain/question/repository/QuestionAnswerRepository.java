@@ -34,4 +34,5 @@ public interface QuestionAnswerRepository extends JpaRepository<QuestionAnswer, 
 
     Optional<QuestionAnswer> findByIdAndUser(Long id, User user);
 
+    boolean existsByUserIdAndQuestionId(Long userId, Long questionId);
 }
