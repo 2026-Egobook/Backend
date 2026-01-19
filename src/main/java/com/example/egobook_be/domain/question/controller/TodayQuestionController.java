@@ -1,6 +1,7 @@
 package com.example.egobook_be.domain.question.controller;
 
 import com.example.egobook_be.domain.question.dto.AnswerCreateReqDto;
+import com.example.egobook_be.domain.question.dto.PublicAnswerResDto;
 import com.example.egobook_be.domain.question.dto.TodayQuestionResDto;
 import com.example.egobook_be.domain.question.service.TodayQuestionService;
 import com.example.egobook_be.global.response.GlobalResponse;
@@ -11,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Tag(name = "Question API", description = "오늘의 질문 관련 API")
 @RestController
@@ -55,6 +58,23 @@ public class TodayQuestionController {
         todayQuestionService.createAnswer(userId, reqDto);
         return ResponseEntity.ok(
                 GlobalResponse.success("답변 작성 완료", null)
+        );
+    }
+
+
+    @Operation(
+            summary = "오늘의 질문 PUBLIC 답변 조회",
+            description = """
+                오늘의 질문에 대한 PUBLIC 답변을 조회합니다.
+                """
+    )
+    @GetMapping("/answers/all")
+    public ResponseEntity<GlobalResponse<List<PublicAnswerResDto>>> getPublicAnswers() {
+        return ResponseEntity.ok(
+                GlobalResponse.success(
+                        "오늘의 질문 PUBLIC 답변 조회 성공",
+                        todayQuestionService.getPublicAnswers()
+                )
         );
     }
 }
