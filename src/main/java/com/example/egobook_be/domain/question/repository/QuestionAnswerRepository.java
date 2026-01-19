@@ -32,4 +32,6 @@ public interface QuestionAnswerRepository extends JpaRepository<QuestionAnswer, 
 
     List<QuestionAnswer> findByUserOrderByCreatedAtDesc(User user);
 
+    Optional<QuestionAnswer> findByIdAndUser(Long id, User user);
+
 }
