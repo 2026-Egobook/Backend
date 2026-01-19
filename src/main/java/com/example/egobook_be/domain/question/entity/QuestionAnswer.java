@@ -5,6 +5,8 @@ import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Getter
@@ -29,6 +31,7 @@ public class QuestionAnswer extends BaseTimeEntity {
     /** 질문 **/
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "question_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private TodayQuestion question;
 
     /** 답변 작성자 **/
