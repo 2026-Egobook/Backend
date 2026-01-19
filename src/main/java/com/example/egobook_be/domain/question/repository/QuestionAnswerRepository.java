@@ -29,4 +29,7 @@ public interface QuestionAnswerRepository extends JpaRepository<QuestionAnswer, 
             AnswerVisibility visibility,
             List<User> users
     );
+
+    List<QuestionAnswer> findByUserOrderByCreatedAtDesc(User user);
+
 }

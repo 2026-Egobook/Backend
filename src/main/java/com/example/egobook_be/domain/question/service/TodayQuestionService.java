@@ -180,4 +180,32 @@ public class TodayQuestionService {
                 )
                 .toList();
     }
+
+    /** 내가 지금까지 작성한 모든 답변 조회 **/
+    @Transactional(readOnly = true)
+    public List<MyAnswerHistoryResDto> getMyAnswerHistory(Long userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
+                );
+
+        return questionAnswerRepository
+                .findByUserOrderByCreatedAtDesc(user)
+                .stream()
+                .map(answer -> {
+                    TodayQuestion question = answer.getQuestion();
+
+                    return MyAnswerHistoryResDto.builder()
+                            .questionId(question.getId())
+                            .questionDate(question.getQuestionDate())
+                            .questionContent(question.getContent())
+                            .answerId(answer.getId())
+                            .answerContent(answer.getContent())
+                            .visibility(answer.getVisibility())
+                            .answeredAt(answer.getCreatedAt())
+                            .build();
+                })
+                .toList();
+    }
 }
