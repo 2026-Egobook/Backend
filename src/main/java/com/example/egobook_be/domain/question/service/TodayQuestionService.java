@@ -208,4 +208,22 @@ public class TodayQuestionService {
                 })
                 .toList();
     }
+
+    /** 내가 작성한 오늘의 질문 답변 삭제 **/
+    @Transactional
+    public void deleteAnswer(Long userId, Long answerId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
+                );
+
+        QuestionAnswer answer = questionAnswerRepository
+                .findByIdAndUser(answerId, user)
+                .orElseThrow(() ->
+                        new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND)
+                );
+
+        questionAnswerRepository.delete(answer);
+    }
 }

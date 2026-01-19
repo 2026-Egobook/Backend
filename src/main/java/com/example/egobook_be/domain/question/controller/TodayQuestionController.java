@@ -128,4 +128,23 @@ public class TodayQuestionController {
                 )
         );
     }
+
+    @Operation(
+            summary = "내가 작성한 답변 삭제",
+            description = """
+                로그인한 사용자가 오늘 작성한 질문 답변을 삭제합니다.
+
+                - 삭제 후 당일 질문에 대한 답변은 다시 작성 가능
+                """
+    )
+    @DeleteMapping("/answers/{answerId}")
+    public ResponseEntity<GlobalResponse<Void>> deleteAnswer(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @PathVariable Long answerId
+    ) {
+        todayQuestionService.deleteAnswer(userId, answerId);
+        return ResponseEntity.ok(
+                GlobalResponse.success("답변 삭제 성공", null)
+        );
+    }
 }
