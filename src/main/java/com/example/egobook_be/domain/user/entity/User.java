@@ -110,5 +110,9 @@ public class User extends BaseTimeEntity {
         this.purgeAt = this.deletedAt.plus(purgeDurationInMs, ChronoUnit.MILLIS);
     }
 
+    public void addInk(int amount) {
+        this.ink += amount;
+    }
+
 
 }
