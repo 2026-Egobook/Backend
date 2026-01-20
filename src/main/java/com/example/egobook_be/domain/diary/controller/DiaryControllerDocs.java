@@ -48,8 +48,10 @@ public interface DiaryControllerDocs {
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @RequestParam
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(required = false) DiaryType type
-    );
+            @RequestParam(required = false) DiaryType type,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+            );
 
     @Operation(summary = "작성된 감정 일기 상세 확인", description = "선택한 감정 일기의 상세 정보를 확인합니다.")
     @GetMapping("/{diaryId}")

@@ -1,11 +1,11 @@
 package com.example.egobook_be.domain.diary.dto;
 
+import com.example.egobook_be.global.response.SliceResponse;
 import lombok.Builder;
 
-import java.util.List;
 
 @Builder
 public record DiaryListResDto(
         int dailyCount,
-        List<DiaryResDto> diaries
+        SliceResponse<DiaryResDto> diaries
 ) {}

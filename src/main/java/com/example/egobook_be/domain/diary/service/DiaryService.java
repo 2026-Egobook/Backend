@@ -5,12 +5,17 @@ import com.example.egobook_be.domain.diary.entity.Diary;
 import com.example.egobook_be.domain.diary.enums.DiaryType;
 import com.example.egobook_be.domain.diary.enums.RewardType;
 import com.example.egobook_be.domain.diary.exception.DiaryErrorCode;
+import com.example.egobook_be.domain.diary.mapper.DiaryMapper;
 import com.example.egobook_be.domain.diary.repository.DiaryRepository;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
+import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -134,19 +139,7 @@ public class DiaryService {
             }
         }
 
-        return DiaryCreateResDto.builder()
-                .entry(DiaryCreateResDto.DiaryEntryResDto.builder()
-                        .diaryId(diary.getId())
-                        .date(diary.getWrittenAt().toLocalDate())
-                        .writtenAt(diary.getWrittenAt())
-                        .type(diary.getType())
-                        .emotionLevel(diary.getEmotionLevel())
-                        .content(diary.getContent())
-                        .createdAt(diary.getCreatedAt())
-                        .updatedAt(diary.getUpdatedAt())
-                        .build())
-                .rewards(rewards)
-                .build();
+        return DiaryMapper.toDiaryCreateResDto(diary, rewards);
     }
 
     /** 감정 일기 상세 조회 */
@@ -203,16 +196,7 @@ public class DiaryService {
         diary.update(dto.content(), dto.type(), dto.emotionLevel());
         diaryRepository.save(diary);
 
-        return DiaryResDto.builder()
-                .diaryId(diary.getId())
-                .date(diary.getWrittenAt().toLocalDate())
-                .writtenAt(diary.getWrittenAt())
-                .type(diary.getType())
-                .emotionLevel(diary.getEmotionLevel())
-                .content(diary.getContent())
-                .createdAt(diary.getCreatedAt())
-                .updatedAt(diary.getUpdatedAt())
-                .build();
+        return DiaryMapper.toDiaryResDto(diary);
     }
 
     /** 감정 일기 삭제 */
@@ -231,7 +215,7 @@ public class DiaryService {
 
     /** 날짜별 감정 일기 목록 조회 (type 필터링) */
     @Transactional(readOnly = true)
-    public DiaryListResDto getDiaries(Long userId, LocalDate date, DiaryType type) {
+    public DiaryListResDto getDiaries(Long userId, LocalDate date, DiaryType type, int page, int size) {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(DiaryErrorCode.USER_NOT_FOUND));
@@ -239,27 +223,25 @@ public class DiaryService {
         LocalDateTime startOfDay = date.atStartOfDay();
         LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
 
-        List<Diary> diaries = diaryRepository.findAllByUserAndTypeAndWrittenAtBetween(
-                user, type, startOfDay, endOfDay
+        PageRequest pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "writtenAt")
         );
 
+        Slice<Diary> slice = diaryRepository.findAllByUserAndTypeAndWrittenAtBetween(
+                user,
+                type,
+                startOfDay,
+                endOfDay,
+                pageable
+        );
+
+        SliceResponse<DiaryResDto> diaries = SliceResponse.of(slice, DiaryMapper::toDiaryResDto);
+
+        // 오늘 작성한 일기 개수 계산
         int dailyCount = diaryRepository.countByUserAndWrittenAtBetween(user, startOfDay, endOfDay);
 
-        return DiaryListResDto.builder()
-                .diaries(diaries.stream()
-                        .map(diary -> DiaryResDto.builder()
-                                .diaryId(diary.getId())
-                                .date(diary.getWrittenAt().toLocalDate())
-                                .writtenAt(diary.getWrittenAt())
-                                .type(diary.getType())
-                                .emotionLevel(diary.getEmotionLevel())
-                                .content(diary.getContent())
-                                .createdAt(diary.getCreatedAt())
-                                .updatedAt(diary.getUpdatedAt())
-                                .build()
-                        ).toList()
-                )
-                .dailyCount(dailyCount)
-                .build();
+        return DiaryMapper.toDiaryListResDto(diaries, dailyCount);
     }
 }

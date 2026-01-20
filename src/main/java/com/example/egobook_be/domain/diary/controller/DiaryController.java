@@ -43,10 +43,12 @@ public class DiaryController implements DiaryControllerDocs{
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @RequestParam
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(required = false) DiaryType type
+            @RequestParam(required = false) DiaryType type,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
     ) {
         return ResponseEntity.ok(
-                GlobalResponse.success(diaryService.getDiaries(userId, date, type))
+                GlobalResponse.success(diaryService.getDiaries(userId, date, type, page, size))
         );
     }
 
