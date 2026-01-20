@@ -22,6 +22,8 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
 
     boolean existsByUserAndTypeInAndCreatedAtBetween(User user, Set<DiaryType> praise, LocalDateTime startOfToday, LocalDateTime endOfToday);
 
+    List<Diary> findAllByUserAndWrittenAtBetween(User user, LocalDateTime start, LocalDateTime end);
+
     @Query("""
     SELECT d
     FROM Diary d 

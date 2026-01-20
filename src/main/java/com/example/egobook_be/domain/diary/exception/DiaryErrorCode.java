@@ -62,6 +62,36 @@ public enum DiaryErrorCode implements BaseErrorCode {
             "일기를 찾을 수 없습니다.",
             HttpStatus.NOT_FOUND
     ),
+
+    EXPORT_FUTURE_DATE_NOT_ALLOWED(
+            "DIARY_EXPORT_400_001",
+            "미래 날짜는 내보낼 수 없어요",
+            HttpStatus.BAD_REQUEST
+    ),
+
+    EXPORT_INVALID_DATE_RANGE(
+            "DIARY_EXPORT_400_002",
+            "시작 날짜가 끝 날짜보다 이전이거나 같아야 해요",
+            HttpStatus.BAD_REQUEST
+    ),
+
+    EXPORT_RANGE_EXCEEDS_ONE_YEAR(
+            "DIARY_EXPORT_400_003",
+            "최대 1년 단위로 끊어서 내보낼 수 있어요",
+            HttpStatus.BAD_REQUEST
+    ),
+
+    DIARY_EXPORT_FAILED(
+            "DIARY_EXPORT_400_004",
+            "파일 업로드에 실패했습니다",
+            HttpStatus.INTERNAL_SERVER_ERROR
+    ),
+
+    NO_DIARY_TO_EXPORT(
+            "DIARY_EXPORT_404_001",
+            "내보낼 수 있는 감정 일기가 없어요",
+            HttpStatus.NOT_FOUND
+    ),
     ;
 
     private final String code;

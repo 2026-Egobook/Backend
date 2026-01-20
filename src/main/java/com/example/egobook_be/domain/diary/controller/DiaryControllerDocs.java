@@ -94,4 +94,17 @@ public interface DiaryControllerDocs {
             @RequestParam
             @DateTimeFormat(pattern = "yyyy-MM") YearMonth month
     );
+
+    @Operation(summary = "감정 일기 내보내기", description = """
+            PDF 또는 TEXT로 일기를 내보낼 수 있습니다.
+            
+            - 한 번에 최대 1년 단위로 선택 가능합니다.
+            - 미래 날짜는 선택할 수 없습니다.
+            - 시작일이 종료일보다 늦을 수 없습니다.
+            """)
+    @PostMapping("/export")
+    ResponseEntity<GlobalResponse<DiaryExportResDto>> exportDiaries(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestBody @Valid DiaryExportReqDto dto
+    );
 }

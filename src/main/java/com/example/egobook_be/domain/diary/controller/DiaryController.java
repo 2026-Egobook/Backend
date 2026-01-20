@@ -111,4 +111,18 @@ public class DiaryController implements DiaryControllerDocs{
                 GlobalResponse.success(diaryService.getDiaryCalendar(userId, month))
         );
     }
+
+    /**
+     * [감정 일기 내보내기]
+     * POST /diaries/export
+     */
+    @Override
+    public ResponseEntity<GlobalResponse<DiaryExportResDto>> exportDiaries(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestBody @Valid DiaryExportReqDto dto
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success(diaryService.exportDiaries(userId, dto))
+        );
+    }
 }

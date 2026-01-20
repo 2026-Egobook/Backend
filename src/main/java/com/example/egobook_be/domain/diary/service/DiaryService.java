@@ -3,6 +3,7 @@ package com.example.egobook_be.domain.diary.service;
 import com.example.egobook_be.domain.diary.dto.*;
 import com.example.egobook_be.domain.diary.entity.Diary;
 import com.example.egobook_be.domain.diary.enums.DiaryType;
+import com.example.egobook_be.domain.diary.enums.ExportFormat;
 import com.example.egobook_be.domain.diary.enums.RewardType;
 import com.example.egobook_be.domain.diary.exception.DiaryErrorCode;
 import com.example.egobook_be.domain.diary.mapper.DiaryMapper;
@@ -12,6 +13,7 @@ import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
+import com.example.egobook_be.infra.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -19,12 +21,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.YearMonth;
+import java.time.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +30,8 @@ public class DiaryService {
 
     private final UserRepository userRepository;
     private final DiaryRepository diaryRepository;
+    private final DiaryExportService diaryExportService;
+    private final S3Service s3Service;
 
     /** 감정 일기 생성 */
     @Transactional
@@ -246,6 +246,7 @@ public class DiaryService {
     }
 
     /** 감정 일기 달력 */
+    @Transactional(readOnly = true)
     public DiaryCalendarResDto getDiaryCalendar(Long userId, YearMonth month) {
 
         User user = userRepository.findById(userId)
@@ -258,5 +259,71 @@ public class DiaryService {
                 diaryRepository.findDailyEmotions(user, startOfMonth, endOfMonth);
 
         return DiaryMapper.toDiaryCalendarDto(month, dailyEmotions);
+    }
+
+    @Transactional
+    public DiaryExportResDto exportDiaries(Long userId, DiaryExportReqDto dto) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(DiaryErrorCode.USER_NOT_FOUND));
+
+        LocalDate start = dto.startDate();
+        LocalDate end = dto.endDate();
+        LocalDate today = LocalDate.now();
+
+        // 미래 날짜 검증
+        if (start.isAfter(today) || end.isAfter(today)) {
+            throw new CustomException(DiaryErrorCode.EXPORT_FUTURE_DATE_NOT_ALLOWED);
+        }
+
+        // 날짜 순서 검증
+        if (start.isAfter(end)) {
+            throw new CustomException(DiaryErrorCode.EXPORT_INVALID_DATE_RANGE);
+        }
+
+        // 최대 1년 범위 검증
+        if (start.plusYears(1).isBefore(end)) {
+            throw new CustomException(
+                    DiaryErrorCode.EXPORT_RANGE_EXCEEDS_ONE_YEAR
+            );
+        }
+
+        LocalDateTime startOfDate = start.atStartOfDay();
+        LocalDateTime endOfDate = end.atTime(LocalTime.MAX);
+
+        List<Diary> diaries = diaryRepository.findAllByUserAndWrittenAtBetween(user, startOfDate, endOfDate);
+
+        if (diaries.isEmpty()) {
+            throw new CustomException(DiaryErrorCode.NO_DIARY_TO_EXPORT);
+        }
+
+        // 파일 생성
+        byte[] fileContent;
+        String fileName;
+        String contentType;
+
+        if (dto.format() == ExportFormat.PDF) {
+            fileContent = diaryExportService.generatePdf(diaries, user);
+            fileName = String.format("에고북_%s.pdf", LocalDate.now());
+            contentType = "application/pdf";
+        } else {
+            fileContent = diaryExportService.generateText(diaries, user);
+            fileName = String.format("에고북_%s.txt", LocalDate.now());
+            contentType = "text/plain";
+        }
+
+        // S3 업로드 (임시 파일, 24시간 후 만료)
+        String s3Key = String.format("diary-exports/%d/%s", userId, fileName);
+        String fileUrl = s3Service.uploadTemporaryFile(s3Key, fileContent, contentType);
+
+        // 만료 시간 설정 (24시간)
+        LocalDateTime expiresAt = LocalDateTime.now().plusHours(24);
+
+        return DiaryExportResDto.builder()
+                .fileUrl(fileUrl)
+                .expiresAt(expiresAt)
+                .format(dto.format())
+                .range(new DiaryExportResDto.DateRange(start, end))
+                .build();
     }
 }

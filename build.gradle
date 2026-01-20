@@ -88,6 +88,10 @@ dependencies {
     implementation 'com.google.api-client:google-api-client:2.2.0'
     implementation 'com.google.oauth-client:google-oauth-client-jetty:1.34.1'
 
+    // iText
+    implementation 'com.itextpdf:itext7-core:7.2.5'
+    implementation 'com.itextpdf:font-asian:7.2.5'
+
 }
 
 tasks.named('test') {
