@@ -12,6 +12,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 
 @RestController
 @RequiredArgsConstructor
@@ -93,6 +94,21 @@ public class DiaryController implements DiaryControllerDocs{
         diaryService.deleteDiary(userId, diaryId);
         return ResponseEntity.ok(
                 GlobalResponse.success("deleted", true)
+        );
+    }
+
+    /**
+     * [감정 일기 달력]
+     * GET /diaries/calender
+     */
+    @Override
+    public ResponseEntity<GlobalResponse<DiaryCalendarResDto>> getDiaryCalendar(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestParam
+            @DateTimeFormat(pattern = "yyyy-MM") YearMonth month
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success(diaryService.getDiaryCalendar(userId, month))
         );
     }
 }

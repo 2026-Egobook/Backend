@@ -22,9 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.time.YearMonth;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -139,7 +139,7 @@ public class DiaryService {
             }
         }
 
-        return DiaryMapper.toDiaryCreateResDto(diary, rewards);
+        return DiaryMapper.toDiaryCreateDto(diary, rewards);
     }
 
     /** 감정 일기 상세 조회 */
@@ -196,7 +196,7 @@ public class DiaryService {
         diary.update(dto.content(), dto.type(), dto.emotionLevel());
         diaryRepository.save(diary);
 
-        return DiaryMapper.toDiaryResDto(diary);
+        return DiaryMapper.toDiaryDto(diary);
     }
 
     /** 감정 일기 삭제 */
@@ -237,11 +237,26 @@ public class DiaryService {
                 pageable
         );
 
-        SliceResponse<DiaryResDto> diaries = SliceResponse.of(slice, DiaryMapper::toDiaryResDto);
+        SliceResponse<DiaryResDto> diaries = SliceResponse.of(slice, DiaryMapper::toDiaryDto);
 
         // 오늘 작성한 일기 개수 계산
         int dailyCount = diaryRepository.countByUserAndWrittenAtBetween(user, startOfDay, endOfDay);
 
-        return DiaryMapper.toDiaryListResDto(diaries, dailyCount);
+        return DiaryMapper.toDiaryListDto(diaries, dailyCount);
+    }
+
+    /** 감정 일기 달력 */
+    public DiaryCalendarResDto getDiaryCalendar(Long userId, YearMonth month) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(DiaryErrorCode.USER_NOT_FOUND));
+
+        LocalDateTime startOfMonth = month.atDay(1).atStartOfDay();
+        LocalDateTime endOfMonth = month.atEndOfMonth().atTime(LocalTime.MAX);
+
+        List<DiaryRepository.DailyEmotionCount> dailyEmotions =
+                diaryRepository.findDailyEmotions(user, startOfMonth, endOfMonth);
+
+        return DiaryMapper.toDiaryCalendarDto(month, dailyEmotions);
     }
 }

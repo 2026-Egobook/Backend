@@ -13,6 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 
 @Tag(name = "Diary Controller", description = "감정 일기 관련 API")
 public interface DiaryControllerDocs {
@@ -79,5 +80,18 @@ public interface DiaryControllerDocs {
     ResponseEntity<GlobalResponse<Boolean>> deleteDiary(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @PathVariable Long diaryId
+    );
+
+    @Operation(summary = "감정 일기 달력", description = """
+            선택한 연도/월의 날짜별로 가장 많이 기록된 대표 감정 단계(이모티콘)를 확인합니다.
+            
+            - 날짜마다 하나의 감정 단계만 반환합니다.
+            - 가장 많이 기록된 감정 단계가 여러 개일 경우, 가장 최근에 등록된 감정을 우선순위로 합니다.
+            """)
+    @GetMapping("/calendar")
+    ResponseEntity<GlobalResponse<DiaryCalendarResDto>> getDiaryCalendar(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestParam
+            @DateTimeFormat(pattern = "yyyy-MM") YearMonth month
     );
 }
