@@ -28,7 +28,7 @@ public class PlazaLetterDummyDataLoader implements CommandLineRunner {
 
         repo.save(PlazaLetter.builder()
                 .senderId(1L)
-                .receiverId(1L)
+                .receiverId(2L)
                 .status(PlazaLetterStatus.ARRIVED)
                 .mode(PlazaLetterMode.RANDOM)
                 .fromLabel("익명")
@@ -37,7 +37,7 @@ public class PlazaLetterDummyDataLoader implements CommandLineRunner {
                 .createdAt(now)
                 .threadId(1L)
                 .replyDeadlineAt(now.plusHours(24))
-                .backgroundColor("BLUE")
+                .backgroundColor("WHITE")
                 .build());
     }
 }

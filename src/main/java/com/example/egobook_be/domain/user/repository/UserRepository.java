@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, Long>,UserRepositoryCustom {
 
     /**
      * 신규 사용자 가입 시, AccountCode를 만들어 지정해줄 때 해당 AccountCode가 이미 존재하는지 확인하기 위한 함수 

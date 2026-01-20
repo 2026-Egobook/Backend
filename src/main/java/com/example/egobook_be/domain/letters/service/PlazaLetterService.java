@@ -4,10 +4,13 @@ import com.example.egobook_be.domain.letters.domain.PlazaLetter;
 import com.example.egobook_be.domain.letters.domain.PlazaLetterReply;
 import com.example.egobook_be.domain.letters.domain.PlazaLetterStatus;
 import com.example.egobook_be.domain.letters.dto.*;
+import com.example.egobook_be.domain.letters.dto.request.CreateLetterRequest;
+import com.example.egobook_be.domain.letters.dto.response.*;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterThreadRepository;
+import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import org.springframework.data.domain.PageRequest;
@@ -16,12 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.example.egobook_be.domain.letters.domain.*;
-import com.example.egobook_be.domain.letters.dto.*;
-
 
 
 import java.time.*;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +35,8 @@ public class PlazaLetterService {
     private final PlazaLetterRepository plazaLetterRepository;
     private final PlazaLetterReplyRepository plazaLetterReplyRepository;
     private final PlazaLetterThreadRepository plazaLetterThreadRepository;
+    private final UserRepository userRepository;
+
 
     @Transactional(readOnly = true)
     public InboxNextResponse getNextArrivedLetter(Long userId) {
@@ -61,39 +65,38 @@ public class PlazaLetterService {
         validateCreateLetterRequest(request);
 
         OffsetDateTime now = OffsetDateTime.now();
-
-        // 하루 1회 제한 (KST 기준)
-        ZoneId zoneId = ZoneId.of("Asia/Seoul");
-        LocalDate today = LocalDate.now(zoneId);
-        OffsetDateTime start = today.atStartOfDay(zoneId).toOffsetDateTime();
-        OffsetDateTime end = today.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
-
-        if (plazaLetterRepository.existsBySenderIdAndCreatedAtBetween(userId, start, end)) {
-            throw new CustomException(LettersErrorCode.DAILY_LETTER_LIMIT);
-        }
+        enforceDailyLimit(userId, now);
 
         if (!passesModeration(request.getText())) {
             throw new CustomException(LettersErrorCode.AI_MODERATION_FAILED);
         }
 
-        // 1) 스레드 먼저 생성
         PlazaLetterThread thread = plazaLetterThreadRepository.save(PlazaLetterThread.createNow());
 
-        // 2) 편지 생성 (RANDOM/FRIEND 매칭 로직은 다음 단계에서 붙이기)
+        Long receiverId = resolveReceiverId(userId, request);
+
+        String bg = resolveBackgroundColor(request.getBackgroundColor());
+
+        String fromLabel = "익명";
+        if (request.getMode() == PlazaLetterMode.FRIEND) {
+            String nickname = userRepository.findById(userId)
+                    .orElseThrow(() -> new CustomException(LettersErrorCode.USER_NOT_FOUND))
+                    .getNickname();
+            fromLabel = (nickname == null || nickname.isBlank()) ? "친구" : nickname;
+        }
+
         PlazaLetter letter = PlazaLetter.builder()
                 .threadId(thread.getThreadId())
                 .senderId(userId)
-                .receiverId(null)
-                .status(PlazaLetterStatus.SENT)
+                .receiverId(receiverId)
                 .mode(request.getMode())
-                .fromLabel("익명")
+                .fromLabel(fromLabel)  // FRIEND면 닉네임으로 세팅
                 .content(request.getText())
+                .backgroundColor(bg)
+                .status(PlazaLetterStatus.ARRIVED)
                 .createdAt(now)
-                .backgroundColor(request.getBackgroundColor())
-                .arrivedAt(null)
-                .replyDeadlineAt(null)
-                .repliedAt(null)
-                .gaveUpAt(null)
+                .arrivedAt(now)
+                .replyDeadlineAt(now.plusHours(24))
                 .build();
 
         PlazaLetter saved = plazaLetterRepository.save(letter);
@@ -106,6 +109,49 @@ public class PlazaLetterService {
                 .createdAt(saved.getCreatedAt())
                 .build();
     }
+
+
+
+
+    private void enforceDailyLimit(Long userId, OffsetDateTime now) {
+        ZoneId zoneId = ZoneId.of("Asia/Seoul");
+        LocalDate today = LocalDate.now(zoneId);
+        OffsetDateTime start = today.atStartOfDay(zoneId).toOffsetDateTime();
+        OffsetDateTime end = today.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
+
+        if (plazaLetterRepository.existsBySenderIdAndCreatedAtBetween(userId, start, end)) {
+            throw new CustomException(LettersErrorCode.DAILY_LETTER_LIMIT);
+        }
+    }
+
+    private Long resolveReceiverId(Long userId, CreateLetterRequest request) {
+        if (request.getMode() == PlazaLetterMode.FRIEND) {
+            // TODO: friend 관계 검증(친구 맞는지) 붙이기
+            return request.getToFriendId();
+        }
+
+        // RANDOM: 답장률 높은 후보군에서 랜덤 선택
+        List<Long> candidates = userRepository.findHighReplyRateCandidates(userId, 50);
+
+        if (candidates.isEmpty()) {
+            throw new CustomException(LettersErrorCode.NO_RECEIVER_AVAILABLE);
+        }
+
+        int pick = ThreadLocalRandom.current().nextInt(candidates.size());
+        return candidates.get(pick);
+    }
+
+
+    private String resolveBackgroundColor(String requested) {
+        if (requested == null || requested.isBlank()) {
+            return "WHITE";
+        }
+        return requested.trim().toUpperCase();
+    }
+
+
+
+
 
     private void validateCreateLetterRequest(CreateLetterRequest request) {
         if (request == null || request.getMode() == null) {

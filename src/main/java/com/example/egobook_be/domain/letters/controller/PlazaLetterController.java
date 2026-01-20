@@ -1,6 +1,10 @@
 package com.example.egobook_be.domain.letters.controller;
 
 import com.example.egobook_be.domain.letters.dto.*;
+import com.example.egobook_be.domain.letters.dto.request.CreateLetterRequest;
+import com.example.egobook_be.domain.letters.dto.request.ReplyRequest;
+import com.example.egobook_be.domain.letters.dto.response.*;
+import com.example.egobook_be.domain.letters.service.PlazaLetterQueryService;
 import com.example.egobook_be.domain.letters.service.PlazaLetterService;
 import com.example.egobook_be.global.response.GlobalResponse;
 import com.example.egobook_be.global.response.SliceResponse;
@@ -12,8 +16,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.example.egobook_be.global.security.CustomUserDetails;
+import org.springframework.http.ResponseEntity;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 public class PlazaLetterController {
 
     private final PlazaLetterService plazaLetterService;
+    private final PlazaLetterQueryService plazaLetterQueryService;
 
     @Operation(
             summary = "내가 답장해야 할 '도착 편지' 1건 가져오기",
@@ -138,7 +146,7 @@ public class PlazaLetterController {
 
 
     @Operation(
-            summary = "내가 작성한 답장 목록 조회 (Slice 무한스크롤)",
+            summary = "내가 작성한 답장 목록 조회",
             description = """
             로그인한 사용자가 작성한 답장을 최신순으로 Slice 조회합니다.
             - page는 0부터 시작합니다.
@@ -163,6 +171,7 @@ public class PlazaLetterController {
             - text: 360자 이하
             - 하루 1회 제한
             - AI 검사 실패 시 거절
+            - RANDOM/FRIEND 모드가 있음 (특정 친구한테 보낼수도있고 랜덤도 가능)
             """
     )
     @ApiResponses({
@@ -199,5 +208,27 @@ public class PlazaLetterController {
     ) {
         return GlobalResponse.success(plazaLetterService.deleteThread(userId, threadId));
     }
+
+    @Operation(
+            summary = "내가 보낸 편지 상태 조회(48시간 AI 대체 확인 포함)",
+            description = """
+        로그인한 사용자가 보낸 편지를 최신순으로 Slice 조회합니다.
+        - page는 0부터 시작
+        - size는 1~50 권장
+        """
+    )
+    @GetMapping("/sent")
+    public GlobalResponse<SliceResponse<PlazaSentLetterResDto>> getMySentLetters(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        SliceResponse<PlazaSentLetterResDto> result =
+                plazaLetterQueryService.getMySentLetters(userId, page, size);
+
+        return GlobalResponse.success(result);
+    }
+
 
 }

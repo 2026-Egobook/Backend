@@ -1,4 +1,4 @@
-package com.example.egobook_be.domain.letters.dto;
+package com.example.egobook_be.domain.letters.dto.request;
 
 import com.example.egobook_be.domain.letters.domain.PlazaLetterMode;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -22,6 +22,6 @@ public class CreateLetterRequest {
     @Schema(description = "편지 내용(360자 이하)", example = "요즘 자꾸 불안해져서... 누가 한마디 해주면 좋겠어.")
     private String text;
 
-    @Schema(description = "배경색(구독자 전용 가능)", example = "SKY", nullable = true)
+    @Schema(description = "배경색(구독자 전용 가능), 기본은 하얀색", example = "WHITE", nullable = true)
     private String backgroundColor;
 }

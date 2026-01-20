@@ -19,12 +19,17 @@ public enum LettersErrorCode implements BaseErrorCode {
     FRIEND_ID_REQUIRED(HttpStatus.BAD_REQUEST, "PLAZA400_FRIEND_ID_REQUIRED", "FRIEND 모드에서는 toFriendId가 필요해요"),
 
 
+
+
     // 403
     FORBIDDEN(HttpStatus.FORBIDDEN, "PLAZA403_FORBIDDEN", "접근 권한이 없어요"),
 
     // 404
     LETTER_NOT_FOUND(HttpStatus.NOT_FOUND, "PLAZA404_LETTER_NOT_FOUND", "편지를 찾을 수 없어요"),
     THREAD_NOT_FOUND(HttpStatus.NOT_FOUND, "PLAZA404_THREAD_NOT_FOUND", "스레드를 찾을 수 없어요"),
+    NO_RECEIVER_AVAILABLE(HttpStatus.NOT_FOUND,"PLAZA404_NO_RECEIVER_AVAILABLE", "현재 편지를 받을 수 있는 유저가 없습니다."),
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND,"PLAZA404_USER_NOT_FOUND", "유저를 찾을 수 없어요."),
+
 
     // 409
     ALREADY_REPLIED(HttpStatus.CONFLICT, "PLAZA409_ALREADY_REPLIED", "이미 답장한 편지예요"),

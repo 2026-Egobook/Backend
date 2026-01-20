@@ -4,6 +4,7 @@ import com.example.egobook_be.domain.letters.domain.PlazaLetter;
 import com.example.egobook_be.domain.letters.domain.PlazaLetterStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
@@ -21,6 +22,34 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
 
     void deleteByThreadId(Long threadId);
 
+    long countByReceiverIdAndArrivedAtBetween(Long receiverId, OffsetDateTime start, OffsetDateTime end);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update PlazaLetter l
+           set l.status = :newStatus,
+               l.fromLabel = :newFromLabel
+         where l.senderId = :senderId
+           and l.status = com.example.egobook_be.domain.letters.domain.PlazaLetterStatus.SENT
+           and l.createdAt <= :threshold
+    """)
+    int bulkMarkAiReplied(
+            @Param("senderId") Long senderId,
+            @Param("threshold") OffsetDateTime threshold,
+            @Param("newStatus") PlazaLetterStatus newStatus,
+            @Param("newFromLabel") String newFromLabel
+    );
+
+    @Query("""
+        select l
+          from PlazaLetter l
+         where l.senderId = :senderId
+         order by l.createdAt desc, l.letterId desc
+    """)
+    Slice<PlazaLetter> findMySentLettersSlice(
+            @Param("senderId") Long senderId,
+            Pageable pageable
+    );
 
 }
 

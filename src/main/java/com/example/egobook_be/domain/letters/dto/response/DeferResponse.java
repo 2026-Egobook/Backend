@@ -1,17 +1,14 @@
-package com.example.egobook_be.domain.letters.dto;
+package com.example.egobook_be.domain.letters.dto.response;
 
 import com.example.egobook_be.domain.letters.domain.PlazaLetterStatus;
 import lombok.*;
-
-import java.time.OffsetDateTime;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
-public class GiveUpResponse {
+public class DeferResponse {
     private Long letterId;
-    private PlazaLetterStatus status;     // "GAVE_UP"
-    private OffsetDateTime gaveUpAt;
+    private PlazaLetterStatus status; // "DEFERRED"
 }
 

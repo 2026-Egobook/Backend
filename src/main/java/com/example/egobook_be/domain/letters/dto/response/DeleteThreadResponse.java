@@ -1,4 +1,4 @@
-package com.example.egobook_be.domain.letters.dto;
+package com.example.egobook_be.domain.letters.dto.response;
 
 import lombok.Builder;
 

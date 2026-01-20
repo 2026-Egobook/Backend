@@ -1,4 +1,4 @@
-package com.example.egobook_be.domain.letters.dto;
+package com.example.egobook_be.domain.letters.dto.response;
 
 import com.example.egobook_be.domain.letters.domain.PlazaLetterMode;
 import com.example.egobook_be.domain.letters.domain.PlazaLetterStatus;
