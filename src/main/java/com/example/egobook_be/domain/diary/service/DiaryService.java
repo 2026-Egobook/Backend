@@ -303,11 +303,11 @@ public class DiaryService {
         String contentType;
 
         if (dto.format() == ExportFormat.PDF) {
-            fileContent = diaryExportService.generatePdf(diaries, user);
+            fileContent = diaryExportService.generatePdf(diaries);
             fileName = String.format("에고북_%s.pdf", LocalDate.now());
             contentType = "application/pdf";
         } else {
-            fileContent = diaryExportService.generateText(diaries, user);
+            fileContent = diaryExportService.generateText(diaries);
             fileName = String.format("에고북_%s.txt", LocalDate.now());
             contentType = "text/plain";
         }
