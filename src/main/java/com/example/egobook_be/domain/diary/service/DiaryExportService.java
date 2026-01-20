@@ -18,14 +18,13 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,6 +38,41 @@ public class DiaryExportService {
     private static final float FONT_SIZE_TYPE = 11;
     private static final float FONT_SIZE_CONTENT = 11;
     private static final float LINE_HEIGHT = 1.5f;
+    private static final byte[] FONT;
+    private static final Map<Integer, byte[]> EMOTION_IMG = new HashMap<>();
+
+    static {
+        // 폰트 데이터 캐싱
+        try {
+            ClassPathResource fontResource = new ClassPathResource("fonts/NanumGothic.ttf");
+
+            if (fontResource.exists()) {
+                try (InputStream fontStream = fontResource.getInputStream()) {
+                    FONT = fontStream.readAllBytes();
+                }
+            } else {
+                FONT = null;
+            }
+        } catch (Exception e) {
+            throw new ExceptionInInitializerError("폰트 로딩 실패: " + e.getMessage());
+        }
+
+        // 이모티콘 캐싱
+        for (int level = 1; level <= 5; level++) {
+            try {
+                String imagePath = "images/emotions/emotion_" + level + ".png";
+                ClassPathResource resource = new ClassPathResource(imagePath);
+
+                if (resource.exists()) {
+                    try (InputStream imageStream = resource.getInputStream()) {
+                        EMOTION_IMG.put(level, imageStream.readAllBytes());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("이모티콘 이미지 로딩 실패: emotion_{}.png", level);
+            }
+        }
+    }
 
     /** PDF 파일 생성 */
     public byte[] generatePdf(List<Diary> diaries) {
@@ -47,23 +81,18 @@ public class DiaryExportService {
 
             // 한글 폰트
             PDFont font;
-            try {
-                ClassPathResource fontResource = new ClassPathResource("fonts/NanumGothic.ttf");
-                if (fontResource.exists()) {
-                    try (InputStream fontStream = fontResource.getInputStream()) {
-                        font = PDType0Font.load(document, fontStream);
-                    }
-                } else {
-                    font = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-                }
-            } catch (Exception e) {
+            if (FONT != null) {
+                font = PDType0Font.load(document, new ByteArrayInputStream(FONT));
+            } else {
                 font = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
             }
 
             // 날짜 그룹화
             Map<LocalDate, List<Diary>> diariesByDate = diaries.stream()
+                    .sorted(Comparator.comparing(Diary::getWrittenAt))
                     .collect(Collectors.groupingBy(
                             diary -> diary.getWrittenAt().toLocalDate(),
+                            LinkedHashMap::new,
                             Collectors.toList()
                     ));
 
@@ -96,12 +125,8 @@ public class DiaryExportService {
                 contentStream.endText();
                 yPosition -= FONT_SIZE_TITLE * LINE_HEIGHT + 20;
 
-                // 해당 날짜 일기 (시간 역순)
-                List<Diary> sortedDiaries = dayDiaries.stream()
-                        .sorted((d1, d2) -> d2.getWrittenAt().compareTo(d1.getWrittenAt()))
-                        .collect(Collectors.toList());
 
-                for (Diary diary : sortedDiaries) {
+                for (Diary diary : dayDiaries) {
                     // 시간, 일기 타입
                     String types = diary.getType().stream()
                             .map(this::getDiaryTypeText)
@@ -227,17 +252,13 @@ public class DiaryExportService {
 
     private PDImageXObject loadEmotionImage(PDDocument document, Integer emotionLevel) {
         try {
-            String imagePath = "images/emotions/emotion_" + emotionLevel + ".png";
-            ClassPathResource resource = new ClassPathResource(imagePath);
-
-            if (resource.exists()) {
-                try (InputStream imageStream = resource.getInputStream()) {
-                    return PDImageXObject.createFromByteArray(document,
-                            imageStream.readAllBytes(), "emotion");
-                }
+            byte[] imageData = EMOTION_IMG.get(emotionLevel);
+            if (imageData != null) {
+                return PDImageXObject.createFromByteArray(document, imageData, "emotion");
             }
             return null;
         } catch (Exception e) {
+            log.error("이미지 변환 실패: emotion_{}", emotionLevel, e);
             return null;
         }
     }
