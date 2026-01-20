@@ -9,6 +9,13 @@ on:
   workflow_dispatch: # 수동 실행도 가능하도록 설정해주는 트리거
   # => 이 설정이 있으면 Github - Actions - 워크플로 - Run Workflow 버튼으로 배포할 수 있게 됨
 
+# [동시성] 동시 실행 방지 설정 - 해당 레포의 작업이 돌아가고 있으면 새로운 작업을 취소시키는 설정이다.
+  # github.workflow: yaml 맨 위에 적은 name: 부분
+  # github.ref: 이 배포를 실행시킨 Branch 정보 - refs/head/develop이라는 문자열이 들어간다.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # jobs: 작업 환경 설정
 jobs:
   # 1. build: Job들 중 한개의 작업을 정의한 것 (build라는 작업 정의)
@@ -62,6 +69,9 @@ jobs:
           sed -i "s|\${DB_USER}|${{ secrets.DEV_DB_USER }}|g" $FILE
           sed -i "s|\${DB_PW}|${{ secrets.DEV_DB_PW }}|g" $FILE
           sed -i "s|\${JWT_SECRET_KEY_DEV}|${{ secrets.JWT_SECRET_KEY_DEV }}|g" $FILE
+          sed -i "s|\${DEV_SALT}|${{ secrets.DEV_SALT }}|g" $FILE
+          sed -i "s|\${DEV_REDIS_PW}|${{ secrets.DEV_REDIS_PW }}|g" $FILE
+          sed -i "s|\${DEV_ANDROID_CLIENT_IDS}|${{ secrets.DEV_ANDROID_CLIENT_IDS }}|g" $FILE
         # 같은 값이 중복되면, 최근에 설정된 env값이 사용된다.
         shell: bash
 
@@ -76,6 +86,9 @@ jobs:
           sed -i "s|\${DB_USER}|${{ secrets.PROD_DB_USER }}|g" $FILE
           sed -i "s|\${DB_PW}|${{ secrets.PROD_DB_PW }}|g" $FILE
           sed -i "s|\${JWT_SECRET_KEY_PROD}|${{ secrets.JWT_SECRET_KEY_PROD }}|g" $FILE
+          sed -i "s|\${PROD_SALT}|${{ secrets.PROD_SALT }}|g" $FILE
+          sed -i "s|\${PROD_REDIS_PW}|${{ secrets.PROD_REDIS_PW }}|g" $FILE
+          sed -i "s|\${PROD_ANDROID_CLIENT_IDS}|${{ secrets.PROD_ANDROID_CLIENT_IDS }}|g" $FILE
         shell: bash
 
       # (5) gradlew 파일에 실행 권한 부여
