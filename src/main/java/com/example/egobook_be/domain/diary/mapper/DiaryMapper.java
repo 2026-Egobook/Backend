@@ -1,14 +1,14 @@
 package com.example.egobook_be.domain.diary.mapper;
 
-import com.example.egobook_be.domain.diary.dto.DiaryCalendarResDto;
-import com.example.egobook_be.domain.diary.dto.DiaryCreateResDto;
-import com.example.egobook_be.domain.diary.dto.DiaryListResDto;
-import com.example.egobook_be.domain.diary.dto.DiaryResDto;
+import com.example.egobook_be.domain.diary.dto.*;
 import com.example.egobook_be.domain.diary.entity.Diary;
+import com.example.egobook_be.domain.diary.enums.ExportFormat;
 import com.example.egobook_be.domain.diary.repository.DiaryRepository;
 import com.example.egobook_be.global.response.SliceResponse;
+import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.Comparator;
 import java.util.List;
@@ -75,6 +75,17 @@ public class DiaryMapper {
         return DiaryCalendarResDto.builder()
                 .month(month)
                 .days(days)
+                .build();
+    }
+
+    public static DiaryExportResDto toDiaryExportDto(
+            String fileUrl, LocalDateTime expiresAt, ExportFormat format, LocalDate startDate, LocalDate endDate
+    ) {
+        return DiaryExportResDto.builder()
+                .fileUrl(fileUrl)
+                .expiresAt(expiresAt)
+                .format(format)
+                .range(new DiaryExportResDto.DateRange(startDate, endDate))
                 .build();
     }
 }

@@ -31,14 +31,14 @@ public class DiaryService {
     private final UserRepository userRepository;
     private final DiaryRepository diaryRepository;
     private final DiaryExportService diaryExportService;
+    private final DiaryQueryService diaryQueryService;
     private final S3Service s3Service;
 
     /** 감정 일기 생성 */
     @Transactional
     public DiaryCreateResDto createDiary(Long userId, DiaryCreateReqDto dto) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(DiaryErrorCode.USER_NOT_FOUND));
+        User user = diaryQueryService.getUserById(userId);
 
         // 일기 타입 선택 검증
         if (dto.type() == null || dto.type().isEmpty()) {
@@ -143,38 +143,18 @@ public class DiaryService {
     }
 
     /** 감정 일기 상세 조회 */
-    @Transactional(readOnly = true)
     public DiaryResDto getDiary(Long userId, Long diaryId) {
 
-        Diary diary = diaryRepository.findById(diaryId)
-                .orElseThrow(() -> new CustomException(DiaryErrorCode.DIARY_NOT_FOUND));
+        Diary diary = diaryQueryService.getDiaryWithAuth(userId, diaryId);
 
-        if (!diary.getUser().getId().equals(userId)) {
-            throw new CustomException(DiaryErrorCode.DIARY_ACCESS_DENIED);
-        }
-
-        return DiaryResDto.builder()
-                .diaryId(diary.getId())
-                .date(diary.getWrittenAt().toLocalDate())
-                .writtenAt(diary.getWrittenAt())
-                .type(diary.getType())
-                .emotionLevel(diary.getEmotionLevel())
-                .content(diary.getContent())
-                .createdAt(diary.getCreatedAt())
-                .updatedAt(diary.getUpdatedAt())
-                .build();
+        return DiaryMapper.toDiaryDto(diary);
     }
 
     /** 감정 일기 수정 */
     @Transactional
     public DiaryResDto updateDiary(Long userId, Long diaryId, DiaryUpdateReqDto dto) {
 
-        Diary diary = diaryRepository.findById(diaryId)
-                .orElseThrow(() -> new CustomException(DiaryErrorCode.DIARY_NOT_FOUND));
-
-        if (!diary.getUser().getId().equals(userId)) {
-            throw new CustomException(DiaryErrorCode.DIARY_ACCESS_DENIED);
-        }
+        Diary diary = diaryQueryService.getDiaryWithAuth(userId, diaryId);
 
         // 일기 타입 선택 검증
         if (dto.type() == null || dto.type().isEmpty()) {
@@ -203,12 +183,7 @@ public class DiaryService {
     @Transactional
     public void deleteDiary(Long userId, Long diaryId) {
 
-        Diary diary = diaryRepository.findById(diaryId)
-                .orElseThrow(() -> new CustomException(DiaryErrorCode.DIARY_NOT_FOUND));
-
-        if (!diary.getUser().getId().equals(userId)) {
-            throw new CustomException(DiaryErrorCode.DIARY_ACCESS_DENIED);
-        }
+        Diary diary = diaryQueryService.getDiaryWithAuth(userId, diaryId);
 
         diaryRepository.delete(diary);
     }
@@ -217,8 +192,7 @@ public class DiaryService {
     @Transactional(readOnly = true)
     public DiaryListResDto getDiaries(Long userId, LocalDate date, DiaryType type, int page, int size) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(DiaryErrorCode.USER_NOT_FOUND));
+        User user = diaryQueryService.getUserById(userId);
 
         LocalDateTime startOfDay = date.atStartOfDay();
         LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
@@ -249,8 +223,7 @@ public class DiaryService {
     @Transactional(readOnly = true)
     public DiaryCalendarResDto getDiaryCalendar(Long userId, YearMonth month) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(DiaryErrorCode.USER_NOT_FOUND));
+        User user = diaryQueryService.getUserById(userId);
 
         LocalDateTime startOfMonth = month.atDay(1).atStartOfDay();
         LocalDateTime endOfMonth = month.atEndOfMonth().atTime(LocalTime.MAX);
@@ -261,37 +234,11 @@ public class DiaryService {
         return DiaryMapper.toDiaryCalendarDto(month, dailyEmotions);
     }
 
-    @Transactional
+    /** 감정 일기 내보네기 */
     public DiaryExportResDto exportDiaries(Long userId, DiaryExportReqDto dto) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(DiaryErrorCode.USER_NOT_FOUND));
-
-        LocalDate start = dto.startDate();
-        LocalDate end = dto.endDate();
-        LocalDate today = LocalDate.now();
-
-        // 미래 날짜 검증
-        if (start.isAfter(today) || end.isAfter(today)) {
-            throw new CustomException(DiaryErrorCode.EXPORT_FUTURE_DATE_NOT_ALLOWED);
-        }
-
-        // 날짜 순서 검증
-        if (start.isAfter(end)) {
-            throw new CustomException(DiaryErrorCode.EXPORT_INVALID_DATE_RANGE);
-        }
-
-        // 최대 1년 범위 검증
-        if (start.plusYears(1).isBefore(end)) {
-            throw new CustomException(
-                    DiaryErrorCode.EXPORT_RANGE_EXCEEDS_ONE_YEAR
-            );
-        }
-
-        LocalDateTime startOfDate = start.atStartOfDay();
-        LocalDateTime endOfDate = end.atTime(LocalTime.MAX);
-
-        List<Diary> diaries = diaryRepository.findAllByUserAndWrittenAtBetween(user, startOfDate, endOfDate);
+        User user = diaryQueryService.getUserById(userId);
+        List<Diary> diaries = diaryQueryService.getDiariesByDate(user, dto.startDate(), dto.endDate());
 
         if (diaries.isEmpty()) {
             throw new CustomException(DiaryErrorCode.NO_DIARY_TO_EXPORT);
@@ -319,11 +266,8 @@ public class DiaryService {
         // 만료 시간 설정 (24시간)
         LocalDateTime expiresAt = LocalDateTime.now().plusHours(24);
 
-        return DiaryExportResDto.builder()
-                .fileUrl(fileUrl)
-                .expiresAt(expiresAt)
-                .format(dto.format())
-                .range(new DiaryExportResDto.DateRange(start, end))
-                .build();
+        return DiaryMapper.toDiaryExportDto(
+                fileUrl, expiresAt, dto.format(), dto.startDate(), dto.endDate()
+        );
     }
 }
