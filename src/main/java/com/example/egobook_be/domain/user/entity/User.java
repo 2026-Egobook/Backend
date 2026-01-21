@@ -1,9 +1,7 @@
 package com.example.egobook_be.domain.user.entity;
 
-import com.example.egobook_be.domain.auth.entity.AuthAccount;
 import com.example.egobook_be.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -74,7 +72,12 @@ public class User extends BaseTimeEntity {
 
     // ========= 연관관계 매핑 ========= //
 
-
+    @OneToOne(
+            mappedBy = "user",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private Ability ability;
 
 
     // ========= Entity 비즈니스 메서드 ========= //
@@ -113,6 +116,4 @@ public class User extends BaseTimeEntity {
     public void addInk(int amount) {
         this.ink += amount;
     }
-
-
 }
