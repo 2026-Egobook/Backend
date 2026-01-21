@@ -153,24 +153,6 @@ public class FriendService {
 
 
     /** 내가 받은 친구 신청 목록 (승인 대기) **/
-//    @Transactional(readOnly = true)
-//    public List<FriendRequestListResDto> getIncomingRequests(Long userId) {
-//
-//        User receiver = userRepository.findById(userId)
-//                .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
-//
-//        return friendRequestRepository
-//                .findByReceiverAndStatus(receiver, FriendRequestStatus.PENDING)
-//                .stream()
-//                .map(req -> FriendRequestListResDto.builder()
-//                        .requestId(req.getId())
-//                        .userId(req.getSender().getId())
-//                        .nickname(req.getSender().getNickname())
-//                        .requestedAt(req.getCreatedAt())
-//                        .build()
-//                )
-//                .toList();
-//    }
     @Transactional(readOnly = true)
     public FriendRequestListWithCountResDto getIncomingRequests(Long userId) {
 
@@ -189,13 +171,17 @@ public class FriendService {
         );
 
         List<FriendRequestListResDto> list = requests.stream()
-                .map(req -> FriendRequestListResDto.builder()
-                        .requestId(req.getId())
-                        .userId(req.getSender().getId())
-                        .nickname(req.getSender().getNickname())
-                        .requestedAt(req.getCreatedAt())
-                        .build()
-                )
+                .map(req -> {
+                    User sender = req.getSender();
+
+                    return FriendRequestListResDto.builder()
+                            .requestId(req.getId())
+                            .userId(sender.getId())
+                            .nickname(sender.getNickname())
+                            .level(sender.getLevel())
+                            .requestedAt(req.getCreatedAt())
+                            .build();
+                })
                 .toList();
 
         return FriendRequestListWithCountResDto.builder()
@@ -214,13 +200,17 @@ public class FriendService {
         return friendRequestRepository
                 .findBySenderAndStatus(sender, FriendRequestStatus.PENDING)
                 .stream()
-                .map(req -> FriendRequestListResDto.builder()
-                        .requestId(req.getId())
-                        .userId(req.getReceiver().getId())
-                        .nickname(req.getReceiver().getNickname())
-                        .requestedAt(req.getCreatedAt())
-                        .build()
-                )
+                .map(req -> {
+                    User receiver = req.getReceiver();
+
+                    return FriendRequestListResDto.builder()
+                            .requestId(req.getId())
+                            .userId(receiver.getId())
+                            .nickname(receiver.getNickname())
+                            .level(receiver.getLevel())
+                            .requestedAt(req.getCreatedAt())
+                            .build();
+                })
                 .toList();
     }
 

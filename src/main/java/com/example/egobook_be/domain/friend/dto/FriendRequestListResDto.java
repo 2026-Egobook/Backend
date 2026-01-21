@@ -9,6 +9,7 @@ public record FriendRequestListResDto(
         Long requestId,
         Long userId,
         String nickname,
+        Integer level,
         LocalDateTime requestedAt
 ) {
 }
