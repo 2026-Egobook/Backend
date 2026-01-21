@@ -5,6 +5,7 @@ import com.example.egobook_be.domain.letters.domain.PlazaLetterReply;
 import com.example.egobook_be.domain.letters.domain.PlazaLetterStatus;
 import com.example.egobook_be.domain.letters.dto.*;
 import com.example.egobook_be.domain.letters.dto.request.CreateLetterRequest;
+import com.example.egobook_be.domain.letters.dto.response.WordDetectResponse;
 import com.example.egobook_be.domain.letters.dto.response.*;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
@@ -36,6 +37,7 @@ public class PlazaLetterService {
     private final PlazaLetterReplyRepository plazaLetterReplyRepository;
     private final PlazaLetterThreadRepository plazaLetterThreadRepository;
     private final UserRepository userRepository;
+    private final WordClientService wordClient;
 
 
     @Transactional(readOnly = true)
@@ -60,6 +62,20 @@ public class PlazaLetterService {
                 .build();
     }
 
+    private void enforceWordAiOrThrow(String text) {
+        try {
+            WordDetectResponse res = wordClient.detect(text);
+            if (wordClient.shouldBlock(res)) {
+                throw new CustomException(LettersErrorCode.AI_MODERATION_FAILED);
+            }
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            // AI 서버 장애/타임아웃일 때 예외처리
+            throw new CustomException(LettersErrorCode.AI_MODERATION_FAILED);
+        }
+    }
+
     @Transactional
     public CreateLetterResponse createLetter(Long userId, CreateLetterRequest request) {
         validateCreateLetterRequest(request);
@@ -67,14 +83,10 @@ public class PlazaLetterService {
         OffsetDateTime now = OffsetDateTime.now();
         enforceDailyLimit(userId, now);
 
-        if (!passesModeration(request.getText())) {
-            throw new CustomException(LettersErrorCode.AI_MODERATION_FAILED);
-        }
+        enforceWordAiOrThrow(request.getText());
 
         PlazaLetterThread thread = plazaLetterThreadRepository.save(PlazaLetterThread.createNow());
-
         Long receiverId = resolveReceiverId(userId, request);
-
         String bg = resolveBackgroundColor(request.getBackgroundColor());
 
         String fromLabel = "익명";
@@ -90,7 +102,7 @@ public class PlazaLetterService {
                 .senderId(userId)
                 .receiverId(receiverId)
                 .mode(request.getMode())
-                .fromLabel(fromLabel)  // FRIEND면 닉네임으로 세팅
+                .fromLabel(fromLabel)
                 .content(request.getText())
                 .backgroundColor(bg)
                 .status(PlazaLetterStatus.ARRIVED)
@@ -111,8 +123,6 @@ public class PlazaLetterService {
     }
 
 
-
-
     private void enforceDailyLimit(Long userId, OffsetDateTime now) {
         ZoneId zoneId = ZoneId.of("Asia/Seoul");
         LocalDate today = LocalDate.now(zoneId);
@@ -126,11 +136,11 @@ public class PlazaLetterService {
 
     private Long resolveReceiverId(Long userId, CreateLetterRequest request) {
         if (request.getMode() == PlazaLetterMode.FRIEND) {
-            // TODO: friend 관계 검증(친구 맞는지) 붙이기
+            // friend 관계 검증(친구 맞는지) 추가해야함
             return request.getToFriendId();
         }
 
-        // RANDOM: 답장률 높은 후보군에서 랜덤 선택
+        // RANDOM모드
         List<Long> candidates = userRepository.findHighReplyRateCandidates(userId, 50);
 
         if (candidates.isEmpty()) {
@@ -148,9 +158,6 @@ public class PlazaLetterService {
         }
         return requested.trim().toUpperCase();
     }
-
-
-
 
 
     private void validateCreateLetterRequest(CreateLetterRequest request) {
@@ -212,12 +219,10 @@ public class PlazaLetterService {
             throw new CustomException(LettersErrorCode.ALREADY_REPLIED);
         }
 
-        if (!passesModeration(text)) {
-            throw new CustomException(LettersErrorCode.AI_MODERATION_FAILED);
-        }
+        enforceWordAiOrThrow(text);
 
         plazaLetterReplyRepository.save(PlazaLetterReply.builder()
-                .threadId(letter.getThreadId())   // 중요
+                .threadId(letter.getThreadId())
                 .letterId(letter.getLetterId())
                 .replierId(userId)
                 .text(text)
@@ -329,15 +334,6 @@ public class PlazaLetterService {
         return letter.getReplyDeadlineAt() != null && now.isAfter(letter.getReplyDeadlineAt());
     }
 
-    private boolean passesModeration(String text) {
-        //목록은 pm과 이야기해봐야함
-        String lowered = text.toLowerCase();
-        String[] banned = {"시발", "ㅅㅂ", "병신", "멍청", "죽어", "꺼져"};
-        for (String b : banned) {
-            if (lowered.contains(b)) return false;
-        }
-        return true;
-    }
 
     @Transactional(readOnly = true)
     public SliceResponse<ReplyItemDto> getMyReplies(Long userId, int page, int size) {

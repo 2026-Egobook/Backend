@@ -57,3 +57,7 @@ management:
   endpoints:
     web:
       base-path: /manage # 기본값(/actuator)을 /manage로 변경. /actuator는 기본값이라 유추당할 수 있음
+
+word:
+  ai:
+    base-url: ${WORD_AI_BASE_URL}

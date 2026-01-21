@@ -24,6 +24,7 @@ public enum LettersErrorCode implements BaseErrorCode {
     // 403
     FORBIDDEN(HttpStatus.FORBIDDEN, "PLAZA403_FORBIDDEN", "접근 권한이 없어요"),
 
+
     // 404
     LETTER_NOT_FOUND(HttpStatus.NOT_FOUND, "PLAZA404_LETTER_NOT_FOUND", "편지를 찾을 수 없어요"),
     THREAD_NOT_FOUND(HttpStatus.NOT_FOUND, "PLAZA404_THREAD_NOT_FOUND", "스레드를 찾을 수 없어요"),
