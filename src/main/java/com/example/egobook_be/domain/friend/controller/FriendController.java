@@ -127,7 +127,7 @@ public class FriendController {
                 """
     )
     @GetMapping("/requests/incoming")
-    public ResponseEntity<GlobalResponse<List<FriendRequestListResDto>>> getIncomingRequests(
+    public ResponseEntity<GlobalResponse<FriendRequestListWithCountResDto>> getIncomingRequests(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
     ) {
         return ResponseEntity.ok(

@@ -153,15 +153,42 @@ public class FriendService {
 
 
     /** 내가 받은 친구 신청 목록 (승인 대기) **/
+//    @Transactional(readOnly = true)
+//    public List<FriendRequestListResDto> getIncomingRequests(Long userId) {
+//
+//        User receiver = userRepository.findById(userId)
+//                .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
+//
+//        return friendRequestRepository
+//                .findByReceiverAndStatus(receiver, FriendRequestStatus.PENDING)
+//                .stream()
+//                .map(req -> FriendRequestListResDto.builder()
+//                        .requestId(req.getId())
+//                        .userId(req.getSender().getId())
+//                        .nickname(req.getSender().getNickname())
+//                        .requestedAt(req.getCreatedAt())
+//                        .build()
+//                )
+//                .toList();
+//    }
     @Transactional(readOnly = true)
-    public List<FriendRequestListResDto> getIncomingRequests(Long userId) {
+    public FriendRequestListWithCountResDto getIncomingRequests(Long userId) {
 
         User receiver = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
-        return friendRequestRepository
-                .findByReceiverAndStatus(receiver, FriendRequestStatus.PENDING)
-                .stream()
+        List<FriendRequest> requests =
+                friendRequestRepository.findByReceiverAndStatus(
+                        receiver,
+                        FriendRequestStatus.PENDING
+                );
+
+        int totalCount = (int) friendRequestRepository.countByReceiverAndStatus(
+                receiver,
+                FriendRequestStatus.PENDING
+        );
+
+        List<FriendRequestListResDto> list = requests.stream()
                 .map(req -> FriendRequestListResDto.builder()
                         .requestId(req.getId())
                         .userId(req.getSender().getId())
@@ -170,6 +197,11 @@ public class FriendService {
                         .build()
                 )
                 .toList();
+
+        return FriendRequestListWithCountResDto.builder()
+                .totalCount(totalCount)
+                .requests(list)
+                .build();
     }
 
     /** 내가 보낸 친구 신청 목록 **/
