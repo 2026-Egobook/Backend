@@ -233,11 +233,15 @@ public class FriendService {
 
         List<FriendResDto> friends = friendRepository.findByUser(user)
                 .stream()
-                .map(friend -> FriendResDto.builder()
-                        .friendId(friend.getFriend().getId())
-                        .nickname(friend.getFriend().getNickname())
-                        .build()
-                )
+                .map(friend -> {
+                    var friendUser = friend.getFriend();
+
+                    return FriendResDto.builder()
+                            .friendId(friendUser.getId())
+                            .nickname(friendUser.getNickname())
+                            .level(friendUser.getLevel())
+                            .build();
+                })
                 .toList();
 
         return FriendListResDto.builder()
