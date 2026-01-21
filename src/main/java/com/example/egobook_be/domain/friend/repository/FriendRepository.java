@@ -17,6 +17,8 @@ public interface FriendRepository extends JpaRepository<Friend, Long> {
 
     List<Friend> findByUser(User user);
 
+    long countByUser(User user);
+
     @Query("""
         select f.friend.id
         from Friend f

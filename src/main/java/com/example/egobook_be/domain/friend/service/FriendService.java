@@ -1,9 +1,6 @@
 package com.example.egobook_be.domain.friend.service;
 
-import com.example.egobook_be.domain.friend.dto.FriendRequestCreateReqDto;
-import com.example.egobook_be.domain.friend.dto.FriendRequestListResDto;
-import com.example.egobook_be.domain.friend.dto.FriendResDto;
-import com.example.egobook_be.domain.friend.dto.FriendSearchResDto;
+import com.example.egobook_be.domain.friend.dto.*;
 import com.example.egobook_be.domain.friend.entity.Friend;
 import com.example.egobook_be.domain.friend.entity.FriendRequest;
 import com.example.egobook_be.domain.friend.enums.FriendRequestStatus;
@@ -86,6 +83,14 @@ public class FriendService {
         FriendRequest request = friendRequestRepository
                 .findByIdAndReceiver(requestId, receiver)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.FRIEND_REQUEST_NOT_FOUND));
+
+        User sender = request.getSender();
+
+        // 친구 수 제한 체크 (양쪽 모두)
+        if (friendRepository.countByUser(receiver) >= 10
+                || friendRepository.countByUser(sender) >= 10) {
+            throw new CustomException(FriendErrorCode.FRIEND_LIMIT_EXCEEDED);
+        }
 
         request.accept();
 
@@ -189,12 +194,12 @@ public class FriendService {
 
     /** 친구 리스트 **/
     @Transactional(readOnly = true)
-    public List<FriendResDto> getFriends(Long userId) {
+    public FriendListResDto getFriends(Long userId) {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
-        return friendRepository.findByUser(user)
+        List<FriendResDto> friends = friendRepository.findByUser(user)
                 .stream()
                 .map(friend -> FriendResDto.builder()
                         .friendId(friend.getFriend().getId())
@@ -202,6 +207,11 @@ public class FriendService {
                         .build()
                 )
                 .toList();
+
+        return FriendListResDto.builder()
+                .count(friends.size())
+                .friends(friends)
+                .build();
     }
 
     /** 친구 검색 **/
