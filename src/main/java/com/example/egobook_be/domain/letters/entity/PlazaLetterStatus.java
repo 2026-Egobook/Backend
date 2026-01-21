@@ -1,4 +1,4 @@
-package com.example.egobook_be.domain.letters.domain;
+package com.example.egobook_be.domain.letters.entity;
 
 public enum PlazaLetterStatus {
     SENT,

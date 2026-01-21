@@ -1,6 +1,6 @@
 package com.example.egobook_be.domain.letters.repository;
 
-import com.example.egobook_be.domain.letters.domain.PlazaLetterReply;
+import com.example.egobook_be.domain.letters.entity.PlazaLetterReply;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

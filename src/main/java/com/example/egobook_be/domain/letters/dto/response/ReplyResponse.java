@@ -1,6 +1,6 @@
 package com.example.egobook_be.domain.letters.dto.response;
 
-import com.example.egobook_be.domain.letters.domain.PlazaLetterStatus;
+import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
 import lombok.*;
 
 import java.time.OffsetDateTime;

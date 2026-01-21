@@ -1,7 +1,7 @@
 package com.example.egobook_be.domain.letters.service;
 
-import com.example.egobook_be.domain.letters.domain.PlazaLetter;
-import com.example.egobook_be.domain.letters.domain.PlazaLetterStatus;
+import com.example.egobook_be.domain.letters.entity.PlazaLetter;
+import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
 import com.example.egobook_be.domain.letters.dto.response.PlazaSentLetterResDto;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.global.response.SliceResponse;

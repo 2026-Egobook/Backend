@@ -1,6 +1,6 @@
 package com.example.egobook_be.domain.letters.dto.request;
 
-import com.example.egobook_be.domain.letters.domain.PlazaLetterMode;
+import com.example.egobook_be.domain.letters.entity.PlazaLetterMode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

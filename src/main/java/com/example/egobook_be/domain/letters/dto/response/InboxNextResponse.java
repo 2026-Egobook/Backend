@@ -1,7 +1,7 @@
 package com.example.egobook_be.domain.letters.dto.response;
 
-import com.example.egobook_be.domain.letters.domain.PlazaLetterMode;
-import com.example.egobook_be.domain.letters.domain.PlazaLetterStatus;
+import com.example.egobook_be.domain.letters.entity.PlazaLetterMode;
+import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 

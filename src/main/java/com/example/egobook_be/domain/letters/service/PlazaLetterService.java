@@ -1,8 +1,6 @@
 package com.example.egobook_be.domain.letters.service;
 
-import com.example.egobook_be.domain.letters.domain.PlazaLetter;
-import com.example.egobook_be.domain.letters.domain.PlazaLetterReply;
-import com.example.egobook_be.domain.letters.domain.PlazaLetterStatus;
+import com.example.egobook_be.domain.letters.entity.*;
 import com.example.egobook_be.domain.letters.dto.*;
 import com.example.egobook_be.domain.letters.dto.request.CreateLetterRequest;
 import com.example.egobook_be.domain.letters.dto.response.WordDetectResponse;
@@ -19,7 +17,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import com.example.egobook_be.domain.letters.domain.*;
 
 
 import java.time.*;
