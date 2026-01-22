@@ -39,7 +39,7 @@ public class S3ImageService {
             throw new IllegalArgumentException("이미지 파일이 존재하지 않습니다.");
         }
 
-        /**
+        /*
          * 2. 파일명 중복 방지를 위한 유니크한 파일명 생성
          * - S3는 같은 이름의 파일이 올라오면 덮어씌워버린다.
          * - 따라서, UUID(난수, 랜덤 문자열)을 생성해서 파일명 앞에 붙여준다. (ex: a1b2c3d4e5_profile.jpg)
@@ -48,7 +48,7 @@ public class S3ImageService {
         String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
         String s3FileName = UUID.randomUUID().toString().substring(0, 10) + originalFilename;
 
-        /**
+        /*
          * 3. S3에 업로드
          * [ s3Template.upload(bucket, key, stream); ]
          * - InputStream 사용. 이전 방식은 파일을 서버 디스크에 저장(File)했다가 올리고 지웠는데,

@@ -1,0 +1,58 @@
+package com.example.egobook_be.domain.shop.entity;
+
+import com.example.egobook_be.domain.user.entity.User; // User Entity import 필요
+import jakarta.persistence.*;
+import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Getter
+@Builder
+// Private로 Access를 막아둠으로써, 외부 코드에서 new User(...)로 생성하는 것을 금지시킨다.
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EntityListeners(AuditingEntityListener.class) // purchased_at 자동 생성을 위해 필수
+@Table(name = "user_item") // DB 테이블명: user_item
+public class UserItem {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    // 1. 유저 (FK): User 테이블과 연결
+    // FetchType.LAZY는 필수입니다. (성능 최적화)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    // 2. 아이템 (FK): Item 테이블과 연결
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "item_id", nullable = false)
+    private Item item;
+
+    // 3. 장착 여부 (기본값 false)
+    @Column(name = "is_equipped", nullable = false)
+    @Builder.Default
+    private Boolean isEquipped = false;
+
+    // 4. 구매 일시 (데이터 생성 시 자동 기록)
+    @CreatedDate
+    @Column(name = "purchased_at", nullable = false, updatable = false)
+    private LocalDateTime purchasedAt;
+
+
+    // --- 비즈니스 로직 (상태 변경 메서드) ---
+
+    // 아이템 장착
+    public void equip() {
+        this.isEquipped = true;
+    }
+
+    // 아이템 해제
+    public void unequip() {
+        this.isEquipped = false;
+    }
+}
