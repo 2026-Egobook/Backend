@@ -3,7 +3,6 @@ package com.example.egobook_be.domain.notification.service;
 import com.example.egobook_be.domain.notification.dto.NotificationReadResDto;
 import com.example.egobook_be.domain.notification.dto.NotificationResDto;
 import com.example.egobook_be.domain.notification.entity.Notification;
-import com.example.egobook_be.domain.notification.enums.NotificationType;
 import com.example.egobook_be.domain.notification.exception.NotificationErrorCode;
 import com.example.egobook_be.domain.notification.mapper.NotificationMapper;
 import com.example.egobook_be.domain.notification.repository.NotificationRepository;
@@ -12,7 +11,6 @@ import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
-import org.mapstruct.TargetType;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
@@ -44,6 +42,8 @@ public class NotificationService {
         return SliceResponse.of(slice, NotificationMapper::toNotificationDto);
     }
 
+    /** 알림 읽음 처리 */
+    @Transactional
     public NotificationReadResDto readNotification(Long userId, Long notificationId) {
 
         Notification notification = notificationRepository.findById(notificationId)
@@ -57,5 +57,27 @@ public class NotificationService {
         notificationRepository.save(notification);
 
         return NotificationMapper.toNotificationReadDto(notification);
+    }
+
+    /** 알림 설정 확인 */
+    @Transactional(readOnly = true)
+    public boolean getNotificationSetting(Long userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(NotificationErrorCode.USER_NOT_FOUND));
+
+        return user.isNotificationEnabled();
+    }
+
+    /** 알림 설정 변경 */
+    @Transactional
+    public boolean updateNotificationSetting(Long userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(NotificationErrorCode.USER_NOT_FOUND));
+
+        user.updateNotificationEnabled();
+
+        return user.isNotificationEnabled();
     }
 }

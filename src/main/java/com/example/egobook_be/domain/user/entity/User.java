@@ -70,6 +70,10 @@ public class User extends BaseTimeEntity {
     @Builder.Default
     private Integer ink = 0;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean notificationEnabled = true; // 알림 설정 (기본값 true)
+
     // ========= 연관관계 매핑 ========= //
 
     @OneToOne(
@@ -113,7 +117,18 @@ public class User extends BaseTimeEntity {
         this.purgeAt = this.deletedAt.plus(purgeDurationInMs, ChronoUnit.MILLIS);
     }
 
+    /**
+     * 사용자가 잉크를 지급받습니다.
+     * @param amount: 사용자가 지급받을 잉크 수
+     */
     public void addInk(int amount) {
         this.ink += amount;
+    }
+
+    /**
+     * 사용자 알림 설정을 변경합니다.
+     */
+    public void updateNotificationEnabled() {
+        this.notificationEnabled = !this.notificationEnabled;
     }
 }

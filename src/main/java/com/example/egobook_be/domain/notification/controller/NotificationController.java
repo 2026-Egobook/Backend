@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/notifications")
@@ -43,6 +45,32 @@ public class NotificationController implements NotificationControllerDocs{
     ) {
         return ResponseEntity.ok(
                 GlobalResponse.success(notificationService.readNotification(userId, notificationId))
+        );
+    }
+
+    /**
+     * [알림 설정 확인]
+     * GET /notifications/settings
+     */
+    @Override
+    public ResponseEntity<GlobalResponse<Map<String,Boolean>>> getNotificationSetting(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success(Map.of("enabled", notificationService.getNotificationSetting(userId)))
+        );
+    }
+
+    /**
+     * [알림 설정 변경]
+     * PATCH /notifications/settings
+     */
+    @Override
+    public ResponseEntity<GlobalResponse<Map<String,Boolean>>> updateNotificationSetting(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success(Map.of("enabled", notificationService.updateNotificationSetting(userId)))
         );
     }
 }

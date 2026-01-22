@@ -39,6 +39,10 @@ public class Notification extends BaseTimeEntity {
     @Builder.Default
     private boolean isRead = false;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean enabled = true;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
