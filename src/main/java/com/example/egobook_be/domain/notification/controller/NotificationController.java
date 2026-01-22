@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.notification.controller;
 
+import com.example.egobook_be.domain.notification.dto.NotificationReadResDto;
 import com.example.egobook_be.domain.notification.dto.NotificationResDto;
 import com.example.egobook_be.domain.notification.service.NotificationService;
 import com.example.egobook_be.global.response.GlobalResponse;
@@ -7,9 +8,7 @@ import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -30,6 +29,20 @@ public class NotificationController implements NotificationControllerDocs{
     ) {
         return ResponseEntity.ok(
                 GlobalResponse.success(notificationService.getNotifications(userId, page, size))
+        );
+    }
+
+    /**
+     * [알림 읽음]
+     * POST /notifications/{notificationId}/read
+     */
+    @Override
+    public ResponseEntity<GlobalResponse<NotificationReadResDto>> readNotification(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @PathVariable Long notificationId
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success(notificationService.readNotification(userId, notificationId))
         );
     }
 }

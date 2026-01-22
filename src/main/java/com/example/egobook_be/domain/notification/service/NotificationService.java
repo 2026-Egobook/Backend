@@ -1,7 +1,9 @@
 package com.example.egobook_be.domain.notification.service;
 
+import com.example.egobook_be.domain.notification.dto.NotificationReadResDto;
 import com.example.egobook_be.domain.notification.dto.NotificationResDto;
 import com.example.egobook_be.domain.notification.entity.Notification;
+import com.example.egobook_be.domain.notification.enums.NotificationType;
 import com.example.egobook_be.domain.notification.exception.NotificationErrorCode;
 import com.example.egobook_be.domain.notification.mapper.NotificationMapper;
 import com.example.egobook_be.domain.notification.repository.NotificationRepository;
@@ -10,6 +12,7 @@ import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
+import org.mapstruct.TargetType;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
@@ -39,5 +42,20 @@ public class NotificationService {
         Slice<Notification> slice = notificationRepository.findAllByUser(user, pageable);
 
         return SliceResponse.of(slice, NotificationMapper::toNotificationDto);
+    }
+
+    public NotificationReadResDto readNotification(Long userId, Long notificationId) {
+
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new CustomException(NotificationErrorCode.NOTIFICATION_NOT_FOUND));
+
+        if (!notification.getUser().getId().equals(userId)) {
+            throw new CustomException(NotificationErrorCode.NOTIFICATION_ACCESS_DENIED);
+        }
+
+        notification.markAsRead();
+        notificationRepository.save(notification);
+
+        return NotificationMapper.toNotificationReadDto(notification);
     }
 }
