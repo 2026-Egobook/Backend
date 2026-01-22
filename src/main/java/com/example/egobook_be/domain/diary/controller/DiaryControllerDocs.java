@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.Map;
 
 @Tag(name = "Diary Controller", description = "감정 일기 관련 API")
 public interface DiaryControllerDocs {
@@ -77,7 +78,7 @@ public interface DiaryControllerDocs {
 
     @Operation(summary = "감정 일기 삭제", description = "선택한 감정 일기를 영구 삭제합니다. (복구 불가)")
     @DeleteMapping("/{diaryId}")
-    ResponseEntity<GlobalResponse<Boolean>> deleteDiary(
+    ResponseEntity<GlobalResponse<Map<String,Boolean>>> deleteDiary(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @PathVariable Long diaryId
     );
