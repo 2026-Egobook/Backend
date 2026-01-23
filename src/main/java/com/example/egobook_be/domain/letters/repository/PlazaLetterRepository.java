@@ -29,7 +29,7 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
            set l.status = :newStatus,
                l.fromLabel = :newFromLabel
          where l.senderId = :senderId
-           and l.status = com.example.egobook_be.domain.letters.domain.PlazaLetterStatus.SENT
+           and l.status = com.example.egobook_be.domain.letters.entity.PlazaLetterStatus.SENT
            and l.createdAt <= :threshold
     """)
     int bulkMarkAiReplied(
