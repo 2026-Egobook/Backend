@@ -86,11 +86,12 @@ public class AuthService {
         }
 
         /*
-         * 3. 신규 User Entity 생성 (공통 메서드 활용)
+         * 3. 신규 User Entity 생성 (공통 메서드 활용) (+ 처음 사용자가 회원가입했을 때 받아야할 것들 할당)
          * - 닉네임: createUser 내부에서 자동 생성된다. (만약 reqDto의 nickname을 쓰고 싶다면 createUser 수정 필요)
          * - 이메일: Google Payload에서 추출한 이메일을 저장한다.
          */
         User user = createUser(email);
+        allocateUser(user);
 
         // 4. Ability Entity 생성
         createAbility(user);
@@ -149,8 +150,9 @@ public class AuthService {
             throw new CustomException(AuthErrorCode.ALREADY_REGISTERED_USER);
         }
 
-        // 2. 신규 User Entity 생성
+        // 2. 신규 User Entity 생성 (+ 처음 사용자가 회원가입했을 때 받아야할 것들 할당)
         User user = createUser(null);
+        allocateUser(user);
 
         // 3. AuthAccount 엔티티 생성 (Guest Provider)
         AuthAccount authAccount = createAuthAccount(user, Provider.GUEST, hashedDeviceUid);
@@ -640,5 +642,17 @@ public class AuthService {
                 refreshTokenInfo.expiresAt()
         );
         registerToRedis(hashedRefreshToken, redisValue, refreshTokenInfo.expiresAt());
+    }
+
+    /**
+     * 사용자가 회원가입을 한 뒤, 기본적으로 사용자에게 할당해줘야할 것들을 할당해주는 함수.
+     *  (1) 기본 UserItem 인스턴스 생성
+     *  (2) Ability
+     * @param user
+     */
+    private void allocateUser(User user){
+        // 1. 사용자
+
+
     }
 }
