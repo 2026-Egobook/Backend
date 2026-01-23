@@ -2,7 +2,9 @@ package com.example.egobook_be.domain.auth.sevice;
 
 import com.example.egobook_be.domain.auth.dto.req.*;
 import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
+import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.RoleType;
+import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.global.util.*;
 import com.example.egobook_be.global.util.module.TokenInfo;
 import com.example.egobook_be.global.util.module.UserAuthDto;
@@ -38,6 +40,7 @@ public class AuthService {
     private final AuthAccountRepository authAccountRepository;
     private final RefreshTokenBackupRepository refreshTokenBackupRepository;
     private final UserRepository userRepository;
+    private final AbilityRepository abilityRepository;
     private final JwtUtil jwtUtil;
     private final HashingUtil hashingUtil;
     private final UserNicknameGenerator userNicknameGenerator;
@@ -89,28 +92,32 @@ public class AuthService {
          */
         User user = createUser(email);
 
+        // 4. Ability Entity 생성
+        createAbility(user);
+
         /*
-         * 4. AuthAccount 엔티티 생성 (Google Provider)
+         * 5. AuthAccount 엔티티 생성 (Google Provider)
          * - hashedDeviceUid 자리에 hashedGoogleSub를 저장한다.
          * - recoverToken은 createAuthAccount 내부에서 초기값(null)으로 설정된다.
          */
         AuthAccount authAccount = createAuthAccount(user, Provider.GOOGLE, hashedGoogleSub);
 
-        // 5. 토큰 발급을 위한 UserDetails 생성
+
+        // 6. 토큰 발급을 위한 UserDetails 생성
         CustomUserDetails userDetails = buildCustomUserDetails(user, authAccount);
 
         /*
-         * 6. Access, Refresh Token 생성
+         * 7. Access, Refresh Token 생성
          * - **주의**: Google은 Recover Token을 생성하지 않는다.
          */
         TokenInfo accessTokenInfo = jwtUtil.createAccessToken(userDetails);
         TokenInfo refreshTokenInfo = jwtUtil.createRefreshToken(userDetails);
 
-        // 7. Refresh Token을 Table, Redis에 저장하는 Process 수행
+        // 8. Refresh Token을 Table, Redis에 저장하는 Process 수행
         processRefreshTokenSaving(user, authAccount, refreshTokenInfo);
 
         /*
-         * 8. 클라이언트에게 토큰 반환
+         * 9. 클라이언트에게 토큰 반환
          * - Google 로그인이므로 recoverToken은 null을 반환한다.
          */
         return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), null);
@@ -148,31 +155,34 @@ public class AuthService {
         // 3. AuthAccount 엔티티 생성 (Guest Provider)
         AuthAccount authAccount = createAuthAccount(user, Provider.GUEST, hashedDeviceUid);
 
+        // 4 Ability Entity 생성
+        createAbility(user);
+
         /*
-         * 4. 토큰 발급을 위한 UserDetails 생성
+         * 5. 토큰 발급을 위한 UserDetails 생성
          *  (1) 토큰 발급 시 필요한 사용자 인증 정보를 담은 UserAuthDto를 생성한다.
          *  (2) 생성한 UserAuthDto를 기반으로 CustomUserDetails를 생성한다.
          */
         CustomUserDetails userDetails = buildCustomUserDetails(user, authAccount);
 
         /*
-         * 5. Access, Refresh, Recover Token 생성
+         * 6. Access, Refresh, Recover Token 생성
          */
         TokenInfo accessTokenInfo = jwtUtil.createAccessToken(userDetails);
         TokenInfo refreshTokenInfo = jwtUtil.createRefreshToken(userDetails);
         TokenInfo recoverTokenInfo = jwtUtil.createRecoverToken(userDetails);
 
         /*
-         * 6. Recover Token을 AuthAccount에 저장 (영구 보관용)
+         * 7. Recover Token을 AuthAccount에 저장 (영구 보관용)
          * **주의**: 이때, recoverToken 값은 HmacSHA256으로 해싱하여 저장한다. (단방향 해싱)
          */
         authAccount.updateHashedRecoverToken(hashingUtil.hashingValue(recoverTokenInfo.token()));
 
-        // 7. 모든 토큰들을 발급한 뒤, Refresh Token을 Table, Redis에 저장하는 Process를 수행
+        // 8. 모든 토큰들을 발급한 뒤, Refresh Token을 Table, Redis에 저장하는 Process를 수행
         processRefreshTokenSaving(user, authAccount, refreshTokenInfo);
 
         /*
-         * 8. 클라이언트에게 토큰을 반환
+         * 9. 클라이언트에게 토큰을 반환
          * recoverToken은 회원가입, refreshToken 재발급 시에만 발급된다.
          */
         return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), recoverTokenInfo.token());
@@ -464,6 +474,23 @@ public class AuthService {
                 .user(user)
                 .build();
         return authAccountRepository.save(authAccount); // AuthAccount -> User Entity의 연관관계 설정을 위해, authRepository로 먼저 save한다.
+    }
+
+    /**
+     * user 생성 시 ability 생성 로직 (능력치)
+     * @param user 연동할 user
+     * @return
+     */
+    private Ability createAbility(User user) {
+        Ability ability = Ability.builder()
+                .user(user)
+                .empathy(0)
+                .diligence(0)
+                .selfEsteem(0)
+                .positiveThinking(0)
+                .emotionRegulation(0)
+                .build();
+        return abilityRepository.save(ability);
     }
 
     /**
