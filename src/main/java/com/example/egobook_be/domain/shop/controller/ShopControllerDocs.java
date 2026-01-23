@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.shop.controller;
 
+import com.example.egobook_be.domain.shop.dto.EquipItemReqDto;
 import com.example.egobook_be.domain.shop.dto.ItemInfoResDto;
 import com.example.egobook_be.domain.shop.dto.PurchaseItemReqDto;
 import com.example.egobook_be.domain.shop.enums.ItemCategory;
@@ -88,6 +89,32 @@ public interface ShopControllerDocs {
             @RequestBody @Valid PurchaseItemReqDto reqDto
     );
 
+    @Operation(summary = "아이템 착용/해제 API", description = """
+            보유 중인 아이템을 착용하는 API입니다.
+            
+            [**Request Body**]
+            - itemId : 착용할 Item의 PK
+            
+            [**기능**]
+            - 해당 아이템을 장착(isEquipped = true)/해제(isEquipped = true) 상태로 변경합니다.
+            - **동일 카테고리의 기존 장착 아이템은 자동으로 해제됩니다.**
+            - 변경된 아이템의 정보를 반환합니다.
+            
+            [**주의사항**]
+            - **구매하지 않은 아이템(UserItem 미존재)**은 착용/해제할 수 없습니다. (404 Error)
+            """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "아이템 착용/해제에 성공했습니다.",
+                    content = @Content(schema = @Schema(implementation = ItemInfoResDto.class))),
+            @ApiResponse(responseCode = "404", description = "보유하지 않은 아이템이거나 존재하지 않는 아이템입니다.", content = @Content),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터입니다.", content = @Content)
+    })
+    @PatchMapping("/equip") // 상태 변경이므로 PATCH 사용
+    ResponseEntity<GlobalResponse<ItemInfoResDto>> equipItem(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
 
+            @RequestBody @Valid EquipItemReqDto reqDto
+    );
 
 }

@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.shop.sevice;
 
+import com.example.egobook_be.domain.shop.dto.EquipItemReqDto;
 import com.example.egobook_be.domain.shop.dto.ItemInfoResDto;
 import com.example.egobook_be.domain.shop.dto.PurchaseItemReqDto;
 import com.example.egobook_be.domain.shop.dto.UserItemStatusDto;
@@ -128,6 +129,59 @@ public class ShopService {
 
         // 4. 아이템 구매 후, 해당 아이템에 대한 정보를 반환한다.
         return userItemMapper.toItemInfoResDto(userItem, item, cloudfrontDomain);
+    }
+
+    /**
+     * 아이템 착용/해제 상태를 변경하는 함수 (멱등성 보장)
+     * @param userId User PK
+     * @param reqDto EquipItemReqDto (itemId, isEquipped)
+     * @return ItemInfoResDto
+     */
+    @Transactional
+    public ItemInfoResDto equipItem(Long userId, EquipItemReqDto reqDto) {
+        Long itemId = reqDto.itemId();
+        boolean targetStatus = reqDto.isEquipped();
+
+        /*
+         * 1. 대상 아이템 조회 (보유 여부 검증)
+         * - UserItem이 없으면 구매하지 않은 아이템이므로 예외 발생 (404)
+         * - N+1 방지를 위해 Fetch Join 된 메서드 사용
+         */
+        UserItem targetUserItem = userItemRepository.findByUserIdAndItemId(userId, itemId)
+                .orElseThrow(() -> new CustomException(ShopErrorCode.ITEM_NOT_PURCHASED));
+
+        // 2. 멱등성 체크: 이미 원하는 상태라면 DB 변경 없이 바로 반환 (불필요한 쿼리 방지)
+        if (targetUserItem.getIsEquipped() == targetStatus) {
+            return userItemMapper.toItemInfoResDto(targetUserItem, targetUserItem.getItem(), cloudfrontDomain);
+        }
+
+        /*
+         * 3. 상태 변경 로직
+         * Case A: 착용 요청 (true) -> 같은 카테고리의 기존 아이템 해제 후 착용
+         * Case B: 해제 요청 (false) -> 그냥 해제
+         */
+        if (targetStatus) {
+            // [Case A] 착용 로직
+            ItemCategory category = targetUserItem.getItem().getCategory();
+
+            // 3-1. 해당 카테고리에 이미 착용 중인 다른 아이템들을 모두 찾아서 해제
+            List<UserItem> equippedItems = userItemRepository.findEquippedItemsByCategory(userId, category);
+            for (UserItem equippedItem : equippedItems) {
+                // 방어 로직: 혹시라도 자기 자신이 리스트에 포함되어 있다면 skip (이미 위에서 체크했지만 안전하게)
+                if (!equippedItem.getId().equals(targetUserItem.getId())) {
+                    equippedItem.unequip(); // isEquipped = false
+                }
+            }
+            // 3-2. 대상 아이템 착용
+            targetUserItem.equip(); // isEquipped = true
+
+        } else {
+            // [Case B] 해제 로직
+            targetUserItem.unequip();
+        }
+
+        // 4. 변경된 정보 반환
+        return userItemMapper.toItemInfoResDto(targetUserItem, targetUserItem.getItem(), cloudfrontDomain);
     }
 
 }

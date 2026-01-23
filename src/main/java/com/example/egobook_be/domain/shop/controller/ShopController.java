@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.shop.controller;
 
+import com.example.egobook_be.domain.shop.dto.EquipItemReqDto;
 import com.example.egobook_be.domain.shop.dto.ItemInfoResDto;
 import com.example.egobook_be.domain.shop.dto.PurchaseItemReqDto;
 import com.example.egobook_be.domain.shop.enums.ItemCategory;
@@ -62,6 +63,28 @@ public class ShopController implements ShopControllerDocs{
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(GlobalResponse.success(resDto));
+    }
+
+    /**
+     * [아이템 장착/해제]
+     * PATCH /shop/equip
+     */
+    @Override
+    public ResponseEntity<GlobalResponse<ItemInfoResDto>> equipItem(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+
+            @RequestBody @Valid EquipItemReqDto reqDto
+    ){
+        ItemInfoResDto resDto = shopService.equipItem(userId, reqDto);
+        if(reqDto.isEquipped() == true){
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(GlobalResponse.success("아이템 장착 성공", resDto));
+        }
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(GlobalResponse.success("아이템 해제 성공", resDto));
     }
 
 
