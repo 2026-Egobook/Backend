@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.*;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -24,6 +25,7 @@ import com.example.egobook_be.domain.letters.service.ReplyReportService;
 import org.springframework.web.bind.annotation.*;
 
 
+@Tag(name = "Plaza Letter Controller", description = "광장 편지 관련 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/plaza/letters")
