@@ -1,6 +1,9 @@
 package com.example.egobook_be.domain.user.entity;
 
 import com.example.egobook_be.domain.shop.entity.UserItem;
+import com.example.egobook_be.domain.user.enums.RoleType;
+import com.example.egobook_be.domain.user.enums.UserStatus;
+import com.example.egobook_be.domain.user.enums.WeeklyReportStyle;
 import com.example.egobook_be.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -126,5 +129,9 @@ public class User extends BaseTimeEntity {
 
     public void addInk(int amount) {
         this.ink += amount;
+    }
+
+    public void purchaseItem(int price){
+        this.ink -= price;
     }
 }

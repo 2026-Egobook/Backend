@@ -1,4 +1,4 @@
-package com.example.egobook_be.domain.user.entity;
+package com.example.egobook_be.domain.user.enums;
 
 public enum UserStatus {
     ACTIVE,         // 활동 중

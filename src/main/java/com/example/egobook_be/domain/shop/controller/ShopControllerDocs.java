@@ -1,6 +1,7 @@
 package com.example.egobook_be.domain.shop.controller;
 
 import com.example.egobook_be.domain.shop.dto.ItemInfoResDto;
+import com.example.egobook_be.domain.shop.dto.PurchaseItemReqDto;
 import com.example.egobook_be.domain.shop.enums.ItemCategory;
 import com.example.egobook_be.global.response.GlobalResponse;
 import com.example.egobook_be.global.response.SliceResponse;
@@ -8,15 +9,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Shop Controller", description = "[상점] 관련 API")
 @RequestMapping("/shop")
@@ -60,6 +60,33 @@ public interface ShopControllerDocs {
             @RequestParam(value = "size", defaultValue = "6") Integer size
     );
 
+
+    @Operation(summary = "아이템 구매 API", description = """
+            특정 아이템을 구매하는 API입니다.
+            
+            [**Request Body**]
+            - itemId : Item의 PK
+            
+            [**기능**]
+            - 특정 아이템을 구매한 뒤 해당 아이템의 상태 정보만 다시 반환합니다.
+            
+            [**주의사항**]
+            - 아이템 ID를 잘못 입력하면 안됩니다.
+            """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "아이템 구매에 성공했습니다.",
+                    content = @Content(schema = @Schema(implementation = ItemInfoResDto.class))),
+            @ApiResponse(responseCode = "404", description = "해당 아이템을 찾을 수 없습니다.", content = @Content),
+            @ApiResponse(responseCode = "409", description = "해당 아이템은 이미 구매되었습니다.", content = @Content),
+            @ApiResponse(responseCode = "500", description = "아이템 구매 과정에서 알 수 없는 오류가 생겼습니다.", content = @Content),
+    })
+    @PostMapping("/purchase")
+    ResponseEntity<GlobalResponse<ItemInfoResDto>> purchaseItem(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+
+            @RequestBody @Valid PurchaseItemReqDto reqDto
+    );
 
 
 

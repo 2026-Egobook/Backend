@@ -44,8 +44,9 @@ public class Item extends BaseTimeEntity {
     /*
      * 이 아이템을 보유한 유저 매핑 리스트 (양방향 매핑)
      * 아이템 자체가 삭제되면, 해당 아이템의 보유 기록(UserItem)도 삭제됨
+     * => 수정: Cascade 설정 삭제. 실수로 item을 지웠을 때, 사용자들의 아이템 구매 기록이 다같이 날아갈 수 있기 때문임.
      */
-    @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "item", fetch = FetchType.LAZY, orphanRemoval = true)
     @Builder.Default
     private List<UserItem> userItems = new ArrayList<>();
 

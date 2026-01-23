@@ -1,12 +1,19 @@
 package com.example.egobook_be.domain.shop.sevice;
 
 import com.example.egobook_be.domain.shop.dto.ItemInfoResDto;
+import com.example.egobook_be.domain.shop.dto.PurchaseItemReqDto;
 import com.example.egobook_be.domain.shop.dto.UserItemStatusDto;
 import com.example.egobook_be.domain.shop.entity.Item;
+import com.example.egobook_be.domain.shop.entity.UserItem;
 import com.example.egobook_be.domain.shop.enums.ItemCategory;
+import com.example.egobook_be.domain.shop.enums.ShopErrorCode;
 import com.example.egobook_be.domain.shop.mapper.ItemMapper;
+import com.example.egobook_be.domain.shop.mapper.UserItemMapper;
 import com.example.egobook_be.domain.shop.repository.ItemRepository;
 import com.example.egobook_be.domain.shop.repository.UserItemRepository;
+import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.enums.UserErrorCode;
+import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.exception.GlobalErrorCode;
 import com.example.egobook_be.global.response.SliceResponse;
@@ -30,7 +37,9 @@ import java.util.stream.Collectors;
 public class ShopService {
     private final ItemRepository itemRepository;
     private final UserItemRepository userItemRepository;
+    private final UserRepository userRepository;
     private final ItemMapper itemMapper;
+    private final UserItemMapper userItemMapper;
 
     // 프론트가 접속할 cloudfront의 도메인 주소
     @Value("${spring.cloud.aws.cloudfront.domain}")
@@ -50,11 +59,13 @@ public class ShopService {
          * 1. Slicing을 위한 Pageable 객체 생성 (아이템 가격 기준으로 오름차순 정렬)
          * - 프론트로부터는 Slice값이 1 ~ N으로 오기 때문에, 해당 값을 -1
          * [ 예외 ]
-         * (1) 입력된 Slice값이 0보다 작은 경우
+         * (1) 입력된 Slice값이 0보다 작은 경우나 null인 경우
+         * (2) Size값이 너무 큰 경우, 최대 크기 100으로 제한 두기
          */
-        if(slice < 0) throw new CustomException(GlobalErrorCode.INVALID_SLICE_VALUE);
-        int pageIndex = (slice != null && slice >= 1) ? slice - 1 : 0;
-        Pageable pageable = PageRequest.of(pageIndex, size, Sort.by(Sort.Direction.ASC, "price"));
+        if(slice == null || slice < 0) throw new CustomException(GlobalErrorCode.INVALID_SLICE_VALUE);
+        int validSize = (size == null || size < 1) ? 6 : Math.min(size, 100);
+        int pageIndex = (slice >= 1) ? slice - 1 : 0;
+        Pageable pageable = PageRequest.of(pageIndex, validSize, Sort.by(Sort.Direction.ASC, "price"));
 
         // 2. 해당 카테고리에 해당하는 Item들 slice로 조회
         Slice<Item> sliceEntity = itemRepository.findByCategory(category, pageable);
@@ -67,7 +78,7 @@ public class ShopService {
          * (3) 가져온 Set을 Map<ItemId, IsEquipped> 형식으로 변환
          */
         List<Long> itemIds = sliceEntity.getContent().stream().map(Item::getId).toList();
-        Set<UserItemStatusDto> userItemSet = itemIds.isEmpty() ? Collections.emptySet() : userItemRepository.findUserItemIdSetByItem(userId, itemIds);
+        Set<UserItemStatusDto> userItemSet = itemIds.isEmpty() ? Collections.emptySet() : userItemRepository.findUserItemStatusSetByItem(userId, itemIds);
         Map<Long, Boolean> userItemMap = userItemSet.stream().collect(Collectors.toMap(
                 UserItemStatusDto::itemId, UserItemStatusDto::isEquipped,
                 (oldValue, newValue) -> newValue
@@ -83,5 +94,40 @@ public class ShopService {
         });
     }
 
+    /**
+     * 특정 아이템을 구매(UserItem 테이블에 추가)하고, 해당 아이템의 정보를 반환해주는 함수
+     * @param userId User PK
+     * @param reqDto PurchaseItemReqDto
+     * @return ItemInfoResDto
+     */
+    @Transactional
+    public ItemInfoResDto purchaseItem(Long userId, PurchaseItemReqDto reqDto){
+        /*
+         * 1. 사용자가 보낸 Item을 검증한다.
+         * - 1) item이 실제로 존재하는 Item인가?
+         * - 2) 해당 사용자가 이미 구매한 Item인가?
+         */
+        Long itemId = reqDto.itemId();
+        User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+        Item item = itemRepository.findById(itemId).orElseThrow(() -> new CustomException(ShopErrorCode.ITEM_NOT_FOUND));
+        if (userItemRepository.existsByUserIdAndItemId(userId, itemId)){
+            throw new CustomException(ShopErrorCode.ALREADY_PURCHASED_ITEM);
+        }
+
+        // 2. 해당 사용자가 아이템을 살 수 있는지 확인한다.
+        if(user.getInk() < item.getPrice()) throw new CustomException(ShopErrorCode.INSUFFICIENT_INK_TO_BUY_ITEM);
+
+        // 3. 해당 아이템을 구매한다. (UserItem Table에 새로운 객체를 추가한다.)
+        UserItem userItem = UserItem.builder()
+                .user(user)
+                .item(item)
+                .isEquipped(false)
+                .build();
+        userItem = userItemRepository.save(userItem);
+        user.purchaseItem(item.getPrice());
+
+        // 4. 아이템 구매 후, 해당 아이템에 대한 정보를 반환한다.
+        return userItemMapper.toItemInfoResDto(userItem, item, cloudfrontDomain);
+    }
 
 }

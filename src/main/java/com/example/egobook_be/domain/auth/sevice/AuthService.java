@@ -3,7 +3,7 @@ package com.example.egobook_be.domain.auth.sevice;
 import com.example.egobook_be.domain.auth.dto.req.*;
 import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
 import com.example.egobook_be.domain.user.entity.Ability;
-import com.example.egobook_be.domain.user.entity.RoleType;
+import com.example.egobook_be.domain.user.enums.RoleType;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.global.util.*;
 import com.example.egobook_be.global.util.module.TokenInfo;

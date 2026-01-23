@@ -15,7 +15,14 @@ import java.time.LocalDateTime;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class) // purchased_at 자동 생성을 위해 필수
-@Table(name = "user_item") // DB 테이블명: user_item
+@Table(name = "user_item",
+        // (userId, itemId) Unique 제약조건
+        uniqueConstraints = {
+            @UniqueConstraint(
+                    name="uk_user_item_provider", // 제약조건 이름 명시
+                    columnNames = {"user_id", "item_id"}) // 묶을 컬럼들 이름 설정
+        }
+)
 public class UserItem {
 
     @Id

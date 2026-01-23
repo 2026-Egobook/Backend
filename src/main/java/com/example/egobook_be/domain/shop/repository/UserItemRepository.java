@@ -19,6 +19,11 @@ public interface UserItemRepository extends JpaRepository<UserItem, Long> {
     @Query("select new com.example.egobook_be.domain.shop.dto.UserItemStatusDto(ui.id, ui.isEquipped) " +
             "from UserItem ui " +
             "where ui.user.id = :userId and ui.item.id in :itemIds")
-    Set<UserItemStatusDto> findUserItemIdSetByItem(@Param("userId") Long userId, @Param("itemIds") List<Long> itemIds);
+    Set<UserItemStatusDto> findUserItemStatusSetByItem(@Param("userId") Long userId, @Param("itemIds") List<Long> itemIds);
+
+    /**
+     * 해당 사용자가 이미 해당 id의 아이템을 구매했는지 확인하는 함수
+     */
+    boolean existsByUserIdAndItemId(Long userId, Long itemId);
 
 }
