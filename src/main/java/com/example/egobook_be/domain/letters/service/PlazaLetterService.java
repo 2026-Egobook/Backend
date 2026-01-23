@@ -10,6 +10,7 @@ import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReposito
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterThreadRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
+import com.example.egobook_be.domain.letters.mapper.PlazaLetterMapper;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import org.springframework.data.domain.PageRequest;
@@ -37,27 +38,17 @@ public class PlazaLetterService {
     private final WordClientService wordClient;
 
 
+    private final PlazaLetterMapper plazaLetterMapper;
+
     @Transactional(readOnly = true)
     public InboxNextResponse getNextArrivedLetter(Long userId) {
         return plazaLetterRepository
                 .findFirstByReceiverIdAndStatusOrderByArrivedAtDesc(userId, PlazaLetterStatus.ARRIVED)
-                .map(this::toResponse)
+                .map(plazaLetterMapper::toResponse)  // Mapper를 이용해 변환
                 .orElseGet(InboxNextResponse::empty);
     }
 
-    private InboxNextResponse toResponse(PlazaLetter letter) {
-        return InboxNextResponse.builder()
-                .letter(InboxNextResponse.LetterDto.builder()
-                        .letterId(letter.getLetterId())
-                        .status(letter.getStatus())
-                        .mode(letter.getMode())
-                        .fromLabel(letter.getFromLabel())
-                        .content(letter.getContent())
-                        .arrivedAt(letter.getArrivedAt())
-                        .replyDeadlineAt(letter.getReplyDeadlineAt())
-                        .build())
-                .build();
-    }
+
 
     private void enforceWordAiOrThrow(String text) {
         try {
