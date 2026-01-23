@@ -17,6 +17,8 @@ public enum LettersErrorCode implements BaseErrorCode {
     DAILY_LETTER_LIMIT(HttpStatus.BAD_REQUEST, "PLAZA400_DAILY_LETTER_LIMIT", "하루에 한 번만 편지를 보낼 수 있어요"),
     INVALID_MODE(HttpStatus.BAD_REQUEST, "PLAZA400_INVALID_MODE", "mode 값이 올바르지 않아요"),
     FRIEND_ID_REQUIRED(HttpStatus.BAD_REQUEST, "PLAZA400_FRIEND_ID_REQUIRED", "FRIEND 모드에서는 toFriendId가 필요해요"),
+    INVALID_REPORT_REASON(HttpStatus.BAD_REQUEST, "PLAZA400_INVALID_REPORT_REASON", "잘못된 신고 사유입니다."),
+    ALREADY_REPORTED(HttpStatus.BAD_REQUEST, "PLAZA400_ALREADY_REPORTED", "이미 신고한 답장입니다."),
 
 
 
@@ -34,7 +36,8 @@ public enum LettersErrorCode implements BaseErrorCode {
 
     // 409
     ALREADY_REPLIED(HttpStatus.CONFLICT, "PLAZA409_ALREADY_REPLIED", "이미 답장한 편지예요"),
-    ALREADY_GAVE_UP(HttpStatus.CONFLICT, "PLAZA409_ALREADY_GAVE_UP", "24시간이 지나 답장할 수 없어요");
+    ALREADY_GAVE_UP(HttpStatus.CONFLICT, "PLAZA409_ALREADY_GAVE_UP", "24시간이 지나 답장할 수 없어요"),
+    REPORT_ALREADY_RESOLVED(HttpStatus.CONFLICT, "PLAZA409_REPORT_ALREADY_RESOLVED", "이미 해결된 신고입니다.");
 
     private final HttpStatus status;
     private final String code;
