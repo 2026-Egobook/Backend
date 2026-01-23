@@ -17,6 +17,7 @@ public enum ShopErrorCode implements BaseErrorCode {
      * 404 NOT FOUND
      */
     ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 아이템을 찾을 수 없습니다."),
+    DEFAULT_ITEMS_NOT_FOUND(HttpStatus.NOT_FOUND, "기본 아이템들을 찾을 수 없습니다."),
 
     /*
      * 409 CONFLICT (충돌)
