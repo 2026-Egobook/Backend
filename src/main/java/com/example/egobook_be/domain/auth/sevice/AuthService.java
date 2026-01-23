@@ -657,7 +657,7 @@ public class AuthService {
                 UserItem.builder()
                     .user(user)
                     .item(item)
-                    .isEquipped(false)
+                    .isEquipped(true)
                     .build()
         ).toList();
         return userItemRepository.saveAll(userItems);
