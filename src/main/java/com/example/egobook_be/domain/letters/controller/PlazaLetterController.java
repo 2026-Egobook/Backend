@@ -2,8 +2,10 @@ package com.example.egobook_be.domain.letters.controller;
 
 import com.example.egobook_be.domain.letters.dto.*;
 import com.example.egobook_be.domain.letters.dto.request.CreateLetterRequest;
+import com.example.egobook_be.domain.letters.dto.request.ReplyReportRequest;
 import com.example.egobook_be.domain.letters.dto.request.ReplyRequest;
 import com.example.egobook_be.domain.letters.dto.response.*;
+import com.example.egobook_be.domain.letters.entity.ReplyReportReason;
 import com.example.egobook_be.domain.letters.service.PlazaLetterQueryService;
 import com.example.egobook_be.domain.letters.service.PlazaLetterService;
 import com.example.egobook_be.global.response.GlobalResponse;
@@ -16,11 +18,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import com.example.egobook_be.global.security.CustomUserDetails;
-import org.springframework.http.ResponseEntity;
+import com.example.egobook_be.domain.letters.service.ReplyReportService;
+import org.springframework.web.bind.annotation.*;
+
 
 @RestController
 @RequiredArgsConstructor
@@ -29,6 +31,7 @@ public class PlazaLetterController {
 
     private final PlazaLetterService plazaLetterService;
     private final PlazaLetterQueryService plazaLetterQueryService;
+    private final ReplyReportService replyReportService;
 
     @Operation(
             summary = "내가 답장해야 할 '도착 편지' 1건 가져오기",
@@ -230,5 +233,32 @@ public class PlazaLetterController {
         return GlobalResponse.success(result);
     }
 
+    @Operation(
+            summary = "답장 신고",
+            description = """
+                사용자가 작성한 답장에 대해 신고하는 기능입니다.
+                - 신고 사유는 선택지 또는 자유 작성으로 입력할 수 있습니다.
+                - '기타' 사유를 선택한 경우, 추가적인 설명을 자유롭게 작성해야 합니다.
+                - 이미 신고된 답장은 다시 신고할 수 없습니다.
+                - 신고 후, 신고 상태는 'PENDING'으로 저장됩니다. 관리자가 이를 처리하면 'RESOLVED' 상태로 변경됩니다.
+                - 신고된 답장은 내용 수정이나 삭제가 불가능할 수 있습니다.
+            """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 신고 사유"),
+            @ApiResponse(responseCode = "404", description = "답장 없음"),
+            @ApiResponse(responseCode = "409", description = "이미 신고한 답장")
+    })
+    @PostMapping("/{replyId}/report")
+    public GlobalResponse<String> reportReply(
+            @RequestParam Long userId,
+            @PathVariable Long replyId,
+            @RequestBody ReplyReportRequest request
+    ) {
+        // 신고 처리
+        replyReportService.reportReply(userId, replyId, request.getReason(), request.getDescription());
+        return GlobalResponse.success("신고가 완료되었습니다.");
+    }
 
 }
