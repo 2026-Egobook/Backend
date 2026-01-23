@@ -58,4 +58,15 @@ public class Item extends BaseTimeEntity {
     public String getFullUrl(String cloudfrontDomain) {
         return cloudfrontDomain + "/" + this.path + "/" + this.name;
     }
+
+    /**
+     * 새로운 Item 객체의 내용으로 해당 데이터를 전부 업데이트 하는 함수
+     * @param item 새로운 Item 객체
+     */
+    public void updateAll(Item item){
+        this.path = item.getPath();
+        this.category = item.getCategory();
+        this.name = item.getName();
+        this.price = item.getPrice();
+    }
 }

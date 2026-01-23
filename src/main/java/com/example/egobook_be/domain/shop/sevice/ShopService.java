@@ -39,13 +39,13 @@ public class ShopService {
     /**
      * 특정 카테고리의 아이템을 무한 스크롤이 가능하도록 Slice로 가져와서 반환하는 api
      * @param userId 요청을 한 user의 PK
-     * @param itemCategory 가져올 아이템의 카테고리
+     * @param category 가져올 아이템의 카테고리
      * @param slice 반환할 Slice 번호
      * @param size 한개의 Slice에 들어있는 요소의 개수
      * @return
      */
     @Transactional(readOnly = true)
-    public SliceResponse<ItemInfoResDto> getItemSlice(Long userId, ItemCategory itemCategory, Integer slice, Integer size){
+    public SliceResponse<ItemInfoResDto> getItemSlice(Long userId, ItemCategory category, Integer slice, Integer size){
         /*
          * 1. Slicing을 위한 Pageable 객체 생성 (아이템 가격 기준으로 오름차순 정렬)
          * - 프론트로부터는 Slice값이 1 ~ N으로 오기 때문에, 해당 값을 -1
@@ -57,7 +57,7 @@ public class ShopService {
         Pageable pageable = PageRequest.of(pageIndex, size, Sort.by(Sort.Direction.ASC, "price"));
 
         // 2. 해당 카테고리에 해당하는 Item들 slice로 조회
-        Slice<Item> sliceEntity = itemRepository.findByCategory(itemCategory, pageable);
+        Slice<Item> sliceEntity = itemRepository.findByCategory(category, pageable);
 
         /*
          * 3. 조회한 아이템들 중, 해당 User가 구매한 item(UserItem)들의 Set을 생성한다.

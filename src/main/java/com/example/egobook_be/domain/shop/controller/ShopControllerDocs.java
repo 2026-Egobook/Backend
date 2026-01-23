@@ -51,8 +51,7 @@ public interface ShopControllerDocs {
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
 
             @Parameter(description = "아이템 카테고리", required = true)
-            @NotBlank
-            @RequestParam("category") ItemCategory itemCategory,
+            @RequestParam("category") ItemCategory category,
 
             @Parameter(description = "Slice 번호 (1 ~ N)")
             @RequestParam(value = "slice", defaultValue = "1") Integer slice,

@@ -25,8 +25,7 @@ public class ShopController implements ShopControllerDocs{
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
 
             @Parameter(description = "아이템 카테고리", required = true)
-            @NotBlank
-            @RequestParam("category") ItemCategory itemCategory,
+            @RequestParam("category") ItemCategory category,
 
             @Parameter(description = "Slice 번호 (1 ~ N)")
             @RequestParam(value = "slice", defaultValue = "1") Integer slice,
@@ -34,7 +33,7 @@ public class ShopController implements ShopControllerDocs{
             @Parameter(description = "Slice 크기")
             @RequestParam(value = "size", defaultValue = "6") Integer size
     ){
-        SliceResponse<ItemInfoResDto> sliceResponse = shopService.getItemSlice(userId, itemCategory, slice, size);
+        SliceResponse<ItemInfoResDto> sliceResponse = shopService.getItemSlice(userId, category, slice, size);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(GlobalResponse.success(sliceResponse));
