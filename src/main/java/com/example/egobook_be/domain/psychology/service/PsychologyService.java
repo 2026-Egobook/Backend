@@ -3,6 +3,7 @@ package com.example.egobook_be.domain.psychology.service;
 import com.example.egobook_be.domain.psychology.dto.*;
 import com.example.egobook_be.domain.psychology.entity.PsychologyKnowledge;
 import com.example.egobook_be.domain.psychology.entity.UserKnowledge;
+import com.example.egobook_be.domain.psychology.exception.PsychologyErrorCode;
 import com.example.egobook_be.domain.psychology.repository.PsychologyKnowledgeRepository;
 import com.example.egobook_be.domain.psychology.repository.UserKnowledgeRepository;
 import com.example.egobook_be.domain.user.entity.InkLog;
@@ -10,6 +11,7 @@ import com.example.egobook_be.domain.user.entity.InkLogType;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
+import com.example.egobook_be.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,48 +35,60 @@ public class PsychologyService {
     @Transactional
     public DailyKnowledgeResDto getDailyKnowledge(Long userId) {
         User user = userRepository.findById(userId).orElseThrow();
-
-        List<Long> savedIds = userKnowledgeRepository.findAllByUserAndDeletedAtIsNull(user)
-                .stream()
-                .map(uk -> uk.getPsychologyKnowledge().getId())
-                .toList();
-
-        List<PsychologyKnowledge> available = psychologyKnowledgeRepository.findAll().stream()
-                .filter(pk -> !savedIds.contains(pk.getId()))
-                .toList();
-
-        if (available.isEmpty()) available = psychologyKnowledgeRepository.findAll();
-
-        long seed = userId + LocalDate.now().toEpochDay();
-        Random random = new Random(seed);
-        PsychologyKnowledge todayKnowledge = available.get(random.nextInt(available.size()));
-
         LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-        boolean alreadyReceived = inkLogRepository.existsByUserAndReasonAndCreatedAtAfter(
-                user, InkLogType.FIRST_PSYCHOLOGY_VIEW, startOfToday);
 
-        RewardInfoResDto reward = null;
-        if (!alreadyReceived) {
-            user.addInk(1);
-            inkLogRepository.save(new InkLog(user, 1, InkLogType.FIRST_PSYCHOLOGY_VIEW));
-            reward = new RewardInfoResDto(true, 1, user.getInk(), "잉크를 1 획득했어요");
-        }
+        // 1. 오늘 이 유저가 이미 조회한 기록이 있는지 확인
+        return userKnowledgeRepository.findFirstByUserAndCreatedAtAfter(user, startOfToday)
+                .map(uk -> createResponse(user, uk.getPsychologyKnowledge(), uk.isBookmarked())) // 기존 기록 반환
+                .orElseGet(() -> {
+                    // 2. 오늘 처음 조회라면: 아직 유저지식 테이블에 없는(한 번도 안 본) 지식들 필터링
+                    List<Long> viewedIds = userKnowledgeRepository.findAllByUser(user).stream()
+                            .map(uk -> uk.getPsychologyKnowledge().getId())
+                            .toList();
 
-        KnowledgeInfoResDto knowledgeInfo = new KnowledgeInfoResDto(
-                todayKnowledge.getId(), "오늘의 심리 지식", todayKnowledge.getContent(), todayKnowledge.getSource());
+                    List<PsychologyKnowledge> candidates = psychologyKnowledgeRepository.findAll().stream()
+                            .filter(pk -> !viewedIds.contains(pk.getId()))
+                            .toList();
 
-        return new DailyKnowledgeResDto(LocalDate.now().toString(), knowledgeInfo, reward);
+                    if (candidates.isEmpty()) candidates = psychologyKnowledgeRepository.findAll();
+
+                    // 3. 오늘 지식 확정 및 DB 저장
+                    long seed = userId + LocalDate.now().toEpochDay();
+                    PsychologyKnowledge picked = candidates.get(new Random(seed).nextInt(candidates.size()));
+
+                    // 조회 기록 남기기
+                    UserKnowledge newHistory = new UserKnowledge(user, picked);
+                    newHistory.setBookmarked(false); // 처음엔 조회만 한 상태
+                    userKnowledgeRepository.save(newHistory);
+
+                    return createResponse(user, picked, false);
+                });
     }
 
     @Transactional
     public KnowledgeSaveResDto saveKnowledge(Long userId, Long knowledgeId) {
-        User user = userRepository.findById(userId).orElseThrow();
-        PsychologyKnowledge knowledge = psychologyKnowledgeRepository.findById(knowledgeId).orElseThrow();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(PsychologyErrorCode.USER_NOT_FOUND));
+        PsychologyKnowledge knowledge = psychologyKnowledgeRepository.findById(knowledgeId)
+                .orElseThrow(() -> new CustomException(PsychologyErrorCode.KNOWLEDGE_NOT_FOUND));
 
         userKnowledgeRepository.findByUserAndPsychologyKnowledge(user, knowledge)
                 .ifPresentOrElse(
-                        uk -> { if (uk.getDeletedAt() != null) uk.restore(); },
-                        () -> userKnowledgeRepository.save(new UserKnowledge(user, knowledge))
+                        uk -> {
+                            if (uk.isBookmarked() && uk.getDeletedAt() == null) {
+                                throw new CustomException(PsychologyErrorCode.ALREADY_BOOKMARKED);
+                            }
+                            if (uk.getDeletedAt() != null) {
+                                uk.restore();
+                            } else {
+                                uk.updateBookmarkStatus(true);
+                            }
+                        },
+                        () -> {
+                            UserKnowledge newUk = new UserKnowledge(user, knowledge);
+                            newUk.updateBookmarkStatus(true);
+                            userKnowledgeRepository.save(newUk);
+                        }
                 );
 
         return new KnowledgeSaveResDto(true, knowledgeId, "오늘의 심리지식이 저장되었습니다.");
@@ -82,22 +96,33 @@ public class PsychologyService {
 
     @Transactional
     public KnowledgeDeleteResDto deleteSavedKnowledge(Long userId, Long knowledgeId) {
-        User user = userRepository.findById(userId).orElseThrow();
-        PsychologyKnowledge knowledge = psychologyKnowledgeRepository.findById(knowledgeId).orElseThrow();
-        UserKnowledge userKnowledge = userKnowledgeRepository.findByUserAndPsychologyKnowledge(user, knowledge).orElseThrow();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(PsychologyErrorCode.USER_NOT_FOUND));
+        PsychologyKnowledge knowledge = psychologyKnowledgeRepository.findById(knowledgeId)
+                .orElseThrow(() -> new CustomException(PsychologyErrorCode.KNOWLEDGE_NOT_FOUND));
 
-        userKnowledge.delete();
+        UserKnowledge uk = userKnowledgeRepository.findByUserAndPsychologyKnowledge(user, knowledge)
+                .orElseThrow(() -> new CustomException(PsychologyErrorCode.USER_KNOWLEDGE_NOT_FOUND));
+
+        if (!uk.isBookmarked()) {
+            throw new CustomException(PsychologyErrorCode.NOT_BOOKMARKED);
+        }
+
+        uk.delete();
+
         return new KnowledgeDeleteResDto(true, knowledgeId, "북마크가 취소되었습니다.");
     }
 
     public SavedKnowledgeListResDto getSavedKnowledgeList(Long userId) {
         User user = userRepository.findById(userId).orElseThrow();
+
         List<SavedKnowledgeListResDto.SavedKnowledgeItemResDto> items = userKnowledgeRepository.findAllByUserAndDeletedAtIsNull(user).stream()
+                .filter(UserKnowledge::isBookmarked)
                 .map(uk -> new SavedKnowledgeListResDto.SavedKnowledgeItemResDto(
                         uk.getPsychologyKnowledge().getId(),
                         "오늘의 심리 지식",
-                        uk.getPsychologyKnowledge().getContent().substring(0, Math.min(uk.getPsychologyKnowledge().getContent().length(), 20)) + "...",
-                        uk.getSavedAt().format(DateTimeFormatter.ISO_DATE_TIME)))
+                        uk.getPsychologyKnowledge().getContent(),
+                        uk.getSavedAt() != null ? uk.getSavedAt().format(DateTimeFormatter.ISO_DATE_TIME) : ""))
                 .toList();
 
         return new SavedKnowledgeListResDto(items, false, null);
@@ -110,5 +135,20 @@ public class PsychologyService {
                 user, InkLogType.FIRST_PSYCHOLOGY_VIEW, startOfToday);
 
         return new DailyStatusResDto(!alreadyReceived);
+    }
+
+    private DailyKnowledgeResDto createResponse(User user, PsychologyKnowledge knowledge, boolean isBookmarked) { LocalDateTime startOfToday = LocalDate.now().atStartOfDay(); boolean alreadyReceived = inkLogRepository.existsByUserAndReasonAndCreatedAtAfter( user, InkLogType.FIRST_PSYCHOLOGY_VIEW, startOfToday);
+
+        RewardInfoResDto reward = null;
+        if (!alreadyReceived) {
+            user.addInk(1);
+            inkLogRepository.save(new InkLog(user, 1, InkLogType.FIRST_PSYCHOLOGY_VIEW));
+            reward = new RewardInfoResDto(true, 1, user.getInk(), "잉크를 1 획득했어요");
+        }
+
+        KnowledgeInfoResDto knowledgeInfo = new KnowledgeInfoResDto(
+                knowledge.getId(), "오늘의 심리 지식", knowledge.getContent(), knowledge.getSource());
+
+        return new DailyKnowledgeResDto(LocalDate.now().toString(), knowledgeInfo, reward, isBookmarked);
     }
 }

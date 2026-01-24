@@ -1,3 +1,3 @@
 package com.example.egobook_be.domain.psychology.dto;
 
-public record DailyKnowledgeResDto( String date, KnowledgeInfoResDto knowledge, RewardInfoResDto reward ) {}
+public record DailyKnowledgeResDto( String date, KnowledgeInfoResDto knowledge, RewardInfoResDto reward, boolean isBookmarked ) {}
