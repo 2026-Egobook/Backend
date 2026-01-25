@@ -55,3 +55,7 @@ app:
   auth:
     # HashingUtil(HmacSHA256 방식 Hashing)을 위한 설정값
     device-salt: ${PROD_SALT}
+
+word:
+  ai:
+    base-url: ${WORD_AI_BASE_URL}
