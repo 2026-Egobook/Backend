@@ -198,7 +198,7 @@ public class FriendService {
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
         return friendRequestRepository
-                .findBySenderAndStatus(sender, FriendRequestStatus.PENDING)
+                .findBySenderAndStatusWithReceiver(sender, FriendRequestStatus.PENDING)
                 .stream()
                 .map(req -> {
                     User receiver = req.getReceiver();
@@ -221,10 +221,10 @@ public class FriendService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
-        List<FriendResDto> friends = friendRepository.findByUser(user)
+        List<FriendResDto> friends = friendRepository.findByUserWithFriend(user)
                 .stream()
                 .map(friend -> {
-                    var friendUser = friend.getFriend();
+                    User friendUser = friend.getFriend();
 
                     return FriendResDto.builder()
                             .friendId(friendUser.getId())

@@ -4,6 +4,8 @@ import com.example.egobook_be.domain.friend.entity.FriendRequest;
 import com.example.egobook_be.domain.friend.enums.FriendRequestStatus;
 import com.example.egobook_be.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,5 +31,17 @@ public interface FriendRequestRepository extends JpaRepository<FriendRequest, Lo
     long countByReceiverAndStatus(
             User receiver,
             FriendRequestStatus status
+    );
+
+    @Query("""
+        select fr
+        from FriendRequest fr
+        join fetch fr.receiver r
+        where fr.sender = :sender
+          and fr.status = :status
+    """)
+    List<FriendRequest> findBySenderAndStatusWithReceiver(
+            @Param("sender") User sender,
+            @Param("status") FriendRequestStatus status
     );
 }
