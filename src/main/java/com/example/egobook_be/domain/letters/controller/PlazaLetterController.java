@@ -254,13 +254,33 @@ public class PlazaLetterController {
     })
     @PostMapping("/{replyId}/report")
     public GlobalResponse<String> reportReply(
-            @RequestParam Long userId,
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @PathVariable Long replyId,
             @RequestBody ReplyReportRequest request
     ) {
-        // 신고 처리
-        replyReportService.reportReply(userId, replyId, request.getReason(), request.getDescription());
+        replyReportService.reportReply(
+                userId,
+                replyId,
+                request.getReason(),
+                request.getDescription()
+        );
         return GlobalResponse.success("신고가 완료되었습니다.");
+    }
+
+    @Operation(
+            summary = "내가 보낸 편지에 달린 답장 조회",
+            description = "상대가 내 편지에 작성한 답장을 최신순으로 조회합니다."
+    )
+    @GetMapping("/replies/received")
+    public GlobalResponse<SliceResponse<PlazaReceivedReplyResDto>> getRepliesToMyLetters(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return GlobalResponse.success(
+                plazaLetterQueryService.getRepliesToMyLetters(userId, page, size)
+        );
     }
 
 }

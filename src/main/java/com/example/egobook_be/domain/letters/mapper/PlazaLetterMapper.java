@@ -1,8 +1,10 @@
 package com.example.egobook_be.domain.letters.mapper;
 
 import com.example.egobook_be.domain.letters.dto.response.InboxNextResponse;
+import com.example.egobook_be.domain.letters.dto.response.PlazaReceivedReplyResDto;
 import com.example.egobook_be.domain.letters.entity.PlazaLetter;
 import com.example.egobook_be.domain.letters.dto.response.PlazaSentLetterResDto;
+import com.example.egobook_be.domain.letters.entity.PlazaLetterReply;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
 import org.springframework.stereotype.Component;
 
@@ -50,4 +52,27 @@ public class PlazaLetterMapper {
                         .build())
                 .build();
     }
+
+
+    public PlazaReceivedReplyResDto toReceivedReplyDto(
+            PlazaLetter letter,
+            PlazaLetterReply reply,
+            boolean reported
+    ) {
+        return PlazaReceivedReplyResDto.builder()
+                .letterId(letter.getLetterId())
+                .replyId(reply.getReplyId())
+                .threadId(letter.getThreadId())
+
+                .replyText(reply.getText())
+                .repliedAt(reply.getCreatedAt())
+
+                .aiGenerated(reply.isAiGenerated())
+                .reported(reported)
+
+                .mode(letter.getMode())
+                .fromLabel(letter.getFromLabel())
+                .build();
+    }
+
 }
