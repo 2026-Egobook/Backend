@@ -461,6 +461,7 @@ public class AuthService {
                 .nickname(userNicknameGenerator.generateUniqueNickname())
                 .lastLoginAt(LocalDateTime.now())
                 .build();
+        if(email != null){ user.updateEmail(email); }
         return userRepository.save(user); // AuthAccount -> User Entity의 연관관계 설정을 위해, UserRepository로 먼저 save한다.
     }
 
