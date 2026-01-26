@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -38,16 +39,30 @@ public class TodayQuestionService {
         TodayQuestion question = todayQuestionRepository
                 .findByQuestionDate(LocalDate.now())
                 .orElseThrow(() ->
-                        new IllegalStateException("오늘의 질문이 존재하지 않습니다.")
+                        new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND)
                 );
 
         boolean answered = false;
+        MyTodayAnswerResDto myAnswer = null;
 
         if (userId != null) {
-            answered = questionAnswerRepository.existsByUserIdAndQuestionId(
-                    userId,
-                    question.getId()
-            );
+            Optional<QuestionAnswer> answerOpt =
+                    questionAnswerRepository.findByUserIdAndQuestionIdWithQuestion(
+                            userId,
+                            question.getId()
+                    );
+
+            if (answerOpt.isPresent()) {
+                answered = true;
+
+                QuestionAnswer answer = answerOpt.get();
+                myAnswer = MyTodayAnswerResDto.builder()
+                        .answerId(answer.getId())
+                        .content(answer.getContent())
+                        .visibility(answer.getVisibility())
+                        .answeredAt(answer.getCreatedAt())
+                        .build();
+            }
         }
 
         return TodayQuestionResDto.builder()
@@ -55,6 +70,7 @@ public class TodayQuestionService {
                 .content(question.getContent())
                 .date(question.getQuestionDate())
                 .answered(answered)
+                .myAnswer(myAnswer)
                 .build();
     }
 

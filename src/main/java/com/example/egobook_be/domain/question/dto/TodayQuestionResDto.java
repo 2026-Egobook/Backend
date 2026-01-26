@@ -10,6 +10,6 @@ public record TodayQuestionResDto(
         Long questionId,
         String content,
         LocalDate date,
-        boolean answered
-) {
-}
+        boolean answered,
+        MyTodayAnswerResDto myAnswer
+) {}
