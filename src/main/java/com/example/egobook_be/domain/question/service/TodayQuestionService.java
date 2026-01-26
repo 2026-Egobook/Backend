@@ -54,8 +54,8 @@ public class TodayQuestionService {
 
             if (answerOpt.isPresent()) {
                 answered = true;
-
                 QuestionAnswer answer = answerOpt.get();
+
                 myAnswer = MyTodayAnswerResDto.builder()
                         .answerId(answer.getId())
                         .content(answer.getContent())
