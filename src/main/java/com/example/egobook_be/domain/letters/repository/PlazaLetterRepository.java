@@ -23,6 +23,11 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
 
     long countByReceiverIdAndArrivedAtBetween(Long receiverId, OffsetDateTime start, OffsetDateTime end);
 
+    Slice<PlazaLetter> findByReceiverIdOrderByArrivedAtDesc(
+            Long receiverId,
+            Pageable pageable
+    );
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
         update PlazaLetter l
