@@ -18,7 +18,7 @@ public interface UserItemRepository extends JpaRepository<UserItem, Long> {
      * @param itemIds Item들의 PK가 담긴 List
      * @return
      */
-    @Query("select new com.example.egobook_be.domain.shop.dto.UserItemStatusDto(ui.id, ui.isEquipped) " +
+    @Query("select new com.example.egobook_be.domain.shop.dto.UserItemStatusDto(ui.item.id, ui.isEquipped) " +
             "from UserItem ui " +
             "where ui.user.id = :userId and ui.item.id in :itemIds")
     Set<UserItemStatusDto> findUserItemStatusSetByItem(@Param("userId") Long userId, @Param("itemIds") List<Long> itemIds);
