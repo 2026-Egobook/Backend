@@ -4,10 +4,13 @@ import com.example.egobook_be.domain.letters.dto.response.PlazaReceivedReplyResD
 import com.example.egobook_be.domain.letters.entity.PlazaLetter;
 import com.example.egobook_be.domain.letters.dto.response.PlazaSentLetterResDto;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReply;
+import com.example.egobook_be.domain.letters.dto.response.PlazaLetterDetailResDto;
+import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.mapper.PlazaLetterMapper;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
+import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -25,6 +28,7 @@ public class PlazaLetterQueryService {
     private final PlazaLetterReplyRepository plazaLetterReplyRepository;
     private final PlazaLetterReplyReportRepository replyReportRepository;
     private final PlazaLetterMapper plazaLetterMapper;
+
 
     @Transactional(readOnly = true)
     public SliceResponse<PlazaSentLetterResDto> getMySentLetters(Long userId, Integer slice, Integer size) {
@@ -74,6 +78,32 @@ public class PlazaLetterQueryService {
             return plazaLetterMapper.toReceivedReplyDto(letter, reply, reported);
         });
     }
+
+
+    @Transactional(readOnly = true)
+    public PlazaLetterDetailResDto getMyLetterDetail(Long userId, Long letterId) {
+
+        PlazaLetter letter = plazaLetterRepository.findById(letterId)
+                .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+
+        // 내가 보낸 편지인지 검증
+        if (!userId.equals(letter.getSenderId())) {
+            throw new CustomException(LettersErrorCode.FORBIDDEN);
+        }
+
+        // 답장은 없을 수도 있음
+        PlazaLetterReply reply =
+                plazaLetterReplyRepository.findByLetterId(letterId).orElse(null);
+
+        boolean reported = false;
+        if (reply != null) {
+            reported = replyReportRepository
+                    .existsByReply_ReplyIdAndReporterId(reply.getReplyId(), userId);
+        }
+
+        return plazaLetterMapper.toDetailDto(letter, reply, reported);
+    }
+
 
 }
 

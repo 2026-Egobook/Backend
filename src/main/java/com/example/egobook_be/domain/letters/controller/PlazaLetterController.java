@@ -283,4 +283,25 @@ public class PlazaLetterController {
         );
     }
 
+
+    @Operation(
+            summary = "내가 보낸 편지 + 답장 내용 함께 보기",
+            description = """
+        내가 보낸 편지 1건과 해당 편지에 달린 답장을 함께 조회합니다.
+        - 답장이 없으면 reply는 null
+        - AI 답장 / 신고 여부 포함
+        """
+    )
+    @GetMapping("/{letterId}")
+    public GlobalResponse<PlazaLetterDetailResDto> getMyLetterDetail(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @PathVariable Long letterId
+    ) {
+        return GlobalResponse.success(
+                plazaLetterQueryService.getMyLetterDetail(userId, letterId)
+        );
+    }
+
+
 }

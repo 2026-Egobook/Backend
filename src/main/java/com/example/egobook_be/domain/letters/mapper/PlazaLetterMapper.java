@@ -1,6 +1,7 @@
 package com.example.egobook_be.domain.letters.mapper;
 
 import com.example.egobook_be.domain.letters.dto.response.InboxNextResponse;
+import com.example.egobook_be.domain.letters.dto.response.PlazaLetterDetailResDto;
 import com.example.egobook_be.domain.letters.dto.response.PlazaReceivedReplyResDto;
 import com.example.egobook_be.domain.letters.entity.PlazaLetter;
 import com.example.egobook_be.domain.letters.dto.response.PlazaSentLetterResDto;
@@ -72,6 +73,40 @@ public class PlazaLetterMapper {
 
                 .mode(letter.getMode())
                 .fromLabel(letter.getFromLabel())
+                .build();
+    }
+
+    public PlazaLetterDetailResDto toDetailDto(
+            PlazaLetter letter,
+            PlazaLetterReply reply,
+            boolean reported
+    ) {
+        PlazaLetterDetailResDto.ReplyDto replyDto = null;
+
+        if (reply != null) {
+            replyDto = PlazaLetterDetailResDto.ReplyDto.builder()
+                    .replyId(reply.getReplyId())
+                    .text(reply.getText())
+                    .aiGenerated(reply.isAiGenerated())
+                    .reported(reported)
+                    .createdAt(reply.getCreatedAt())
+                    .build();
+        }
+
+        return PlazaLetterDetailResDto.builder()
+                .letterId(letter.getLetterId())
+                .threadId(letter.getThreadId())
+
+                .status(letter.getStatus())
+                .mode(letter.getMode())
+
+                .content(letter.getContent())
+                .backgroundColor(letter.getBackgroundColor())
+
+                .createdAt(letter.getCreatedAt())
+                .arrivedAt(letter.getArrivedAt())
+
+                .reply(replyDto)
                 .build();
     }
 
