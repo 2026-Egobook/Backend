@@ -71,7 +71,7 @@ public class ItemInitializer implements ApplicationRunner {
                 insertCount++;
             }
         }
-        log.info("✅ 동기화 완료. [아이템 신규 추가: {}건, 아이템 수정: {}건", insertCount, updateCount);
+        log.info("✅ 동기화 완료. [아이템 신규 추가: {}건, 아이템 수정: {}건]", insertCount, updateCount);
     }
 
     /**

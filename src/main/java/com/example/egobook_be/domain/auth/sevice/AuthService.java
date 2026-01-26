@@ -649,8 +649,11 @@ public class AuthService {
          * 1. Item들 중 name이 "Default.png"인 데이터들을 조회한다.
          * - 기본 아이템들을 못찾으면 예외처리
          */
-        List<Item> defaultItems = itemRepository.findByName("Default.png");
+        List<Item> defaultItems = itemRepository.findAllByName("Default.png");
         if(defaultItems.isEmpty()){throw new CustomException(ShopErrorCode.DEFAULT_ITEMS_NOT_FOUND);}
+
+        defaultItems.forEach(defaultItem -> {log.info("{}", defaultItem.getFullUrl("example"));});
+
 
         // 2. 찾은 아이템들로 UserItem들을 생성해서 테이블에 저장
         List<UserItem> userItems = defaultItems.stream().map(item ->

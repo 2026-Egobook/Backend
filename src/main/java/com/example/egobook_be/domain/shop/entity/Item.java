@@ -16,7 +16,15 @@ import java.util.List;
 // Private로 Access를 막아둠으로써, 외부 코드에서 new User(...)로 생성하는 것을 금지시킨다.
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA 필수: 기본 생성자 (보안상 protected 권장)
-@Table(name = "item")
+@Table(name = "item",
+    // 아이템의 path/name명은 unique하도록 설정
+    uniqueConstraints = {
+        @UniqueConstraint(
+                name = "uk_file_path_name_provider",
+                columnNames = {"path","name"}
+        )
+    }
+)
 public class Item extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

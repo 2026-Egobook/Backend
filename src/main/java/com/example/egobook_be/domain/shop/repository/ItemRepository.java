@@ -13,6 +13,6 @@ import java.util.List;
 public interface ItemRepository extends JpaRepository<Item, Long> {
     Slice<Item> findByCategory(ItemCategory category, Pageable pageable);
 
-    List<Item> findByName(String name);
+    List<Item> findAllByName(String name);
 
 }
