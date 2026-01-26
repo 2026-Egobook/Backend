@@ -1,4 +1,4 @@
-package com.example.egobook_be.domain.user.entity;
+package com.example.egobook_be.domain.user.enums;
 
 /**
  * 사용자의 권한을 담고 있는 Enum Class
