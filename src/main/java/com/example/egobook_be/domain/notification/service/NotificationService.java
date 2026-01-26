@@ -1,8 +1,12 @@
 package com.example.egobook_be.domain.notification.service;
 
+import com.example.egobook_be.domain.letters.entity.PlazaLetter;
+import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
+import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.notification.dto.NotificationReadResDto;
 import com.example.egobook_be.domain.notification.dto.NotificationResDto;
 import com.example.egobook_be.domain.notification.entity.Notification;
+import com.example.egobook_be.domain.notification.enums.NotificationType;
 import com.example.egobook_be.domain.notification.exception.NotificationErrorCode;
 import com.example.egobook_be.domain.notification.mapper.NotificationMapper;
 import com.example.egobook_be.domain.notification.repository.NotificationRepository;
@@ -23,6 +27,30 @@ public class NotificationService {
 
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
+    private final PlazaLetterRepository plazaLetterRepository;
+
+    /** 알림 생성 */
+    @Transactional
+    public void createNotification(Long userId, NotificationType type, Long targetId, String... args) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(NotificationErrorCode.USER_NOT_FOUND));
+
+        String title = type.format(args);
+        String content = switch (type) {
+            case LETTER_REQUEST, FRIEND_LETTER -> getLetterPreview(targetId);
+            default -> null;
+        };
+
+        Notification notification = Notification.builder()
+                .user(user)
+                .type(type)
+                .title(title)
+                .content(content)
+                .targetId(targetId)
+                .build();
+
+        notificationRepository.save(notification);
+    }
 
     /** 알림 목록 */
     @Transactional(readOnly = true)
@@ -79,5 +107,20 @@ public class NotificationService {
         user.updateNotificationEnabled();
 
         return user.isNotificationEnabled();
+    }
+
+    /** 편지 내용 미리보기 */
+    private String getLetterPreview(Long letterId) {
+        PlazaLetter letter = plazaLetterRepository.findById(letterId)
+                .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+
+        String content = letter.getContent();
+        if (content == null) {
+            return "";
+        }
+
+        return content.length() > 17
+                ? content.substring(0, 17)
+                : content;
     }
 }
