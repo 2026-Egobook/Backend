@@ -1,9 +1,8 @@
 package com.example.egobook_be.global.util.module;
 
-import com.example.egobook_be.domain.user.entity.RoleType;
+import com.example.egobook_be.domain.user.enums.RoleType;
 import lombok.Builder;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**

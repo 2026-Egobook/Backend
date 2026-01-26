@@ -18,6 +18,7 @@ public enum GlobalErrorCode implements BaseErrorCode {
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다."),
     INVALID_TYPE_VALUE(HttpStatus.BAD_REQUEST, "입력값의 타입이 유효하지 않습니다."),
     MISSING_INPUT_VALUE(HttpStatus.BAD_REQUEST,"필수 입력값이 누락되었습니다."),
+    INVALID_SLICE_VALUE(HttpStatus.BAD_REQUEST, "무한 스크롤을 위한 Slice Page값이 잘못되었습니다. Slice값은 1 ~ N이어야합니다."),
 
     /**
      * 401 UNAUTHORIZED: 인증되지 않음(로그인 실패 등)

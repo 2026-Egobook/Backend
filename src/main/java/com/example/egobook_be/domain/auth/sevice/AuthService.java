@@ -2,8 +2,13 @@ package com.example.egobook_be.domain.auth.sevice;
 
 import com.example.egobook_be.domain.auth.dto.req.*;
 import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
+import com.example.egobook_be.domain.shop.entity.Item;
+import com.example.egobook_be.domain.shop.entity.UserItem;
+import com.example.egobook_be.domain.shop.enums.ShopErrorCode;
+import com.example.egobook_be.domain.shop.repository.ItemRepository;
+import com.example.egobook_be.domain.shop.repository.UserItemRepository;
 import com.example.egobook_be.domain.user.entity.Ability;
-import com.example.egobook_be.domain.user.entity.RoleType;
+import com.example.egobook_be.domain.user.enums.RoleType;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.global.util.*;
 import com.example.egobook_be.global.util.module.TokenInfo;
@@ -28,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Auth 관련 비즈니스 로직을 수행하는
@@ -40,6 +46,8 @@ public class AuthService {
     private final AuthAccountRepository authAccountRepository;
     private final RefreshTokenBackupRepository refreshTokenBackupRepository;
     private final UserRepository userRepository;
+    private final ItemRepository itemRepository;
+    private final UserItemRepository userItemRepository;
     private final AbilityRepository abilityRepository;
     private final JwtUtil jwtUtil;
     private final HashingUtil hashingUtil;
@@ -86,38 +94,36 @@ public class AuthService {
         }
 
         /*
-         * 3. 신규 User Entity 생성 (공통 메서드 활용)
+         * 3. 신규 User Entity 생성 (공통 메서드 활용) (+ 처음 사용자가 회원가입했을 때 받아야할 것들 할당)
          * - 닉네임: createUser 내부에서 자동 생성된다. (만약 reqDto의 nickname을 쓰고 싶다면 createUser 수정 필요)
          * - 이메일: Google Payload에서 추출한 이메일을 저장한다.
          */
         User user = createUser(email);
-
-        // 4. Ability Entity 생성
-        createAbility(user);
+        allocateUser(user);
 
         /*
-         * 5. AuthAccount 엔티티 생성 (Google Provider)
+         * 4. AuthAccount 엔티티 생성 (Google Provider)
          * - hashedDeviceUid 자리에 hashedGoogleSub를 저장한다.
          * - recoverToken은 createAuthAccount 내부에서 초기값(null)으로 설정된다.
          */
         AuthAccount authAccount = createAuthAccount(user, Provider.GOOGLE, hashedGoogleSub);
 
 
-        // 6. 토큰 발급을 위한 UserDetails 생성
+        // 5. 토큰 발급을 위한 UserDetails 생성
         CustomUserDetails userDetails = buildCustomUserDetails(user, authAccount);
 
         /*
-         * 7. Access, Refresh Token 생성
+         * 6. Access, Refresh Token 생성
          * - **주의**: Google은 Recover Token을 생성하지 않는다.
          */
         TokenInfo accessTokenInfo = jwtUtil.createAccessToken(userDetails);
         TokenInfo refreshTokenInfo = jwtUtil.createRefreshToken(userDetails);
 
-        // 8. Refresh Token을 Table, Redis에 저장하는 Process 수행
+        // 7. Refresh Token을 Table, Redis에 저장하는 Process 수행
         processRefreshTokenSaving(user, authAccount, refreshTokenInfo);
 
         /*
-         * 9. 클라이언트에게 토큰 반환
+         * 8. 클라이언트에게 토큰 반환
          * - Google 로그인이므로 recoverToken은 null을 반환한다.
          */
         return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), null);
@@ -149,40 +155,38 @@ public class AuthService {
             throw new CustomException(AuthErrorCode.ALREADY_REGISTERED_USER);
         }
 
-        // 2. 신규 User Entity 생성
+        // 2. 신규 User Entity 생성 (+ 처음 사용자가 회원가입했을 때 받아야할 것들 할당)
         User user = createUser(null);
+        allocateUser(user);
 
         // 3. AuthAccount 엔티티 생성 (Guest Provider)
         AuthAccount authAccount = createAuthAccount(user, Provider.GUEST, hashedDeviceUid);
 
-        // 4 Ability Entity 생성
-        createAbility(user);
-
         /*
-         * 5. 토큰 발급을 위한 UserDetails 생성
+         * 4. 토큰 발급을 위한 UserDetails 생성
          *  (1) 토큰 발급 시 필요한 사용자 인증 정보를 담은 UserAuthDto를 생성한다.
          *  (2) 생성한 UserAuthDto를 기반으로 CustomUserDetails를 생성한다.
          */
         CustomUserDetails userDetails = buildCustomUserDetails(user, authAccount);
 
         /*
-         * 6. Access, Refresh, Recover Token 생성
+         * 5. Access, Refresh, Recover Token 생성
          */
         TokenInfo accessTokenInfo = jwtUtil.createAccessToken(userDetails);
         TokenInfo refreshTokenInfo = jwtUtil.createRefreshToken(userDetails);
         TokenInfo recoverTokenInfo = jwtUtil.createRecoverToken(userDetails);
 
         /*
-         * 7. Recover Token을 AuthAccount에 저장 (영구 보관용)
+         * 6. Recover Token을 AuthAccount에 저장 (영구 보관용)
          * **주의**: 이때, recoverToken 값은 HmacSHA256으로 해싱하여 저장한다. (단방향 해싱)
          */
         authAccount.updateHashedRecoverToken(hashingUtil.hashingValue(recoverTokenInfo.token()));
 
-        // 8. 모든 토큰들을 발급한 뒤, Refresh Token을 Table, Redis에 저장하는 Process를 수행
+        // 7. 모든 토큰들을 발급한 뒤, Refresh Token을 Table, Redis에 저장하는 Process를 수행
         processRefreshTokenSaving(user, authAccount, refreshTokenInfo);
 
         /*
-         * 9. 클라이언트에게 토큰을 반환
+         * 10. 클라이언트에게 토큰을 반환
          * recoverToken은 회원가입, refreshToken 재발급 시에만 발급된다.
          */
         return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), recoverTokenInfo.token());
@@ -457,6 +461,7 @@ public class AuthService {
                 .nickname(userNicknameGenerator.generateUniqueNickname())
                 .lastLoginAt(LocalDateTime.now())
                 .build();
+        if(email != null){ user.updateEmail(email); }
         return userRepository.save(user); // AuthAccount -> User Entity의 연관관계 설정을 위해, UserRepository로 먼저 save한다.
     }
 
@@ -474,23 +479,6 @@ public class AuthService {
                 .user(user)
                 .build();
         return authAccountRepository.save(authAccount); // AuthAccount -> User Entity의 연관관계 설정을 위해, authRepository로 먼저 save한다.
-    }
-
-    /**
-     * user 생성 시 ability 생성 로직 (능력치)
-     * @param user 연동할 user
-     * @return
-     */
-    private Ability createAbility(User user) {
-        Ability ability = Ability.builder()
-                .user(user)
-                .empathy(0)
-                .diligence(0)
-                .selfEsteem(0)
-                .positiveThinking(0)
-                .emotionRegulation(0)
-                .build();
-        return abilityRepository.save(ability);
     }
 
     /**
@@ -640,5 +628,59 @@ public class AuthService {
                 refreshTokenInfo.expiresAt()
         );
         registerToRedis(hashedRefreshToken, redisValue, refreshTokenInfo.expiresAt());
+    }
+
+    /**
+     * 사용자가 회원가입을 한 뒤, 기본적으로 사용자에게 할당해줘야할 것들을 할당해주는 함수.
+     *  (1) 기본 UserItem 인스턴스 생성
+     *  (2) 기본 Ability 인스턴스 생성
+     * @param user
+     */
+    private void allocateUser(User user){
+        // 1. 사용자 UserItems 생성
+        List<UserItem> userItems = createDefaultUserItems(user);
+
+        // 2. 사용자 Ability 생성
+        Ability ability = createDefaultAbility(user);
+    }
+
+
+    private List<UserItem> createDefaultUserItems(User user){
+        /*
+         * 1. Item들 중 name이 "Default.png"인 데이터들을 조회한다.
+         * - 기본 아이템들을 못찾으면 예외처리
+         */
+        List<Item> defaultItems = itemRepository.findAllByName("Default.png");
+        if(defaultItems.isEmpty()){throw new CustomException(ShopErrorCode.DEFAULT_ITEMS_NOT_FOUND);}
+
+        defaultItems.forEach(defaultItem -> {log.info("{}", defaultItem.getFullUrl("example"));});
+
+
+        // 2. 찾은 아이템들로 UserItem들을 생성해서 테이블에 저장
+        List<UserItem> userItems = defaultItems.stream().map(item ->
+                UserItem.builder()
+                    .user(user)
+                    .item(item)
+                    .isEquipped(true)
+                    .build()
+        ).toList();
+        return userItemRepository.saveAll(userItems);
+    }
+
+    /**
+     * user 생성 시 ability 생성 로직 (능력치)
+     * @param user 연동할 user
+     * @return
+     */
+    private Ability createDefaultAbility(User user) {
+        Ability ability = Ability.builder()
+                .user(user)
+                .empathy(0)
+                .diligence(0)
+                .selfEsteem(0)
+                .positiveThinking(0)
+                .emotionRegulation(0)
+                .build();
+        return abilityRepository.save(ability);
     }
 }

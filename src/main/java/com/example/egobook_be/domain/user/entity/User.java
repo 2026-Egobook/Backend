@@ -1,11 +1,17 @@
 package com.example.egobook_be.domain.user.entity;
 
+import com.example.egobook_be.domain.shop.entity.UserItem;
+import com.example.egobook_be.domain.user.enums.RoleType;
+import com.example.egobook_be.domain.user.enums.UserStatus;
+import com.example.egobook_be.domain.user.enums.WeeklyReportStyle;
 import com.example.egobook_be.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Builder
@@ -30,12 +36,12 @@ public class User extends BaseTimeEntity {
     private RoleType role = RoleType.ROLE_USER;
 
     @Column(length = 20) // 닉네임은 최대 8글자
-    private String nickname; 
+    private String nickname;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
-    private UserStatus status = UserStatus.NEW;
+    private UserStatus status = UserStatus.ACTIVE;
 
     @Column(length = 255)
     private String email;
@@ -84,16 +90,24 @@ public class User extends BaseTimeEntity {
     private Ability ability;
 
 
+    /*
+     * 사용자가 보유한 아이템 리스트 (양방향 매핑)
+     * User가 삭제되면 보유 목록도 같이 삭제되도록 CascadeType.ALL 설정
+     */
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<UserItem> userItems = new ArrayList<>();
+
     // ========= Entity 비즈니스 메서드 ========= //
     /**
      * 사용자가 login했을 때 User Entity 스스로가 자신의 상태를 최신으로 갱신하는 함수
      * - 함수 동작
      *      1. 접속 시간 갱신
-     *      2. 상태 변경 - 현재 상태가 NEW이거나 DORMANT(휴면)일 경우, 활동 중(ACTIVE) 상태로 변경한다.
+     *      2. 상태 변경 - 현재 상태가 DORMANT(휴면)일 경우, 활동 중(ACTIVE) 상태로 변경한다.
      */
     public void login() {
         this.lastLoginAt = LocalDateTime.now();
-        if (this.status == UserStatus.NEW || this.status == UserStatus.DORMANT) {
+        if (this.status == UserStatus.DORMANT) {
             this.status = UserStatus.ACTIVE;
         }
     }
@@ -117,17 +131,14 @@ public class User extends BaseTimeEntity {
         this.purgeAt = this.deletedAt.plus(purgeDurationInMs, ChronoUnit.MILLIS);
     }
 
-    /**
-     * 사용자가 잉크를 지급받습니다.
-     * @param amount: 사용자가 지급받을 잉크 수
-     */
     public void addInk(int amount) {
         this.ink += amount;
     }
 
-    /**
-     * 사용자 알림 설정을 변경합니다.
-     */
+    public void purchaseItem(int price){
+        this.ink -= price;
+    }
+
     public void updateNotificationEnabled() {
         this.notificationEnabled = !this.notificationEnabled;
     }
