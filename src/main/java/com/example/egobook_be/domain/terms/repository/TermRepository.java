@@ -5,9 +5,10 @@ import com.example.egobook_be.domain.terms.enums.TermType;
 import com.example.egobook_be.domain.terms.enums.TermVersion;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
-public interface TermRepository extends JpaRepository<Term, Integer> {
+public interface TermRepository extends JpaRepository<Term, Long> {
     /**
      * TermType으로 해당 약관이 존재하는지 찾는 함수
      */

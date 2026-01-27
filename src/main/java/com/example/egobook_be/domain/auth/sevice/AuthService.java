@@ -7,6 +7,11 @@ import com.example.egobook_be.domain.shop.entity.UserItem;
 import com.example.egobook_be.domain.shop.enums.ShopErrorCode;
 import com.example.egobook_be.domain.shop.repository.ItemRepository;
 import com.example.egobook_be.domain.shop.repository.UserItemRepository;
+import com.example.egobook_be.domain.terms.entity.Term;
+import com.example.egobook_be.domain.terms.entity.UserTerm;
+import com.example.egobook_be.domain.terms.enums.TermErrorCode;
+import com.example.egobook_be.domain.terms.repository.TermRepository;
+import com.example.egobook_be.domain.terms.repository.UserTermRepository;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.enums.RoleType;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
@@ -33,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -53,6 +59,8 @@ public class AuthService {
     private final HashingUtil hashingUtil;
     private final UserNicknameGenerator userNicknameGenerator;
     private final RedisUtil redisUtil;
+    private final TermRepository termRepository;
+    private final UserTermRepository userTermRepository;
 
     @Value("${app.data.purge-duration-in-ms}")
     private Long purgeDurationInMs;
@@ -634,6 +642,7 @@ public class AuthService {
      * 사용자가 회원가입을 한 뒤, 기본적으로 사용자에게 할당해줘야할 것들을 할당해주는 함수.
      *  (1) 기본 UserItem 인스턴스 생성
      *  (2) 기본 Ability 인스턴스 생성
+     *  (3) UserTerm 인스턴스 생성
      * @param user
      */
     private void allocateUser(User user){
@@ -642,6 +651,9 @@ public class AuthService {
 
         // 2. 사용자 Ability 생성
         Ability ability = createDefaultAbility(user);
+
+        // 3. 사용자 약관 동의
+        List<UserTerm> userTerms = createDefaultUserTerms(user);
     }
 
 
@@ -682,5 +694,26 @@ public class AuthService {
                 .emotionRegulation(0)
                 .build();
         return abilityRepository.save(ability);
+    }
+
+    /**
+     * user 생성 시 할당해줄
+     */
+    private List<UserTerm> createDefaultUserTerms(User user){
+        // 1. 모든 약관들을 가져온다.
+        List<Term> terms = termRepository.findAll();
+        if(terms.isEmpty()){throw new CustomException(TermErrorCode.TERMS_NOT_FOUND);}
+
+        // 2. 새로 만든 User와 가져온 Term들을 연결한다.
+        List<UserTerm> userTerms = new ArrayList<>();
+        for(Term term : terms){
+            userTerms.add(
+                    UserTerm.builder()
+                            .term(term)
+                            .user(user)
+                            .build()
+            );
+        }
+        return userTermRepository.saveAll(userTerms);
     }
 }
