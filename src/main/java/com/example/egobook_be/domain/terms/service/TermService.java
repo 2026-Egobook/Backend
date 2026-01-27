@@ -15,7 +15,7 @@ import java.util.List;
 public class TermService {
     private final TermRepository termRepository;
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<TermResDto> getTerms(){
         List<Term> terms = termRepository.findAll();
         List<TermResDto> termResDtoList = new ArrayList<>();
