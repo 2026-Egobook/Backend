@@ -2,6 +2,8 @@ package com.example.egobook_be.domain.user.controller;
 
 import com.example.egobook_be.domain.auth.dto.req.GoogleJoinReqDto;
 import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
+import com.example.egobook_be.domain.user.dto.WithdrawReqDto;
+import com.example.egobook_be.domain.user.dto.WithdrawResDto;
 import com.example.egobook_be.global.response.GlobalResponse;
 import com.example.egobook_be.global.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +18,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -53,4 +56,30 @@ public interface UserControllerDocs {
             @Parameter @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @RequestBody @Valid GoogleJoinReqDto reqDto
     );
+
+    // [신규 추가] 회원 탈퇴 API Docs
+    @Operation(summary = "회원 탈퇴", description = """
+            현재 로그인된 사용자의 계정을 탈퇴 처리합니다.
+            
+            - **기능**:
+              1. DB에서 사용자 정보를 Soft Delete 처리합니다.
+              2. 사용자가 회원탈퇴한 후 7일 뒤에 사용자 데이터가 완전히 삭제됩니다.
+            
+            - **주의사항**:
+              탈퇴 후에는 복구가 불가능할 수 있으며, 접근 토큰은 만료 처리됩니다.
+            """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "탈퇴 성공",
+                    content = @Content(schema = @Schema(implementation = String.class, example = "회원 탈퇴가 완료되었습니다."))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (Access 토큰 필요)",
+                    content = @Content)
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @DeleteMapping("/withdraw") // DELETE /users/withdraw
+    ResponseEntity<GlobalResponse<WithdrawResDto>> withdrawUser(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestBody @Valid WithdrawReqDto reqDto
+    );
+
+
 }
