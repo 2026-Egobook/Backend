@@ -2,6 +2,7 @@ package com.example.egobook_be.domain.notification.controller;
 
 import com.example.egobook_be.domain.notification.dto.NotificationReadResDto;
 import com.example.egobook_be.domain.notification.dto.NotificationResDto;
+import com.example.egobook_be.domain.notification.dto.NotificationSettingResDto;
 import com.example.egobook_be.domain.notification.service.NotificationService;
 import com.example.egobook_be.global.response.GlobalResponse;
 import com.example.egobook_be.global.response.SliceResponse;
@@ -26,7 +27,7 @@ public class NotificationController implements NotificationControllerDocs{
     @Override
     public ResponseEntity<GlobalResponse<SliceResponse<NotificationResDto>>> getNotifications(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         return ResponseEntity.ok(
@@ -53,11 +54,11 @@ public class NotificationController implements NotificationControllerDocs{
      * GET /notifications/settings
      */
     @Override
-    public ResponseEntity<GlobalResponse<Map<String,Boolean>>> getNotificationSetting(
+    public ResponseEntity<GlobalResponse<NotificationSettingResDto>> getNotificationSetting(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
     ) {
         return ResponseEntity.ok(
-                GlobalResponse.success(Map.of("enabled", notificationService.getNotificationSetting(userId)))
+                GlobalResponse.success(notificationService.getNotificationSetting(userId))
         );
     }
 
@@ -66,11 +67,11 @@ public class NotificationController implements NotificationControllerDocs{
      * PATCH /notifications/settings
      */
     @Override
-    public ResponseEntity<GlobalResponse<Map<String,Boolean>>> updateNotificationSetting(
+    public ResponseEntity<GlobalResponse<NotificationSettingResDto>> updateNotificationSetting(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
     ) {
         return ResponseEntity.ok(
-                GlobalResponse.success(Map.of("enabled", notificationService.updateNotificationSetting(userId)))
+                GlobalResponse.success(notificationService.updateNotificationSetting(userId))
         );
     }
 }

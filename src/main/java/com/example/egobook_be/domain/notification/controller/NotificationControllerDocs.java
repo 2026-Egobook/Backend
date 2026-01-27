@@ -2,6 +2,7 @@ package com.example.egobook_be.domain.notification.controller;
 
 import com.example.egobook_be.domain.notification.dto.NotificationReadResDto;
 import com.example.egobook_be.domain.notification.dto.NotificationResDto;
+import com.example.egobook_be.domain.notification.dto.NotificationSettingResDto;
 import com.example.egobook_be.global.response.GlobalResponse;
 import com.example.egobook_be.global.response.SliceResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,13 +47,13 @@ public interface NotificationControllerDocs {
 
     @Operation(summary = "알림 설정 확인", description = "알림 ON/OFF 설정을 확인합니다.")
     @GetMapping("/settings")
-    ResponseEntity<GlobalResponse<Map<String,Boolean>>> getNotificationSetting(
+    ResponseEntity<GlobalResponse<NotificationSettingResDto>> getNotificationSetting(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
     );
 
     @Operation(summary = "알림 설정 변경", description = "알림 ON/OFF 설정을 변경합니다.")
     @PatchMapping("/settings")
-    ResponseEntity<GlobalResponse<Map<String,Boolean>>> updateNotificationSetting(
+    ResponseEntity<GlobalResponse<NotificationSettingResDto>> updateNotificationSetting(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
     );
 }

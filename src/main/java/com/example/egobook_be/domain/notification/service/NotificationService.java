@@ -5,6 +5,7 @@ import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.notification.dto.NotificationReadResDto;
 import com.example.egobook_be.domain.notification.dto.NotificationResDto;
+import com.example.egobook_be.domain.notification.dto.NotificationSettingResDto;
 import com.example.egobook_be.domain.notification.entity.Notification;
 import com.example.egobook_be.domain.notification.enums.NotificationType;
 import com.example.egobook_be.domain.notification.exception.NotificationErrorCode;
@@ -13,9 +14,11 @@ import com.example.egobook_be.domain.notification.repository.NotificationReposit
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
+import com.example.egobook_be.global.exception.GlobalErrorCode;
 import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -59,8 +62,16 @@ public class NotificationService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(NotificationErrorCode.USER_NOT_FOUND));
 
-        PageRequest pageable = PageRequest.of(
-                page,
+        if (page < 1) {
+            throw new CustomException(GlobalErrorCode.INVALID_SLICE_VALUE);
+        }
+
+        if (size < 1 || size > 100) {
+            throw new CustomException(GlobalErrorCode.INVALID_SIZE_VALUE);
+        }
+
+        Pageable pageable = PageRequest.of(
+                page - 1,
                 size,
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
@@ -89,24 +100,24 @@ public class NotificationService {
 
     /** 알림 설정 확인 */
     @Transactional(readOnly = true)
-    public boolean getNotificationSetting(Long userId) {
+    public NotificationSettingResDto getNotificationSetting(Long userId) {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(NotificationErrorCode.USER_NOT_FOUND));
 
-        return user.isNotificationEnabled();
+        return NotificationMapper.toNotificationSettingDto(user);
     }
 
     /** 알림 설정 변경 */
     @Transactional
-    public boolean updateNotificationSetting(Long userId) {
+    public NotificationSettingResDto updateNotificationSetting(Long userId) {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(NotificationErrorCode.USER_NOT_FOUND));
 
         user.updateNotificationEnabled();
 
-        return user.isNotificationEnabled();
+        return NotificationMapper.toNotificationSettingDto(user);
     }
 
     /** 편지 내용 미리보기 */

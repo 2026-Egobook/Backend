@@ -2,7 +2,9 @@ package com.example.egobook_be.domain.notification.mapper;
 
 import com.example.egobook_be.domain.notification.dto.NotificationReadResDto;
 import com.example.egobook_be.domain.notification.dto.NotificationResDto;
+import com.example.egobook_be.domain.notification.dto.NotificationSettingResDto;
 import com.example.egobook_be.domain.notification.entity.Notification;
+import com.example.egobook_be.domain.user.entity.User;
 
 public class NotificationMapper {
     public static NotificationResDto toNotificationDto(Notification notification) {
@@ -20,6 +22,12 @@ public class NotificationMapper {
         return NotificationReadResDto.builder()
                 .notificationId(notification.getId())
                 .isRead(true)
+                .build();
+    }
+
+    public static NotificationSettingResDto toNotificationSettingDto(User user) {
+        return NotificationSettingResDto.builder()
+                .enabled(user.isNotificationEnabled())
                 .build();
     }
 }
