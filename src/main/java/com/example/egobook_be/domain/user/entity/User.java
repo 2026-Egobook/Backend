@@ -36,7 +36,7 @@ public class User extends BaseTimeEntity {
     private RoleType role = RoleType.ROLE_USER;
 
     @Column(length = 20) // 닉네임은 최대 8글자
-    private String nickname; 
+    private String nickname;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -75,6 +75,10 @@ public class User extends BaseTimeEntity {
     @Column(name = "ink")
     @Builder.Default
     private Integer ink = 0;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean notificationEnabled = true; // 알림 설정 (기본값 true)
 
     // ========= 연관관계 매핑 ========= //
 
@@ -133,5 +137,9 @@ public class User extends BaseTimeEntity {
 
     public void purchaseItem(int price){
         this.ink -= price;
+    }
+
+    public void updateNotificationEnabled() {
+        this.notificationEnabled = !this.notificationEnabled;
     }
 }
