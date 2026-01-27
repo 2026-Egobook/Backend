@@ -16,8 +16,6 @@ import java.util.Set;
 
 @Repository
 public interface DiaryRepository extends JpaRepository<Diary, Long> {
-    int countByUserAndWrittenAtBetween(User user, LocalDateTime writtenAtAfter, LocalDateTime writtenAtBefore);
-
     boolean existsByUserAndCreatedAtBetween(User user, LocalDateTime startOfToday, LocalDateTime endOfToday);
 
     boolean existsByUserAndTypeContainingAndCreatedAtBetween(User user, DiaryType diaryType, LocalDateTime startOfToday, LocalDateTime endOfToday);
@@ -27,35 +25,35 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
     List<Diary> findAllByUserAndWrittenAtBetween(User user, LocalDateTime start, LocalDateTime end);
 
     @Query("""
-    SELECT d
-    FROM Diary d 
-    WHERE d.user = :user 
-      AND d.writtenAt BETWEEN :start AND :end\n
-      AND (:type IS NULL OR :type MEMBER OF d.type) ORDER BY d.writtenAt DESC
-    """)
-    Slice<Diary> findAllByUserAndTypeAndWrittenAtBetween(
-            User user, DiaryType type, LocalDateTime start, LocalDateTime end, Pageable pageable
-    );
-
-    @Query("""
     SELECT
-        DATE(d.writtenAt) AS date,
+        d.date AS date,
         d.emotionLevel AS emotionLevel,
         COUNT(d) AS count,
         MAX(d.writtenAt) AS latest
     FROM Diary d
     WHERE d.user = :user
       AND d.emotionLevel IS NOT NULL
-      AND d.writtenAt BETWEEN :start AND :end
-    GROUP BY DATE(d.writtenAt), d.emotionLevel
-    ORDER BY DATE(d.writtenAt), count DESC, latest DESC
+      AND d.date BETWEEN :start AND :end
+    GROUP BY d.date, d.emotionLevel
+    ORDER BY d.date, count DESC, latest DESC
     """)
-    List<DailyEmotionCount> findDailyEmotions(User user, LocalDateTime start, LocalDateTime end);
+    List<DailyEmotionCount> findDailyEmotions(User user, LocalDate start, LocalDate end);
+
+    @Query("""
+    SELECT d 
+    FROM Diary d 
+    JOIN d.type t 
+    WHERE d.user = :user 
+      AND d.date = :date 
+      AND (:type IS NULL OR :type MEMBER OF d.type)
+    ORDER BY d.writtenAt DESC
+""")
+    Slice<Diary> findAllByUserAndTypeAndDate(User user, DiaryType type, LocalDate date, Pageable pageable);
+
+    int countByUserAndDate(User user, LocalDate date);
 
     interface DailyEmotionCount {
         LocalDate getDate();
         Integer getEmotionLevel();
-        Long getCount();
-        LocalDateTime getLatest();
     }
 }

@@ -8,14 +8,17 @@ import com.example.egobook_be.domain.diary.enums.RewardType;
 import com.example.egobook_be.domain.diary.exception.DiaryErrorCode;
 import com.example.egobook_be.domain.diary.mapper.DiaryMapper;
 import com.example.egobook_be.domain.diary.repository.DiaryRepository;
+import com.example.egobook_be.domain.notification.entity.Notification;
+import com.example.egobook_be.domain.notification.mapper.NotificationMapper;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.User;
-import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
+import com.example.egobook_be.global.exception.GlobalErrorCode;
 import com.example.egobook_be.global.response.SliceResponse;
 import com.example.egobook_be.infra.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -28,7 +31,6 @@ import java.util.*;
 @RequiredArgsConstructor
 public class DiaryService {
 
-    private final UserRepository userRepository;
     private final DiaryRepository diaryRepository;
     private final DiaryExportService diaryExportService;
     private final DiaryQueryService diaryQueryService;
@@ -64,14 +66,13 @@ public class DiaryService {
         }
 
         // 일기 저장 날짜 설정
-        LocalDateTime writtenAt = (dto.date() != null) ?
-                LocalDateTime.of(dto.date(), LocalTime.now()) : LocalDateTime.now();
+        LocalDateTime writtenAt = (dto.dateTime() != null) ?
+                dto.dateTime() : LocalDateTime.now();
 
-        LocalDateTime startOfDay = writtenAt.toLocalDate().atStartOfDay();
-        LocalDateTime endOfDay = writtenAt.toLocalDate().atTime(LocalTime.MAX);
+        LocalDate diaryDate = writtenAt.toLocalDate();
 
         // 일기 작성 가능 여부
-        if (diaryRepository.countByUserAndWrittenAtBetween(user, startOfDay, endOfDay) >= 48) {
+        if (diaryRepository.countByUserAndDate(user, diaryDate) >= 48) {
             throw new CustomException(DiaryErrorCode.DIARY_DAILY_LIMIT_EXCEEDED);
         }
 
@@ -100,6 +101,7 @@ public class DiaryService {
 
         Diary diary = diaryRepository.save(Diary.builder()
                 .user(user)
+                .date(diaryDate)
                 .type(dto.type())
                 .content(dto.content())
                 .emotionLevel(dto.emotionLevel())
@@ -194,27 +196,31 @@ public class DiaryService {
 
         User user = diaryQueryService.getUserById(userId);
 
-        LocalDateTime startOfDay = date.atStartOfDay();
-        LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
+        if (page < 1) {
+            throw new CustomException(GlobalErrorCode.INVALID_SLICE_VALUE);
+        }
 
-        PageRequest pageable = PageRequest.of(
-                page,
+        if (size < 1 || size > 100) {
+            throw new CustomException(GlobalErrorCode.INVALID_SIZE_VALUE);
+        }
+
+        Pageable pageable = PageRequest.of(
+                page - 1,
                 size,
                 Sort.by(Sort.Direction.DESC, "writtenAt")
         );
 
-        Slice<Diary> slice = diaryRepository.findAllByUserAndTypeAndWrittenAtBetween(
+        Slice<Diary> slice = diaryRepository.findAllByUserAndTypeAndDate(
                 user,
                 type,
-                startOfDay,
-                endOfDay,
+                date,
                 pageable
         );
 
         SliceResponse<DiaryResDto> diaries = SliceResponse.of(slice, DiaryMapper::toDiaryDto);
 
-        // 오늘 작성한 일기 개수 계산
-        int dailyCount = diaryRepository.countByUserAndWrittenAtBetween(user, startOfDay, endOfDay);
+        // 선택 날짜 일기 개수
+        int dailyCount = diaryRepository.countByUserAndDate(user, date);
 
         return DiaryMapper.toDiaryListDto(diaries, dailyCount);
     }
@@ -225,8 +231,8 @@ public class DiaryService {
 
         User user = diaryQueryService.getUserById(userId);
 
-        LocalDateTime startOfMonth = month.atDay(1).atStartOfDay();
-        LocalDateTime endOfMonth = month.atEndOfMonth().atTime(LocalTime.MAX);
+        LocalDate startOfMonth = month.atDay(1);
+        LocalDate endOfMonth = month.atEndOfMonth();
 
         List<DiaryRepository.DailyEmotionCount> dailyEmotions =
                 diaryRepository.findDailyEmotions(user, startOfMonth, endOfMonth);
@@ -234,7 +240,7 @@ public class DiaryService {
         return DiaryMapper.toDiaryCalendarDto(month, dailyEmotions);
     }
 
-    /** 감정 일기 내보네기 */
+    /** 감정 일기 내보내기 */
     public DiaryExportResDto exportDiaries(Long userId, DiaryExportReqDto dto) {
 
         User user = diaryQueryService.getUserById(userId);

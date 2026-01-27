@@ -11,6 +11,7 @@ import jakarta.validation.constraints.NotEmpty;
 import lombok.*;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.Set;
@@ -27,6 +28,8 @@ public class Diary extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    private LocalDate date;
 
     private Integer emotionLevel;
 
@@ -52,5 +55,6 @@ public class Diary extends BaseTimeEntity {
         this.content = content;
         this.type = type;
         this.emotionLevel = emotionLevel;
+        this.writtenAt = LocalDateTime.now();
     }
 }
