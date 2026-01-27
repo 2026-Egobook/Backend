@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.user.entity;
 
+import com.example.egobook_be.domain.ego_room.enums.CounselTone;
 import com.example.egobook_be.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -79,7 +80,12 @@ public class User extends BaseTimeEntity {
     )
     private Ability ability;
 
+    @Enumerated(EnumType.STRING)
+    private CounselTone counselingTone;
 
+    public void updateCounselingTone(CounselTone toneStyle) {
+        this.counselingTone = toneStyle;
+    }
     // ========= Entity 비즈니스 메서드 ========= //
     /**
      * 사용자가 login했을 때 User Entity 스스로가 자신의 상태를 최신으로 갱신하는 함수

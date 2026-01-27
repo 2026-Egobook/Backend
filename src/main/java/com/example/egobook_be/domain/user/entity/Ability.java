@@ -32,4 +32,9 @@ public class Ability {
     public void addPositiveThinking(int i) {
         this.positiveThinking += i;
     }
+    public void addSelfEsteem(int value) {
+        this.selfEsteem += value;
+    }
+
+
 }
