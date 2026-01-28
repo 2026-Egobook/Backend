@@ -81,6 +81,10 @@ public class User extends BaseTimeEntity {
     @Builder.Default
     private boolean notificationEnabled = true; // 알림 설정 (기본값 true)
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean isFirstAttendanceToday = true; // 오늘 첫 접속 상태인지 여부  
+
     // ========= 연관관계 매핑 ========= //
 
     @OneToOne(
@@ -143,4 +147,10 @@ public class User extends BaseTimeEntity {
     public void updateNotificationEnabled() {
         this.notificationEnabled = !this.notificationEnabled;
     }
+
+    // 출석 보상을 주는 함수
+    public void rewardAttendance() { this.isFirstAttendanceToday = false; }
+
+    // 출석 상태를 리셋 (출석 보상을 받을 수 있는 상태로 변경) 해주는 함수
+    public void resetAttendanceStatus() { this.isFirstAttendanceToday = true; }
 }
