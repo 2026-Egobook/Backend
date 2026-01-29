@@ -1,9 +1,6 @@
 package com.example.egobook_be.domain.friend.controller;
 
-import com.example.egobook_be.domain.friend.dto.FriendRequestCreateReqDto;
-import com.example.egobook_be.domain.friend.dto.FriendRequestListResDto;
-import com.example.egobook_be.domain.friend.dto.FriendResDto;
-import com.example.egobook_be.domain.friend.dto.FriendSearchResDto;
+import com.example.egobook_be.domain.friend.dto.*;
 import com.example.egobook_be.domain.friend.service.FriendService;
 import com.example.egobook_be.global.response.GlobalResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -52,6 +49,7 @@ public class FriendController {
                 받은 친구 신청을 수락합니다.
                 
                 - 수락 시 양방향 친구 관계가 생성됩니다.
+                - 친구는 최대 10명까지만 추가할 수 있으며, 초과 시 수락이 실패합니다.
                 """
     )
     @PostMapping("/requests/{requestId}/accept")
@@ -129,7 +127,7 @@ public class FriendController {
                 """
     )
     @GetMapping("/requests/incoming")
-    public ResponseEntity<GlobalResponse<List<FriendRequestListResDto>>> getIncomingRequests(
+    public ResponseEntity<GlobalResponse<FriendRequestListWithCountResDto>> getIncomingRequests(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
     ) {
         return ResponseEntity.ok(
@@ -168,7 +166,7 @@ public class FriendController {
             """
     )
     @GetMapping
-    public ResponseEntity<GlobalResponse<List<FriendResDto>>> getFriends(
+    public ResponseEntity<GlobalResponse<FriendListResDto>> getFriends(
             @AuthenticationPrincipal(expression = "userAuthDto.userId")
             @Parameter(hidden = true) Long userId
     ) {

@@ -11,6 +11,7 @@ import jakarta.validation.constraints.NotEmpty;
 import lombok.*;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.Set;
@@ -28,6 +29,8 @@ public class Diary extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private LocalDate date;
+
     private Integer emotionLevel;
 
     @Column(nullable = false, length = 400)
@@ -37,6 +40,7 @@ public class Diary extends BaseTimeEntity {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "diary_type", joinColumns = @JoinColumn(name = "diary_id"))
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     @Column(nullable = false)
     @Builder.Default
     private Set<DiaryType> type = EnumSet.noneOf(DiaryType.class);
@@ -52,5 +56,6 @@ public class Diary extends BaseTimeEntity {
         this.content = content;
         this.type = type;
         this.emotionLevel = emotionLevel;
+        this.writtenAt = LocalDateTime.now();
     }
 }

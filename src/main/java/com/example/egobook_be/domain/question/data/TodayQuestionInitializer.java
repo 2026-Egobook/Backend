@@ -16,19 +16,17 @@ public class TodayQuestionInitializer {
 
     private final TodayQuestionRepository todayQuestionRepository;
 
-    /**
-     * 서버 최초 실행 시
-     * today_question 테이블이 비어 있으면 질문 30개 전부 삽입
-     */
     @PostConstruct
     public void initQuestions() {
 
         if (todayQuestionRepository.count() > 0) {
-            return; // 이미 데이터 있으면 아무 것도 안 함
+            return;
         }
 
+        //26.01.27 부터 1번 질문 시작
+        LocalDate startDate = LocalDate.of(2026, 1, 27);
+
         List<TodayQuestion> questions = new ArrayList<>();
-        LocalDate startDate = LocalDate.now();
 
         for (int i = 0; i < TodayQuestionData.QUESTIONS.size(); i++) {
             questions.add(

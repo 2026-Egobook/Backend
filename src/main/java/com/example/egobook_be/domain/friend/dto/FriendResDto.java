@@ -5,6 +5,7 @@ import lombok.Builder;
 @Builder
 public record FriendResDto(
         Long friendId,
-        String nickname
+        String nickname,
+        Integer level
 ) {
 }

@@ -38,6 +38,7 @@ public class SecurityConfig {
      */
     private static final String[] AUTH_WHITELIST = {
             "/auth/**", // /auth로 오는 요청은 전부 허용
+            "/terms", // 약관 조회 요청은 허용
             "/v3/api-docs/**",  // Swagger JSON 데이터
             "/swagger-ui/**",   // Swagger UI CSS, JS, 이미지
             "/swagger-ui-custom.html",  // Swagger UI 메인 페이지

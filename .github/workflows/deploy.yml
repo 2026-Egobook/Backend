@@ -72,6 +72,7 @@ jobs:
           sed -i "s|\${DEV_SALT}|${{ secrets.DEV_SALT }}|g" $FILE
           sed -i "s|\${DEV_REDIS_PW}|${{ secrets.DEV_REDIS_PW }}|g" $FILE
           sed -i "s|\${DEV_ANDROID_CLIENT_IDS}|${{ secrets.DEV_ANDROID_CLIENT_IDS }}|g" $FILE
+          sed -i "s|\${WORD_AI_BASE_URL}|${{ secrets.WORD_AI_BASE_URL }}|g" $FILE
         # 같은 값이 중복되면, 최근에 설정된 env값이 사용된다.
         shell: bash
 

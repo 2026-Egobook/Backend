@@ -2,12 +2,11 @@ package com.example.egobook_be.global.security;
 
 import com.example.egobook_be.domain.auth.enums.AuthErrorCode;
 import com.example.egobook_be.domain.auth.enums.Provider;
-import com.example.egobook_be.domain.user.entity.RoleType;
+import com.example.egobook_be.domain.user.enums.RoleType;
 import com.example.egobook_be.global.enums.JwtTokenType;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.util.JwtUtil;
 import com.example.egobook_be.global.util.module.UserAuthDto;
-import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,7 +17,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;

@@ -5,7 +5,6 @@ import com.example.egobook_be.domain.diary.entity.Diary;
 import com.example.egobook_be.domain.diary.enums.ExportFormat;
 import com.example.egobook_be.domain.diary.repository.DiaryRepository;
 import com.example.egobook_be.global.response.SliceResponse;
-import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -19,7 +18,7 @@ public class DiaryMapper {
     public static DiaryResDto toDiaryDto(Diary diary) {
         return DiaryResDto.builder()
                 .diaryId(diary.getId())
-                .date(diary.getWrittenAt().toLocalDate())
+                .date(diary.getDate())
                 .writtenAt(diary.getWrittenAt())
                 .type(diary.getType())
                 .emotionLevel(diary.getEmotionLevel())
