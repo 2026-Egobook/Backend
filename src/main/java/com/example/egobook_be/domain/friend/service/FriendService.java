@@ -1,9 +1,6 @@
 package com.example.egobook_be.domain.friend.service;
 
-import com.example.egobook_be.domain.friend.dto.FriendRequestCreateReqDto;
-import com.example.egobook_be.domain.friend.dto.FriendRequestListResDto;
-import com.example.egobook_be.domain.friend.dto.FriendResDto;
-import com.example.egobook_be.domain.friend.dto.FriendSearchResDto;
+import com.example.egobook_be.domain.friend.dto.*;
 import com.example.egobook_be.domain.friend.entity.Friend;
 import com.example.egobook_be.domain.friend.entity.FriendRequest;
 import com.example.egobook_be.domain.friend.enums.FriendRequestStatus;
@@ -87,6 +84,14 @@ public class FriendService {
                 .findByIdAndReceiver(requestId, receiver)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.FRIEND_REQUEST_NOT_FOUND));
 
+        User sender = request.getSender();
+
+        // 친구 수 제한 체크 (양쪽 모두)
+        if (friendRepository.countByUser(receiver) >= 10
+                || friendRepository.countByUser(sender) >= 10) {
+            throw new CustomException(FriendErrorCode.FRIEND_LIMIT_EXCEEDED);
+        }
+
         request.accept();
 
         // 양방향 친구 관계 생성
@@ -149,22 +154,40 @@ public class FriendService {
 
     /** 내가 받은 친구 신청 목록 (승인 대기) **/
     @Transactional(readOnly = true)
-    public List<FriendRequestListResDto> getIncomingRequests(Long userId) {
+    public FriendRequestListWithCountResDto getIncomingRequests(Long userId) {
 
         User receiver = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
-        return friendRequestRepository
-                .findByReceiverAndStatus(receiver, FriendRequestStatus.PENDING)
-                .stream()
-                .map(req -> FriendRequestListResDto.builder()
-                        .requestId(req.getId())
-                        .userId(req.getSender().getId())
-                        .nickname(req.getSender().getNickname())
-                        .requestedAt(req.getCreatedAt())
-                        .build()
-                )
+        List<FriendRequest> requests =
+                friendRequestRepository.findByReceiverAndStatus(
+                        receiver,
+                        FriendRequestStatus.PENDING
+                );
+
+        int totalCount = (int) friendRequestRepository.countByReceiverAndStatus(
+                receiver,
+                FriendRequestStatus.PENDING
+        );
+
+        List<FriendRequestListResDto> list = requests.stream()
+                .map(req -> {
+                    User sender = req.getSender();
+
+                    return FriendRequestListResDto.builder()
+                            .requestId(req.getId())
+                            .userId(sender.getId())
+                            .nickname(sender.getNickname())
+                            .level(sender.getLevel())
+                            .requestedAt(req.getCreatedAt())
+                            .build();
+                })
                 .toList();
+
+        return FriendRequestListWithCountResDto.builder()
+                .totalCount(totalCount)
+                .requests(list)
+                .build();
     }
 
     /** 내가 보낸 친구 신청 목록 **/
@@ -175,33 +198,46 @@ public class FriendService {
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
         return friendRequestRepository
-                .findBySenderAndStatus(sender, FriendRequestStatus.PENDING)
+                .findBySenderAndStatusWithReceiver(sender, FriendRequestStatus.PENDING)
                 .stream()
-                .map(req -> FriendRequestListResDto.builder()
-                        .requestId(req.getId())
-                        .userId(req.getReceiver().getId())
-                        .nickname(req.getReceiver().getNickname())
-                        .requestedAt(req.getCreatedAt())
-                        .build()
-                )
+                .map(req -> {
+                    User receiver = req.getReceiver();
+
+                    return FriendRequestListResDto.builder()
+                            .requestId(req.getId())
+                            .userId(receiver.getId())
+                            .nickname(receiver.getNickname())
+                            .level(receiver.getLevel())
+                            .requestedAt(req.getCreatedAt())
+                            .build();
+                })
                 .toList();
     }
 
     /** 친구 리스트 **/
     @Transactional(readOnly = true)
-    public List<FriendResDto> getFriends(Long userId) {
+    public FriendListResDto getFriends(Long userId) {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
-        return friendRepository.findByUser(user)
+        List<FriendResDto> friends = friendRepository.findByUserWithFriend(user)
                 .stream()
-                .map(friend -> FriendResDto.builder()
-                        .friendId(friend.getFriend().getId())
-                        .nickname(friend.getFriend().getNickname())
-                        .build()
-                )
+                .map(friend -> {
+                    User friendUser = friend.getFriend();
+
+                    return FriendResDto.builder()
+                            .friendId(friendUser.getId())
+                            .nickname(friendUser.getNickname())
+                            .level(friendUser.getLevel())
+                            .build();
+                })
                 .toList();
+
+        return FriendListResDto.builder()
+                .count(friends.size())
+                .friends(friends)
+                .build();
     }
 
     /** 친구 검색 **/

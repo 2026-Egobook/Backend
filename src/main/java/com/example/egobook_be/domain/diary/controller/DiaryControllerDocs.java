@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.Map;
 
 @Tag(name = "Diary Controller", description = "감정 일기 관련 API")
 public interface DiaryControllerDocs {
@@ -23,7 +24,7 @@ public interface DiaryControllerDocs {
             
             - '감정' 선택 시, 감정 단계를 선택해야 합니다.
             - 텍스트 최대 400자 작성 가능합니다.
-            - 일기 저장 날짜 변경 가능합니다.
+            - 일기 저장 날짜, 시간 변경 가능합니다.
             - 하루 최대 48번 일기 저장 가능합니다. (기준: 저장 날짜)
             - 리워드 규칙 (기준: 실제 작성 날짜)
               1. 오늘 최초 일기 작성 시, 잉크 +1
@@ -67,6 +68,7 @@ public interface DiaryControllerDocs {
             - 날짜를 제외한 일기 타입, 텍스트 내용을 수정 가능합니다.
             - '감정' 선택 시, 감정 단계를 선택해야 합니다.
             - 텍스트 최대 400자 작성 가능합니다.
+            - 일기 내부 시간은 수정일시로 자동 업데이트됩니다.
             """)
     @PatchMapping("/{diaryId}")
     ResponseEntity<GlobalResponse<DiaryResDto>> updateDiary(
@@ -77,7 +79,7 @@ public interface DiaryControllerDocs {
 
     @Operation(summary = "감정 일기 삭제", description = "선택한 감정 일기를 영구 삭제합니다. (복구 불가)")
     @DeleteMapping("/{diaryId}")
-    ResponseEntity<GlobalResponse<Boolean>> deleteDiary(
+    ResponseEntity<GlobalResponse<Map<String,Boolean>>> deleteDiary(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @PathVariable Long diaryId
     );
