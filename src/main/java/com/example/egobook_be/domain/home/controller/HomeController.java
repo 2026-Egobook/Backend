@@ -1,7 +1,9 @@
 package com.example.egobook_be.domain.home.controller;
 
+import com.example.egobook_be.domain.home.dto.HomeAbilityResDto;
 import com.example.egobook_be.domain.home.dto.HomeActivityResDto;
 import com.example.egobook_be.domain.home.dto.HomeResDto;
+import com.example.egobook_be.domain.home.dto.HomeSettingResDto;
 import com.example.egobook_be.domain.home.service.HomeService;
 import com.example.egobook_be.global.response.GlobalResponse;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -41,4 +43,25 @@ public class HomeController implements HomeControllerDocs{
                 .status(HttpStatus.OK)
                 .body(GlobalResponse.success("활동 목록 정보 조회 성공", resDto));
     }
+
+    @Override
+    public ResponseEntity<GlobalResponse<HomeAbilityResDto>> getHomeAbilities(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    ){
+        HomeAbilityResDto resDto = homeService.getHomeAbilities(userId);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(GlobalResponse.success(resDto));
+    }
+
+    @Override
+    public ResponseEntity<GlobalResponse<HomeSettingResDto>> getHomeSettings(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    ){
+        HomeSettingResDto resDto = homeService.getHomeSettings(userId);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(GlobalResponse.success(resDto));
+    }
+
 }

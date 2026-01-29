@@ -1,7 +1,9 @@
 package com.example.egobook_be.domain.home.controller;
 
+import com.example.egobook_be.domain.home.dto.HomeAbilityResDto;
 import com.example.egobook_be.domain.home.dto.HomeActivityResDto;
 import com.example.egobook_be.domain.home.dto.HomeResDto;
+import com.example.egobook_be.domain.home.dto.HomeSettingResDto;
 import com.example.egobook_be.global.response.GlobalResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -62,6 +64,32 @@ public interface HomeControllerDocs {
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/activities")
     ResponseEntity<GlobalResponse<HomeActivityResDto>> getHomeActivities(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    );
+
+    @Operation(summary = "사용자 레이더 차트 정보 조회", description = """
+            홈 화면의 '능력치(레이더 차트)' 탭에 필요한 데이터를 조회합니다.
+            5가지 능력치(공감성, 자존감, 성실함, 긍정사고, 감정조절)에 대한 레벨, 점수를 반환합니다.
+            """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = HomeAbilityResDto.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/abilities")
+    ResponseEntity<GlobalResponse<HomeAbilityResDto>> getHomeAbilities(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    );
+
+    @Operation(summary = "사용자 설정/계정 페이지 정보 조회", description = """
+            홈 화면의 '설정(계정)' 탭에 필요한 데이터를 조회합니다.
+            현재는 사용자 계정 ID(Account Code)를 반환합니다.
+            """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = HomeSettingResDto.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/settings")
+    ResponseEntity<GlobalResponse<HomeSettingResDto>> getHomeSettings(
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
     );
 }

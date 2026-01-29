@@ -693,11 +693,6 @@ public class AuthService {
     private Ability createDefaultAbility(User user) {
         Ability ability = Ability.builder()
                 .user(user)
-                .empathy(0)
-                .diligence(0)
-                .selfEsteem(0)
-                .positiveThinking(0)
-                .emotionRegulation(0)
                 .build();
         return abilityRepository.save(ability);
     }

@@ -1,13 +1,17 @@
 package com.example.egobook_be.domain.home.service;
 
+import com.example.egobook_be.domain.home.dto.HomeAbilityResDto;
 import com.example.egobook_be.domain.home.dto.HomeActivityResDto;
 import com.example.egobook_be.domain.home.dto.HomeResDto;
+import com.example.egobook_be.domain.home.dto.HomeSettingResDto;
 import com.example.egobook_be.domain.home.entity.Mission;
 import com.example.egobook_be.domain.home.mapper.HomeMapper;
 import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.notification.repository.NotificationRepository;
+import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.enums.UserErrorCode;
+import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +25,7 @@ import java.util.List;
 public class HomeService {
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
+    private final AbilityRepository abilityRepository;
     private final MissionRepository missionRepository;
     private final HomeMapper homeMapper;
 
@@ -89,5 +94,28 @@ public class HomeService {
          * Mission 엔티티에 만들어둔 편의 메서드를 활용하여 요일별 상태를 List로 변환합니다.
          */
         return homeMapper.toHomeActivityResDto(userMission);
+    }
+
+    /**
+     * 해당 사용자의 능력치를 가져오는 함수
+     */
+    @Transactional(readOnly = true)
+    public HomeAbilityResDto getHomeAbilities(Long userId){
+        // 1. 사용자 가져오기
+        User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+
+        // 2. 해당 사용자의 Ability 가져오기
+        Ability userAbility = abilityRepository.findByUser(user).orElseThrow(() -> new CustomException(UserErrorCode.ABILITY_NOT_FOUND));
+
+        // 3. 해당 사용자의 Ability 반환
+        return homeMapper.toHomeAbilityResDto(userAbility);
+    }
+
+    @Transactional(readOnly = true)
+    public HomeSettingResDto getHomeSettings(Long userId){
+        // 1. 사용자 가져오기
+        User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+        // 2. 사용자의 AccountCode 반환
+        return homeMapper.toHomeSettingResDto(user);
     }
 }

@@ -1,8 +1,12 @@
 package com.example.egobook_be.domain.home.mapper;
 
+import com.example.egobook_be.domain.home.dto.HomeAbilityResDto;
 import com.example.egobook_be.domain.home.dto.HomeActivityResDto;
 import com.example.egobook_be.domain.home.dto.HomeResDto;
+import com.example.egobook_be.domain.home.dto.HomeSettingResDto;
 import com.example.egobook_be.domain.home.entity.Mission;
+import com.example.egobook_be.domain.user.entity.Ability;
+import com.example.egobook_be.domain.user.entity.AbilityStat;
 import com.example.egobook_be.domain.user.entity.User;
 import org.springframework.stereotype.Component;
 
@@ -61,4 +65,35 @@ public class HomeMapper {
                 .weeklyMissionStatus(List.of(false, false, false, false, false, false, false))
                 .build();
     }
+
+    public HomeAbilityResDto toHomeAbilityResDto(Ability ability) {
+        AbilityStat empathy = ability.getEmpathy();
+        AbilityStat selfEsteem = ability.getSelfEsteem();
+        AbilityStat emotionRegulation = ability.getEmotionRegulation();
+        AbilityStat positiveThinking = ability.getPositiveThinking();
+        AbilityStat diligence = ability.getDiligence();
+
+        return HomeAbilityResDto.builder()
+                .empathy(toAbilityInfo(empathy))
+                .selfEsteem(toAbilityInfo(selfEsteem))
+                .emotionRegulation(toAbilityInfo(emotionRegulation))
+                .positiveThinking(toAbilityInfo(positiveThinking))
+                .diligence(toAbilityInfo(diligence))
+                .build();
+    }
+
+    private HomeAbilityResDto.AbilityInfo toAbilityInfo(AbilityStat abilityStat) {
+        return HomeAbilityResDto.AbilityInfo.builder()
+                .level(abilityStat.getLevel())
+                .score(abilityStat.getScore())
+                .color(abilityStat.getColor())
+                .build();
+    }
+
+    public HomeSettingResDto toHomeSettingResDto(User user) {
+        return HomeSettingResDto.builder()
+                .accountCode(user.getAccountCode())
+                .build();
+    }
+
 }
