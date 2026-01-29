@@ -17,6 +17,8 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class PlazaLetterQueryService {
@@ -64,17 +66,42 @@ public class PlazaLetterQueryService {
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
 
+
         Slice<PlazaLetterReply> slice =
                 plazaLetterReplyRepository.findRepliesForMyLetters(userId, pageable);
 
+        if (slice.isEmpty()) {
+            return SliceResponse.of(slice, r -> null);
+        }
+
+        List<Long> letterIds = slice.getContent().stream()
+                .map(PlazaLetterReply::getLetterId)
+                .distinct()
+                .toList();
+
+        List<PlazaLetter> letters = plazaLetterRepository.findByLetterIdIn(letterIds);
+
+        java.util.Map<Long, PlazaLetter> letterMap = letters.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        PlazaLetter::getLetterId,
+                        l -> l
+                ));
+
+        List<Long> replyIds = slice.getContent().stream()
+                .map(PlazaLetterReply::getReplyId)
+                .toList();
+
+        java.util.Set<Long> reportedSet = replyIds.isEmpty()
+                ? java.util.Collections.emptySet()
+                : new java.util.HashSet<>(replyReportRepository.findReportedReplyIds(userId, replyIds));
+
         return SliceResponse.of(slice, reply -> {
-            PlazaLetter letter =
-                    plazaLetterRepository.findById(reply.getLetterId())
-                            .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+            PlazaLetter letter = letterMap.get(reply.getLetterId());
+            if (letter == null) {
+                throw new CustomException(LettersErrorCode.LETTER_NOT_FOUND);
+            }
 
-            boolean reported =
-                    replyReportRepository.existsByReply_ReplyIdAndReporterId(reply.getReplyId(), userId);
-
+            boolean reported = reportedSet.contains(reply.getReplyId());
             return plazaLetterMapper.toReceivedReplyDto(letter, reply, reported);
         });
     }
