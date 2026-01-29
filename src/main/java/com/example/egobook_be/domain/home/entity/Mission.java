@@ -4,9 +4,13 @@ import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
+@Slf4j
 @Entity
 @Getter
 @Builder
@@ -37,6 +41,10 @@ public class Mission extends BaseTimeEntity {
     @Builder.Default
     private boolean dailyQuestionAnswered = false; // 오늘의 질문 답변 완료 여부
 
+    @Column(nullable = false)
+    @Builder.Default
+    private LocalDate lastWeeklyResetDate = LocalDate.now(); // 가장 최근에 "주간 초기화"를 수행한 날짜
+
     // --- [주간/연속 미션 상태] ---
 
     @Column(name = "consecutive_weeks", nullable = false)
@@ -63,21 +71,11 @@ public class Mission extends BaseTimeEntity {
     // ==================================================================
 
     /**
-     * 1. 주간 미션 상태를 초기화 하는 함수 (스케줄러로 매주 월요일 자정 호출)
+     * 주간 미션 상태를 초기화 하는 함수 (스케줄러로 매주 월요일 자정 호출)
      * weekly_mission_status를 "0000000"으로 리셋
      */
     public void resetWeeklyMissionStatus() {
         this.weeklyMissionStatus = "0000000";
-    }
-
-    /**
-     * 2. 일일 미션 상태를 초기화 하는 함수 (스케줄러로 매일 자정 호출)
-     */
-    public void resetDailyMissionStatus() {
-        this.dailyMissionSuccess = false;
-        this.dailyDiaryWritten = false;
-        this.dailyLetterWritten = false;
-        this.dailyQuestionAnswered = false;
     }
 
     /**
@@ -137,8 +135,13 @@ public class Mission extends BaseTimeEntity {
 
     /**
      * 일일 미션 상태 업데이트 메서드
+     * - 매 미션을 수행할 때마다, 주간 미션이 업데이트되었는지 검사한 후 미션 상태를 변경한다.
      */
     public void updateDailyStatus(boolean diary, boolean letter, boolean question) {
+        // 1. 매 미션 수행 시, 주간 미션이 업데이트되어있는지 상태를 검사한 후 미션 상태를 변경한다.
+        this.checkAndResetWeekly(LocalDate.now());
+
+        // 2. 미션 상태 변경
         this.dailyDiaryWritten = diary;
         this.dailyLetterWritten = letter;
         this.dailyQuestionAnswered = question;
@@ -146,4 +149,45 @@ public class Mission extends BaseTimeEntity {
         // 3개 중 하나만 true여도 DailyMission 성공
         this.dailyMissionSuccess = diary || letter || question;
     }
+
+    /**
+     * 주간 데이터 정합성 체크 및 초기화 메서드
+     * (조회 시점에 호출)
+     */
+    public void checkAndResetWeekly(LocalDate today) {
+        // 1. 오늘 날짜가 속한 주의 월요일 구하기
+        LocalDate thisMonday = today.with(DayOfWeek.MONDAY);
+        log.info("이번주 월요일: {}", thisMonday);
+        // 2. 마지막 초기화 날짜가 이번 주 월요일보다 이전인 경우 -> 초기화 필요
+        if (this.lastWeeklyResetDate.isBefore(thisMonday)) {
+            // 2-1. 연속 성공 여부 계산 (지난주에 다 채웠는지 확인 로직 필요)
+            calculateConsecutiveWeeks(thisMonday);
+            // 2-2. 주간 상태판 리셋 ("0000000")
+            this.resetWeeklyMissionStatus();
+            // 2-3. 초기화 날짜 갱신
+            this.lastWeeklyResetDate = thisMonday;
+        }
+    }
+
+    private void calculateConsecutiveWeeks(LocalDate thisMonday) {
+        // 1. 마지막 초기화 날짜 ~ 이번주 월요일 사이의 주 차이 계산 (시작 날짜, 종료 날짜)
+        long weeksBetween = ChronoUnit.WEEKS.between(lastWeeklyResetDate, thisMonday);
+        log.info("마지막 초기화 날짜 ~ 이번주 월요일 사이의 주 차이 : {}", weeksBetween);
+
+        // 2주 이상 미션을 수행을 안했다면 1로 초기화
+        if(weeksBetween > 1) {
+            this.consecutiveWeeks = 1;
+            return;
+        }
+
+        // 지난주 주간 미션 상태가 모두 1이면 consecutiveWeeks 값을 +1 한다
+        if (this.weeklyMissionStatus.equals("1111111")) {
+            this.consecutiveWeeks++;
+        } else {
+            // 지난주 주간 미션을 전부 수행하지 못했다면 1으로 초기화
+            this.consecutiveWeeks = 1;
+        }
+    }
+
+
 }

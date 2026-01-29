@@ -2,6 +2,8 @@ package com.example.egobook_be.domain.user.repository;
 
 import com.example.egobook_be.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -28,4 +30,10 @@ public interface UserRepository extends JpaRepository<User, Long>,UserRepository
             String nickname,
             String accountCode
     );
+
+    @Modifying(clearAutomatically = true)
+    @Query("update User u set " +
+            "u.isFirstAttendanceToday = true " +
+            "where u.isFirstAttendanceToday = false")
+    void resetAllAttendancesStatus();
 }

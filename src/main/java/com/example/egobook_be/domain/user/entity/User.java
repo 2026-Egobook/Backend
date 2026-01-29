@@ -146,7 +146,4 @@ public class User extends BaseTimeEntity {
 
     // 출석 보상을 주는 함수
     public void rewardAttendance() { this.isFirstAttendanceToday = false; }
-
-    // 출석 상태를 리셋 (출석 보상을 받을 수 있는 상태로 변경) 해주는 함수
-    public void resetAttendanceStatus() { this.isFirstAttendanceToday = true; }
 }

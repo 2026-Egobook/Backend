@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -76,7 +77,7 @@ public class HomeService {
      * (5) 연속 진행 주차 값
      * (6) 이번주 (월 ~ 일) 미션 수행 여부 리스트
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public HomeActivityResDto getHomeActivities(Long userId){
         // 1. 사용자 가져오기
         User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
@@ -89,8 +90,11 @@ public class HomeService {
             return homeMapper.toEmptyHomeActivityResDto();
         }
 
+        // 4. 사용자의 주간 미션 현황을 최신화한다.
+        userMission.checkAndResetWeekly(LocalDate.now());
+
         /*
-         * 3. Entity -> DTO 변환
+         * 5. Entity -> DTO 변환
          * Mission 엔티티에 만들어둔 편의 메서드를 활용하여 요일별 상태를 List로 변환합니다.
          */
         return homeMapper.toHomeActivityResDto(userMission);
