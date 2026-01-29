@@ -19,21 +19,11 @@ public interface QuestionAnswerRepository extends JpaRepository<QuestionAnswer, 
 
     Optional<QuestionAnswer> findByUserAndQuestion(User user, TodayQuestion question);
 
-//    boolean existsByUserAndQuestion(
-//            com.example.egobook_be.domain.user.entity.User user,
-//            TodayQuestion question
-//    );
-
     List<QuestionAnswer> findByQuestionAndVisibility(
             TodayQuestion question,
             AnswerVisibility visibility
     );
 
-//    List<QuestionAnswer> findByQuestionAndVisibilityAndUserIn(
-//            TodayQuestion question,
-//            AnswerVisibility visibility,
-//            List<User> users
-//    );
     @Query("""
         select new com.example.egobook_be.domain.question.dto.FriendAnswerResDto(
             qa.id,
@@ -85,5 +75,17 @@ public interface QuestionAnswerRepository extends JpaRepository<QuestionAnswer, 
     Slice<QuestionAnswer> findMyAnswerHistorySlice(
             @Param("user") User user,
             Pageable pageable
+    );
+
+    @Query("""
+        select qa
+        from QuestionAnswer qa
+        join fetch qa.question q
+        where qa.user.id = :userId
+          and q.id = :questionId
+    """)
+    Optional<QuestionAnswer> findByUserIdAndQuestionIdWithQuestion(
+            @Param("userId") Long userId,
+            @Param("questionId") Long questionId
     );
 }

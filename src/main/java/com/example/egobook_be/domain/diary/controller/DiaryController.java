@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -45,7 +46,7 @@ public class DiaryController implements DiaryControllerDocs{
             @RequestParam
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(required = false) DiaryType type,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         return ResponseEntity.ok(
@@ -87,13 +88,13 @@ public class DiaryController implements DiaryControllerDocs{
      * DELETE /diaries/{diaryId}
      */
     @Override
-    public ResponseEntity<GlobalResponse<Boolean>> deleteDiary(
+    public ResponseEntity<GlobalResponse<Map<String,Boolean>>> deleteDiary(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @PathVariable Long diaryId
     ) {
         diaryService.deleteDiary(userId, diaryId);
         return ResponseEntity.ok(
-                GlobalResponse.success("deleted", true)
+                GlobalResponse.success(Map.of("deleted", true))
         );
     }
 

@@ -1,6 +1,6 @@
 package com.example.egobook_be.global.util;
 
-import com.example.egobook_be.domain.user.entity.RoleType;
+import com.example.egobook_be.domain.user.enums.RoleType;
 import com.example.egobook_be.global.util.module.TokenInfo;
 import com.example.egobook_be.domain.auth.enums.Provider;
 import com.example.egobook_be.global.enums.JwtTokenType;

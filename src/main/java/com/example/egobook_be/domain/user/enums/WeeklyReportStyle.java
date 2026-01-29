@@ -1,4 +1,4 @@
-package com.example.egobook_be.domain.user.entity;
+package com.example.egobook_be.domain.user.enums;
 
 /**
  * 상담 - 주간 리포트(구독 전용)의 답장 스타일을 선언해둔 Enum Class
