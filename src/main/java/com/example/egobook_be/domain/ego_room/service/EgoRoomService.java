@@ -6,11 +6,13 @@ import com.example.egobook_be.domain.ego_room.dto.*;
 import com.example.egobook_be.domain.ego_room.entity.DailyPraise;
 import com.example.egobook_be.domain.ego_room.entity.WeeklyCounsel;
 import com.example.egobook_be.domain.ego_room.enums.CounselTone;
+import com.example.egobook_be.domain.ego_room.exception.SubscriptionLockedException;
 import com.example.egobook_be.domain.ego_room.repository.DailyPraiseRepository;
 import com.example.egobook_be.domain.ego_room.repository.WeeklyCounselRepository;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.exception.UserErrorCode;
+import com.example.egobook_be.domain.user.repository.SubscriptionRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.exception.GlobalErrorCode;
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -85,12 +88,15 @@ public class EgoRoomService {
     }
 
     public WeeklyCounselListResDto getWeeklyCounselList(Long userId, Long cursor, int size) {
+
         Slice<WeeklyCounsel> counselSlice = weeklyCounselRepository.findWeeklyCounselList(
                 userId,
                 cursor,
                 PageRequest.of(0, size)
         );
-        log.info("현재 로그인한 유저 아이디: {}", userId);
+       // log.info("현재 로그인한 유저 아이디: {}", userId);
+        log.info("DB에서 가져온 상담서 개수: {}", counselSlice.getContent().size()); // 이거 추가!
+
         List<WeeklyCounselItemDto> values = counselSlice.getContent().stream()
                 .map(counsel -> new WeeklyCounselItemDto(
                         counsel.getId(),
@@ -135,4 +141,32 @@ public class EgoRoomService {
 
         return new CounselToneResDto(toneStyle);
     }
+
+    private final SubscriptionRepository subscriptionRepository;
+
+    /**
+     * 월간 통계 데이터 조회 (구독자 전용)
+     */
+    @Transactional(readOnly = true)
+    public EgoStatsResDto getMonthlyStats(Long userId, int year, int month) {
+        log.info("유저 {}번의 {}년 {}월 통계 조회 시도", userId, year, month);
+
+        // 활성화된 구독 정보가 있는지 확인
+        subscriptionRepository.findActiveSubscription(userId, LocalDate.now())
+                .orElseThrow(SubscriptionLockedException::new);
+
+        // 해당 월의 다이어리 데이터 가져오기
+        // (작성 시간 기준으로 한 달 치 데이터를 긁어와야 해)
+        LocalDateTime startOfMonth = LocalDateTime.of(year, month, 1, 0, 0);
+        LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
+
+        // diaryRepository.findAllByUserIdAndWrittenAtBetween(userId, startOfMonth, endOfMonth) 같은 메서드가 필요해!
+
+        log.info("구독 확인 완료! 이제 통계 계산 시작할게 다경!");
+
+        // 3. TODO: 다이어리 데이터를 바탕으로 상단 바 그래프, 스택 그래프, 워드클라우드 데이터 계산 로직
+
+        return null; // 우선 구조만 잡았어!
+    }
+
 }

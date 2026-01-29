@@ -76,4 +76,16 @@ public class EgoRoomController {
     ) {
         return ResponseEntity.ok(egoRoomService.updateNextWeekTone(userId, reqDto.toneStyle()));
     }
+
+    @Operation(summary = "월간 통계 조회", description = "구독자 전용 월간 감정 통계 그래프 데이터를 조회합니다.")
+    @GetMapping("/stats/monthly")
+    public ResponseEntity<EgoStatsResDto> getMonthlyStats(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @Parameter(description = "조회할 연도", example = "2025")
+            @RequestParam int year,
+            @Parameter(description = "조회할 월", example = "11")
+            @RequestParam int month
+    ) {
+        return ResponseEntity.ok(egoRoomService.getMonthlyStats(userId, year, month));
+    }
 }

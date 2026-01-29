@@ -1,5 +1,6 @@
 package com.example.egobook_be.global.exception;
 
+import com.example.egobook_be.domain.ego_room.exception.SubscriptionLockedException;
 import com.example.egobook_be.global.exception.model.BaseErrorCode;
 import com.example.egobook_be.global.response.GlobalResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.Map;
 
 @Slf4j
 @RestControllerAdvice
@@ -51,4 +54,16 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(GlobalResponse.error(500, e.getMessage()));
     }
+
+    @ExceptionHandler(SubscriptionLockedException.class)
+    public ResponseEntity<Object> handleSubscriptionLockedException(SubscriptionLockedException e) {
+        Map<String, Object> response = new java.util.LinkedHashMap<>();
+        response.put("isSuccess", false);
+        response.put("code", e.getCode());
+        response.put("message", e.getMessage());
+        response.put("result", e.getResult());
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
 }
