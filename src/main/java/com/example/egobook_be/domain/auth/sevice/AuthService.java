@@ -2,6 +2,8 @@ package com.example.egobook_be.domain.auth.sevice;
 
 import com.example.egobook_be.domain.auth.dto.req.*;
 import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
+import com.example.egobook_be.domain.home.entity.Mission;
+import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.shop.entity.Item;
 import com.example.egobook_be.domain.shop.entity.UserItem;
 import com.example.egobook_be.domain.shop.enums.ShopErrorCode;
@@ -61,6 +63,7 @@ public class AuthService {
     private final RedisUtil redisUtil;
     private final TermRepository termRepository;
     private final UserTermRepository userTermRepository;
+    private final MissionRepository missionRepository;
 
     @Value("${app.data.purge-duration-in-ms}")
     private Long purgeDurationInMs;
@@ -647,13 +650,16 @@ public class AuthService {
      */
     private void allocateUser(User user){
         // 1. 사용자 UserItems 생성
-        List<UserItem> userItems = createDefaultUserItems(user);
+        createDefaultUserItems(user);
 
         // 2. 사용자 Ability 생성
-        Ability ability = createDefaultAbility(user);
+        createDefaultAbility(user);
 
         // 3. 사용자 약관 동의
-        List<UserTerm> userTerms = createDefaultUserTerms(user);
+        createDefaultUserTerms(user);
+
+        // 4. Mission 생성
+        createDefaultMission(user);
     }
 
 
@@ -715,5 +721,12 @@ public class AuthService {
             );
         }
         return userTermRepository.saveAll(userTerms);
+    }
+
+    private Mission createDefaultMission(User user){
+        Mission mission = Mission.builder()
+                .user(user)
+                .build();
+        return missionRepository.save(mission);
     }
 }

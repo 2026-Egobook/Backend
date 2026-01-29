@@ -41,7 +41,7 @@ public class Mission extends BaseTimeEntity {
 
     @Column(name = "consecutive_weeks", nullable = false)
     @Builder.Default
-    private Integer consecutiveWeeks = 0; // 연속 진행 주차
+    private Integer consecutiveWeeks = 1; // 연속 진행 주차
 
     /**
      * 요일별 미션 수행 상태 문자열

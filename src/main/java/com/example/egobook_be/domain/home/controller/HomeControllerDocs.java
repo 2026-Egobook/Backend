@@ -53,7 +53,7 @@ public interface HomeControllerDocs {
               2. ```hasWrittenDiary```: 감정일기 작성 여부
               3. ```hasWrittenLetter```: 편지 작성 여부
               4. ```hasAnsweredQuestion```: 오늘의 질문 답변 여부
-              5. ```consecutiveWeeks```: 연속 수행 주차 (N주차)
+              5. ```consecutiveWeeks```: 연속 수행 주차 (N주차, 첫 시작은 1주차부터 시작입니다!)
               6. ```weeklyMissionStatus```: 이번 주(월~일) 미션 달성 여부 배열
             """)
     @ApiResponses(value = {
