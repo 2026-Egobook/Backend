@@ -1,7 +1,10 @@
 package com.example.egobook_be.domain.home.service;
 
+import com.example.egobook_be.domain.home.dto.HomeActivityResDto;
 import com.example.egobook_be.domain.home.dto.HomeResDto;
+import com.example.egobook_be.domain.home.entity.Mission;
 import com.example.egobook_be.domain.home.mapper.HomeMapper;
+import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.notification.repository.NotificationRepository;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.enums.UserErrorCode;
@@ -11,11 +14,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class HomeService {
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
+    private final MissionRepository missionRepository;
     private final HomeMapper homeMapper;
 
     private final Integer ATTENDANCE_REWARD_INK = 3;
@@ -54,5 +60,34 @@ public class HomeService {
         user.rewardAttendance();
 
         return resDto;
+    }
+
+    /**
+     * Home 화면의 활동 목록 정보를 조회하는 함수
+     * (1) 오늘의 하루 미션 최종 성공 여부
+     * (2) 감정일기 작성 수행 여부
+     * (3) 편지 쓰기 수행 여부
+     * (4) 오늘의 질문 답변 수행 여부
+     * (5) 연속 진행 주차 값
+     * (6) 이번주 (월 ~ 일) 미션 수행 여부 리스트
+     */
+    @Transactional(readOnly = true)
+    public HomeActivityResDto getHomeActivities(Long userId){
+        // 1. 사용자 가져오기
+        User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+
+        // 2. 해당 사용자와 1대1로 연결된 Mission 데이터 가져오기
+        Mission userMission = missionRepository.findByUser(user).orElse(null);
+
+        // 3. 아직 미션 데이터가 없는 경우 (회원가입 직후 등), 기본값(모두 false/0) 반환
+        if (userMission == null) {
+            return homeMapper.toEmptyHomeActivityResDto();
+        }
+
+        /*
+         * 3. Entity -> DTO 변환
+         * Mission 엔티티에 만들어둔 편의 메서드를 활용하여 요일별 상태를 List로 변환합니다.
+         */
+        return homeMapper.toHomeActivityResDto(userMission);
     }
 }

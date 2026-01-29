@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.home.controller;
 
+import com.example.egobook_be.domain.home.dto.HomeActivityResDto;
 import com.example.egobook_be.domain.home.dto.HomeResDto;
 import com.example.egobook_be.global.response.GlobalResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Tag(name = "Home Controller", description = "홈(메인) 화면 관련 API")
-@RequestMapping("")
+@RequestMapping("/home")
 public interface HomeControllerDocs {
     @Operation(summary = "홈 화면 정보 조회", description = """
             앱 실행 후 메인(홈) 화면에 진입할 때 필요한 모든 정보를 한 번에 조회합니다.
@@ -39,8 +40,28 @@ public interface HomeControllerDocs {
                     content = @Content)
     })
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/home")
+    @GetMapping("")
     ResponseEntity<GlobalResponse<HomeResDto>> getHomeData(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    );
+
+    @Operation(summary = "활동 목록 정보 조회", description = """
+            홈 화면의 '활동 목록' 탭에 필요한 데이터를 조회합니다.
+            
+            - **반환 데이터**:
+              1. ```isDailyMissionSuccess```: 하루 미션(일기/편지/질문) 수행 완료 여부
+              2. ```hasWrittenDiary```: 감정일기 작성 여부
+              3. ```hasWrittenLetter```: 편지 작성 여부
+              4. ```hasAnsweredQuestion```: 오늘의 질문 답변 여부
+              5. ```consecutiveWeeks```: 연속 수행 주차 (N주차)
+              6. ```weeklyMissionStatus```: 이번 주(월~일) 미션 달성 여부 배열
+            """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = HomeActivityResDto.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/activities")
+    ResponseEntity<GlobalResponse<HomeActivityResDto>> getHomeActivities(
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
     );
 }

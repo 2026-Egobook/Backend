@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.home.controller;
 
+import com.example.egobook_be.domain.home.dto.HomeActivityResDto;
 import com.example.egobook_be.domain.home.dto.HomeResDto;
 import com.example.egobook_be.domain.home.service.HomeService;
 import com.example.egobook_be.global.response.GlobalResponse;
@@ -27,5 +28,17 @@ public class HomeController implements HomeControllerDocs{
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(GlobalResponse.success("Home 화면 데이터 조회 성공", resDto));
+    }
+
+    /**
+     * [활동 목록 정보 조회]
+     * GET /home/activities
+     */
+    @Override
+    public ResponseEntity<GlobalResponse<HomeActivityResDto>> getHomeActivities(Long userId) {
+        HomeActivityResDto resDto = homeService.getHomeActivities(userId);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(GlobalResponse.success("활동 목록 정보 조회 성공", resDto));
     }
 }

@@ -47,10 +47,6 @@ public class User extends BaseTimeEntity {
     @Column(length = 255)
     private String email;
 
-    @Column(name = "streak_count", nullable = false)
-    @Builder.Default
-    private Integer streakCount = 0; // 연속 출석 수 기본값 0
-
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
