@@ -154,7 +154,7 @@ public class PlazaLetterController {
             summary = "내가 작성한 답장 목록 조회",
             description = """
             로그인한 사용자가 작성한 답장을 최신순으로 Slice 조회합니다.
-            - page는 0부터 시작합니다.
+            - page는 1부터 시작합니다.
             - size는 1~50 범위로 제한합니다.
             """
     )
@@ -162,7 +162,7 @@ public class PlazaLetterController {
     public GlobalResponse<SliceResponse<ReplyItemDto>> getMyReplies(
             @Parameter(hidden = true)
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
         SliceResponse<ReplyItemDto> result = plazaLetterService.getMyReplies(userId, page, size);
@@ -218,7 +218,7 @@ public class PlazaLetterController {
             summary = "내가 보낸 편지 상태 조회(48시간 AI 대체 확인 포함)",
             description = """
         로그인한 사용자가 보낸 편지를 최신순으로 Slice 조회합니다.
-        - page는 0부터 시작
+        - page는 1부터 시작
         - size는 1~50 권장
         """
     )
@@ -226,7 +226,7 @@ public class PlazaLetterController {
     public GlobalResponse<SliceResponse<PlazaSentLetterResDto>> getMySentLetters(
             @Parameter(hidden = true)
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
         SliceResponse<PlazaSentLetterResDto> result =
@@ -275,7 +275,7 @@ public class PlazaLetterController {
     @GetMapping("/replies/received")
     public GlobalResponse<SliceResponse<PlazaReceivedReplyResDto>> getRepliesToMyLetters(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
         return GlobalResponse.success(

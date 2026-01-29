@@ -31,14 +31,14 @@ public class PlazaLetterQueryService {
 
 
     @Transactional(readOnly = true)
-    public SliceResponse<PlazaSentLetterResDto> getMySentLetters(Long userId, Integer slice, Integer size) {
+    public SliceResponse<PlazaSentLetterResDto> getMySentLetters(Long userId, Integer page, Integer size) {
 
-        int safeSlice = (slice == null || slice < 1) ? 1 : slice; // 프론트 기준 1부터
+        int safePage = (page == null || page < 1) ? 1 : page;
         int safeSize = (size == null || size <= 0) ? DEFAULT_SIZE : Math.min(size, MAX_SIZE);
 
         // 1) Slice 조회 (정렬: createdAt desc, letterId desc)
         Pageable pageable = PageRequest.of(
-                safeSlice - 1,
+                safePage - 1,
                 safeSize,
                 Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("letterId"))
         );
@@ -55,9 +55,12 @@ public class PlazaLetterQueryService {
             int page,
             int size
     ) {
+        int safePage = Math.max(page, 1);
+        int safeSize = Math.min(Math.max(size, 1), 50);
+
         Pageable pageable = PageRequest.of(
-                Math.max(page, 0),
-                Math.min(size, 50),
+                safePage - 1,
+                safeSize,
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
 
@@ -67,13 +70,10 @@ public class PlazaLetterQueryService {
         return SliceResponse.of(slice, reply -> {
             PlazaLetter letter =
                     plazaLetterRepository.findById(reply.getLetterId())
-                            .orElseThrow();
+                            .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
 
             boolean reported =
-                    replyReportRepository.existsByReply_ReplyIdAndReporterId(
-                            reply.getReplyId(),
-                            userId
-                    );
+                    replyReportRepository.existsByReply_ReplyIdAndReporterId(reply.getReplyId(), userId);
 
             return plazaLetterMapper.toReceivedReplyDto(letter, reply, reported);
         });
