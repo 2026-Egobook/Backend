@@ -1,4 +1,4 @@
-package com.example.egobook_be.domain.terms.loader;
+package com.example.egobook_be.global.loader;
 
 import com.example.egobook_be.domain.terms.entity.Term;
 import com.example.egobook_be.domain.terms.enums.TermTemplate;
