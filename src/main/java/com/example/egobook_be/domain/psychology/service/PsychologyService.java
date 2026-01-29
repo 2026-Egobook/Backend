@@ -50,8 +50,10 @@ public class PsychologyService {
                             .filter(pk -> !viewedIds.contains(pk.getId()))
                             .toList();
 
-                    if (candidates.isEmpty()) candidates = psychologyKnowledgeRepository.findAll();
-
+                    if (candidates.isEmpty()) {
+                        userKnowledgeRepository.deleteAllByUserId(userId);
+                        candidates = psychologyKnowledgeRepository.findAll();
+                    }
                     // 3. 오늘 지식 확정 및 DB 저장
                     long seed = userId + LocalDate.now().toEpochDay();
                     PsychologyKnowledge picked = candidates.get(new Random(seed).nextInt(candidates.size()));
