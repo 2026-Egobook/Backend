@@ -89,9 +89,9 @@ public class DiaryExportService {
 
             // 날짜 그룹화
             Map<LocalDate, List<Diary>> diariesByDate = diaries.stream()
-                    .sorted(Comparator.comparing(Diary::getWrittenAt))
+                    .sorted(Comparator.comparing(Diary::getDate))
                     .collect(Collectors.groupingBy(
-                            diary -> diary.getWrittenAt().toLocalDate(),
+                            Diary::getDate,
                             LinkedHashMap::new,
                             Collectors.toList()
                     ));
@@ -222,7 +222,8 @@ public class DiaryExportService {
 
         Map<LocalDate, List<Diary>> diariesByDate = diaries.stream()
                 .collect(Collectors.groupingBy(
-                        diary -> diary.getWrittenAt().toLocalDate(),
+                        Diary::getDate,
+                        TreeMap::new,
                         Collectors.toList()
                 ));
 
