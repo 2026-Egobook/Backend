@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> {
@@ -22,6 +23,13 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
     void deleteByThreadId(Long threadId);
 
     long countByReceiverIdAndArrivedAtBetween(Long receiverId, OffsetDateTime start, OffsetDateTime end);
+
+    List<PlazaLetter> findByLetterIdIn(List<Long> letterIds);
+
+    Slice<PlazaLetter> findByReceiverIdOrderByArrivedAtDesc(
+            Long receiverId,
+            Pageable pageable
+    );
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""

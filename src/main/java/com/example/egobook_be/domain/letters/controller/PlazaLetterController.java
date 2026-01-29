@@ -154,7 +154,7 @@ public class PlazaLetterController {
             summary = "내가 작성한 답장 목록 조회",
             description = """
             로그인한 사용자가 작성한 답장을 최신순으로 Slice 조회합니다.
-            - page는 0부터 시작합니다.
+            - page는 1부터 시작합니다.
             - size는 1~50 범위로 제한합니다.
             """
     )
@@ -162,7 +162,7 @@ public class PlazaLetterController {
     public GlobalResponse<SliceResponse<ReplyItemDto>> getMyReplies(
             @Parameter(hidden = true)
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
         SliceResponse<ReplyItemDto> result = plazaLetterService.getMyReplies(userId, page, size);
@@ -218,7 +218,7 @@ public class PlazaLetterController {
             summary = "내가 보낸 편지 상태 조회(48시간 AI 대체 확인 포함)",
             description = """
         로그인한 사용자가 보낸 편지를 최신순으로 Slice 조회합니다.
-        - page는 0부터 시작
+        - page는 1부터 시작
         - size는 1~50 권장
         """
     )
@@ -226,7 +226,7 @@ public class PlazaLetterController {
     public GlobalResponse<SliceResponse<PlazaSentLetterResDto>> getMySentLetters(
             @Parameter(hidden = true)
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
         SliceResponse<PlazaSentLetterResDto> result =
@@ -254,13 +254,54 @@ public class PlazaLetterController {
     })
     @PostMapping("/{replyId}/report")
     public GlobalResponse<String> reportReply(
-            @RequestParam Long userId,
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @PathVariable Long replyId,
             @RequestBody ReplyReportRequest request
     ) {
-        // 신고 처리
-        replyReportService.reportReply(userId, replyId, request.getReason(), request.getDescription());
+        replyReportService.reportReply(
+                userId,
+                replyId,
+                request.getReason(),
+                request.getDescription()
+        );
         return GlobalResponse.success("신고가 완료되었습니다.");
     }
+
+    @Operation(
+            summary = "내가 보낸 편지에 달린 답장 조회",
+            description = "상대가 내 편지에 작성한 답장을 최신순으로 조회합니다."
+    )
+    @GetMapping("/replies/received")
+    public GlobalResponse<SliceResponse<PlazaReceivedReplyResDto>> getRepliesToMyLetters(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return GlobalResponse.success(
+                plazaLetterQueryService.getRepliesToMyLetters(userId, page, size)
+        );
+    }
+
+
+    @Operation(
+            summary = "내가 보낸 편지 + 답장 내용 함께 보기",
+            description = """
+        내가 보낸 편지 1건과 해당 편지에 달린 답장을 함께 조회합니다.
+        - 답장이 없으면 reply는 null
+        - AI 답장 / 신고 여부 포함
+        """
+    )
+    @GetMapping("/{letterId}")
+    public GlobalResponse<PlazaLetterDetailResDto> getMyLetterDetail(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @PathVariable Long letterId
+    ) {
+        return GlobalResponse.success(
+                plazaLetterQueryService.getMyLetterDetail(userId, letterId)
+        );
+    }
+
 
 }

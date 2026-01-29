@@ -40,6 +40,10 @@ public class ReplyReportService {
         PlazaLetter letter = plazaLetterRepository.findById(reply.getLetterId())
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
 
+        if (!userId.equals(letter.getReceiverId())) {
+            throw new CustomException(LettersErrorCode.FORBIDDEN);
+        }
+
         // 신고 저장
         PlazaLetterReplyReport report = PlazaLetterReplyReport.builder()
                 .reply(reply)

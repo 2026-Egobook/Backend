@@ -326,10 +326,13 @@ public class PlazaLetterService {
     @Transactional(readOnly = true)
     public SliceResponse<ReplyItemDto> getMyReplies(Long userId, int page, int size) {
 
-        int safePage = Math.max(page, 0); // 0부터 시작
+        int safePage = Math.max(page, 1);
         int safeSize = Math.min(Math.max(size, 1), 50);
 
-        Pageable pageable = PageRequest.of(safePage, safeSize);
+        Pageable pageable = PageRequest.of(
+                safePage - 1,
+                safeSize
+        );
 
         return SliceResponse.of(
                 plazaLetterReplyRepository.findByReplierIdOrderByReplyIdDesc(userId, pageable),
