@@ -37,6 +37,7 @@ public class Diary extends BaseTimeEntity {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "diary_type", joinColumns = @JoinColumn(name = "diary_id"))
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     @Column(nullable = false)
     private Set<DiaryType> type = EnumSet.noneOf(DiaryType.class);
 
