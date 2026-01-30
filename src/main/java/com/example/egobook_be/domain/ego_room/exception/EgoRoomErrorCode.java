@@ -3,6 +3,7 @@ package com.example.egobook_be.domain.ego_room.exception;
 import com.example.egobook_be.global.exception.model.BaseErrorCode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.springframework.boot.autoconfigure.graphql.GraphQlProperties;
 import org.springframework.http.HttpStatus;
 
 @Getter

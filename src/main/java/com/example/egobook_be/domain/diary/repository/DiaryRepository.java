@@ -62,7 +62,7 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
         Integer getEmotionLevel();
     }
 
-    @Query("SELECT AVG(d.emotionLevel) FROM Diary d WHERE d.userId = :userId AND d.writtenAt BETWEEN :start AND :end AND d.emotionLevel > 0")
+    @Query("SELECT AVG(d.emotionLevel) FROM Diary d WHERE d.user.id = :userId AND d.writtenAt BETWEEN :start AND :end AND d.emotionLevel > 0")
     Double findAvgEmotionLevel(@Param("userId") Long userId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
 

@@ -35,13 +35,14 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class EgoRoomService {
 
     private final DailyPraiseRepository dailyPraiseRepository;
     private final WeeklyCounselRepository weeklyCounselRepository;
     private final UserRepository userRepository;
 
+
+    @Transactional(readOnly = true)
     public DailyPraiseListResDto getDailyPraiseList(Long userId, Long cursor, int size) {
         Slice<DailyPraise> praiseSlice = dailyPraiseRepository.findPraiseList(
                 userId,
@@ -91,6 +92,7 @@ public class EgoRoomService {
         );
     }
 
+    @Transactional(readOnly = true)
     public WeeklyCounselListResDto getWeeklyCounselList(Long userId, Long cursor, int size) {
         Slice<WeeklyCounsel> counselSlice = weeklyCounselRepository.findWeeklyCounselList(
                 userId,

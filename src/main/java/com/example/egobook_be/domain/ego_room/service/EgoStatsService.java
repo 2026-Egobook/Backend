@@ -21,7 +21,7 @@ import java.util.stream.IntStream;
 public class EgoStatsService {
 
     private final DiaryRepository diaryRepository;
-    // private final SubscriptionRepository subscriptionRepository; =
+    // private final SubscriptionRepository subscriptionRepository;
 
     @Transactional(readOnly = true)
     public EgoStatsResDto getMonthlyStats(Long userId, int year, int month) {
@@ -36,38 +36,55 @@ public class EgoStatsService {
                 ));
         */
 
-        //광고보는 로직 추가 필요
+        //광고보는 로직
 
-        LocalDate now = LocalDate.now();
-        LocalDateTime oneYearAgo = now.minusYears(1).atStartOfDay();
+        LocalDate targetDate = LocalDate.of(year, month, 1);
+        LocalDateTime endOfPeriod = targetDate.withDayOfMonth(targetDate.lengthOfMonth()).atTime(23, 59, 59);
 
-        // 1. 1년치 일기 데이터 조회 및 필터링
-        List<Diary> yearlyDiaries = diaryRepository.findAllByUserIdAndWrittenAtAfter(userId, oneYearAgo)
+        // 시작 지점 계산 (이번 달 포함 12개월, 6개월)
+        LocalDateTime startOfOneYear = targetDate.minusMonths(11).atStartOfDay();
+        LocalDateTime startOfSixMonths = targetDate.minusMonths(5).atStartOfDay();
+
+        // 1년치 일기 데이터 조회 및 필터링
+        List<Diary> yearlyDiaries = diaryRepository.findAllByUserIdAndWrittenAtAfter(userId, startOfOneYear)
                 .stream()
                 .filter(d -> d.getEmotionLevel() > 0)
+                .filter(d -> !d.getWrittenAt().isAfter(endOfPeriod))
                 .toList();
 
 
         if (yearlyDiaries.isEmpty()) {
-            return EgoStatsResDto.empty(year, month);
+            int startYear = startOfOneYear.getYear();
+            int startMonth = startOfOneYear.getMonthValue();
+            return EgoStatsResDto.empty(year, month, startYear, startMonth);
         }
 
-        // 2. 무드별 요일/시간 통계 계산 (bars)
-        MoodStatsDto bars = calculateMoodStats(yearlyDiaries);
+        // 워드클라우드용- 최근 6개월치만 따로 필터링
+        List<Diary> sixMonthDiaries = yearlyDiaries.stream()
+                .filter(d -> d.getWrittenAt().isAfter(startOfSixMonths))
+                .toList();
 
-        // 3. 요일별 감정 스택 통계 계산 (stacked)
+        // 요일별 감정 스택 통계 계산
         StackedStatsDto stacked = calculateStackedStats(yearlyDiaries);
 
-        // 4. 6개월 평균 점수 계산 (sixMonthAvgs)
+        // 6개월 평균 감정 점수 계산
         List<MonthlyAvgDto> sixMonthAvgs = calculateSixMonthAvgs(userId, year, month);
 
-        //워드클라우드
-        List<WordCloudDto> wordCloud = calculateWordCloud(yearlyDiaries);
+        // 6개월 워드 클라우드
+        List<WordCloudDto> wordCloud = calculateWordCloud(sixMonthDiaries);
+
+        // 전체 카운트 계산
+        List<TotalCountDto> totalCounts = calculateTotalCounts(yearlyDiaries);
+
+        MoodPeakResDto moodPeak = calculateMoodPeak(yearlyDiaries);
 
         return EgoStatsResDto.builder()
+                .startYear(startOfOneYear.getYear())
+                .startMonth(startOfOneYear.getMonthValue())
                 .year(year)
                 .month(month)
-                .bars(bars)
+                .totalCounts(totalCounts)
+                .moodPeak(moodPeak)
                 .stacked(stacked)
                 .sixMonthAvgs(sixMonthAvgs)
                 .wordCloud(wordCloud)
@@ -75,8 +92,61 @@ public class EgoStatsService {
                 .build();
     }
 
+    private List<TotalCountDto> calculateTotalCounts(List<Diary> diaries) {
+        Map<Integer, Long> countsMap = diaries.stream()
+                .collect(Collectors.groupingBy(Diary::getEmotionLevel, Collectors.counting()));
 
-    //내부 계산 로직
+        return IntStream.rangeClosed(1, 5)
+                .mapToObj(lvl -> new TotalCountDto(lvl, countsMap.getOrDefault(lvl, 0L).intValue()))
+                .toList();
+    }
+
+    private MoodPeakResDto calculateMoodPeak(List<Diary> diaries) {
+        List<Diary> goodDiaries = diaries.stream().filter(d -> d.getEmotionLevel() >= 3).toList();
+        List<Diary> badDiaries = diaries.stream().filter(d -> d.getEmotionLevel() >= 1 && d.getEmotionLevel() <= 2).toList();
+
+        return new MoodPeakResDto(findPeak(goodDiaries), findPeak(badDiaries));
+    }
+
+    private PeakDetailDto findPeak(List<Diary> diaries) {
+        if (diaries.isEmpty()) return new PeakDetailDto(null, 0);
+
+        String peakDay = diaries.stream()
+                .collect(Collectors.groupingBy(d -> d.getWrittenAt().getDayOfWeek(), Collectors.counting()))
+                .entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(e -> e.getKey().name().substring(0, 3))
+                .orElse(null);
+
+        int peakHour = diaries.stream()
+                .collect(Collectors.groupingBy(d -> d.getWrittenAt().getHour(), Collectors.counting()))
+                .entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(0);
+
+        return new PeakDetailDto(peakDay, peakHour);
+    }
+
+    private StackedStatsDto calculateStackedStats(List<Diary> diaries) {
+        List<WeekdayStackDto> byWeekday = Arrays.stream(DayOfWeek.values())
+                .map(day -> {
+                    List<Diary> dayDiaries = diaries.stream()
+                            .filter(d -> d.getWrittenAt().getDayOfWeek() == day)
+                            .toList();
+                    int total = dayDiaries.size();
+
+                    List<LevelDto> levels = IntStream.rangeClosed(1, 5)
+                            .mapToObj(lvl -> {
+                                long count = dayDiaries.stream().filter(d -> d.getEmotionLevel() == lvl).count();
+                                int percent = total == 0 ? 0 : (int) Math.round((count * 100.0) / total);
+                                return new LevelDto(lvl, percent);
+                            }).toList();
+                    return new WeekdayStackDto(day.name().substring(0, 3), levels);
+                }).toList();
+
+        return new StackedStatsDto(byWeekday);
+    }
 
     private List<MonthlyAvgDto> calculateSixMonthAvgs(Long userId, int year, int month) {
         // 현재 월부터 직전 5개월까지 총 6개월치 데이터 계산
@@ -93,87 +163,21 @@ public class EgoStatsService {
                 .toList();
     }
 
-    private MoodStatsDto calculateMoodStats(List<Diary> diaries) {
-        // 1. 굿 무드와 배드 무드 그룹핑
-        List<Diary> goodDiaries = diaries.stream()
-                .filter(d -> d.getEmotionLevel() >= 4)
-                .toList();
-        List<Diary> badDiaries = diaries.stream()
-                .filter(d -> d.getEmotionLevel() >= 1 && d.getEmotionLevel() <= 2)
-                .toList();
-
-        return new MoodStatsDto(
-                createMoodDetail(goodDiaries),
-                createMoodDetail(badDiaries)
-        );
-    }
-
-    private MoodDetailDto createMoodDetail(List<Diary> diaries) {
-        // 요일별 카운트 (MON, TUE...)
-        List<DayCountDto> byDayOfWeek = Arrays.stream(DayOfWeek.values())
-                .map(day -> {
-                    long count = diaries.stream()
-                            .filter(d -> d.getWrittenAt().getDayOfWeek() == day)
-                            .count();
-                    return new DayCountDto(day.name().substring(0, 3), (int) count);
-                }).toList();
-
-        // 시간별 카운트 (0-23시)
-        List<HourCountDto> byHour = IntStream.range(0, 24)
-                .mapToObj(hour -> {
-                    long count = diaries.stream()
-                            .filter(d -> d.getWrittenAt().getHour() == hour)
-                            .count();
-                    return new HourCountDto(hour, (int) count);
-                }).toList();
-
-        return new MoodDetailDto(byDayOfWeek, byHour);
-    }
-
-    private StackedStatsDto calculateStackedStats(List<Diary> diaries) {
-        // 1. 요일별-레벨별 맵 생성
-        Map<DayOfWeek, Map<Integer, Long>> weeklyMap = diaries.stream()
-                .collect(Collectors.groupingBy(
-                        d -> d.getWrittenAt().getDayOfWeek(),
-                        Collectors.groupingBy(Diary::getEmotionLevel, Collectors.counting())
-                ));
-
-        // 2. 전체 요일/레벨 통틀어 가장 높은 count 찾기 (100% 기준점)
-        long maxCount = weeklyMap.values().stream()
-                .flatMap(m -> m.values().stream())
-                .max(Long::compare).orElse(0L);
-
-        // 3. 요일별 데이터 생성
-        List<WeekdayStackDto> byWeekday = Arrays.stream(DayOfWeek.values())
-                .map(day -> {
-                    Map<Integer, Long> levelsMap = weeklyMap.getOrDefault(day, Collections.emptyMap());
-                    List<LevelDto> levels = IntStream.rangeClosed(1, 5)
-                            .mapToObj(lvl -> {
-                                long count = levelsMap.getOrDefault(lvl, 0L);
-                                int percent = maxCount == 0 ? 0 : (int) ((count * 100) / maxCount);
-                                return new LevelDto(lvl, (int) count, percent);
-                            }).toList();
-                    return new WeekdayStackDto(day.name().substring(0, 3), levels);
-                }).toList();
-
-        return new StackedStatsDto((int) maxCount, byWeekday);
-    }
-
     private List<WordCloudDto> calculateWordCloud(List<Diary> diaries) {
-        // 1. 모든 일기의 본문을 하나로 합치고 특수문자 제거
-        // 한글, 영어, 숫자만 남기고 나머지는 공백으로 치환해
+        // 모든 일기의 본문을 하나로 합치고 특수문자 제거
+        // 한글, 영어, 숫자만 남기고 나머지는 공백으로 치환
         String allContent = diaries.stream()
                 .map(Diary::getContent)
                 .filter(Objects::nonNull)
                 .collect(Collectors.joining(" "))
                 .replaceAll("[^가-힣a-zA-Z0-9\\s]", " ");
 
-        // 2. 공백 기준으로 단어 분리 후 빈도수 계산
+        // 공백 기준으로 단어 분리 후 빈도수 계산
         Map<String, Long> wordCounts = Arrays.stream(allContent.split("\\s+"))
                 .filter(word -> word.length() >= 2) // 한 글자 단어(은, 는, 이, 가 등)는 제외
                 .collect(Collectors.groupingBy(word -> word, Collectors.counting()));
 
-        // 3. 가장 많이 나온 순서대로 상위 30개 추출
+        // 가장 많이 나온 순서대로 상위 30개 추출
         return wordCounts.entrySet().stream()
                 .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
                 .limit(30)
