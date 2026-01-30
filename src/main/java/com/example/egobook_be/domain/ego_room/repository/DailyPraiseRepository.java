@@ -15,7 +15,7 @@ public interface DailyPraiseRepository extends JpaRepository<DailyPraise, Long> 
     @Query("SELECT dp FROM DailyPraise dp " +
             "JOIN FETCH dp.diary d " +
             "WHERE d.user.id = :userId " +
-            "AND (:cursor = 0L OR dp.id < :cursor) " +
+            "AND (:cursor = 1L OR dp.id < :cursor) " +
             "ORDER BY dp.id DESC")
     Slice<DailyPraise> findPraiseList(
             @Param("userId") Long userId,
@@ -26,7 +26,7 @@ public interface DailyPraiseRepository extends JpaRepository<DailyPraise, Long> 
     @Query("SELECT dp FROM DailyPraise dp " +
             "JOIN FETCH dp.diary d " +
             "WHERE d.user.id = :userId " +
-            "AND CAST(d.writtenAt AS localdate) = :date")
+            "AND dp.praiseDate = :date")
     Optional<DailyPraise> findByUserIdAndDate(
             @Param("userId") Long userId,
             @Param("date") LocalDate date

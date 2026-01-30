@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -30,6 +31,10 @@ public class DailyPraise {
 
     @Enumerated(EnumType.STRING)
     private PraiseStatus status;
+
+    @Column(name = "praise_date", nullable = false)
+    private LocalDate praiseDate;
+
 
     private LocalDateTime createdAt;
 

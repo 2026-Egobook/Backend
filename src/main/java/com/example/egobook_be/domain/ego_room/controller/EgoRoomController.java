@@ -3,6 +3,7 @@ package com.example.egobook_be.domain.ego_room.controller;
 
 import com.example.egobook_be.domain.ego_room.dto.*;
 import com.example.egobook_be.domain.ego_room.service.EgoRoomService;
+import com.example.egobook_be.domain.ego_room.service.EgoStatsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -22,12 +23,13 @@ import java.time.LocalDate;
 public class EgoRoomController {
 
     private final EgoRoomService egoRoomService;
+    private final EgoStatsService egoRoomStatService;
 
     @Operation(summary = "일간 칭찬서 목록 조회", description = "일간 칭찬서들의 날짜를 보여줍니다.")
     @GetMapping("/praise/daily")
     public ResponseEntity<DailyPraiseListResDto> getDailyPraiseList(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
-            @Parameter(description = "마지막으로 조회된 항목의 ID (0일 경우 처음부터 조회)", example = "0")
+            @Parameter(description = "마지막으로 조회된 항목의 ID (1일 경우 처음부터 조회)", example = "1")
             @RequestParam(defaultValue = "0") Long cursor,
             @Parameter(description = "한 번에 가져올 항목 개수", example = "30")
             @RequestParam(defaultValue = "30") int size
@@ -50,8 +52,8 @@ public class EgoRoomController {
     @GetMapping("/counsel/weekly")
     public ResponseEntity<WeeklyCounselListResDto> getWeeklyCounselList(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
-            @Parameter(description = "마지막 조회 ID", example = "0")
-            @RequestParam(defaultValue = "0") Long cursor,
+            @Parameter(description = "마지막 조회 ID", example = "1")
+            @RequestParam(defaultValue = "1") Long cursor,
             @Parameter(description = "조회 개수", example = "20")
             @RequestParam(defaultValue = "20") int size
     ) {
@@ -68,7 +70,7 @@ public class EgoRoomController {
     ) {
         return ResponseEntity.ok(egoRoomService.getWeeklyCounselDetail(userId, startDate));
     }
-    @Operation(summary = "다음 주 상담 분위기 변경", description = "다음 주에 생성될 AI 상담서의 말투나 스타일을 미리 설정합니다")
+    @Operation(summary = "다음 주 상담 분위기 변경", description = "다음 주에 생성될 AI 상담서의 말투나 스타일을 미리 설정합니다. SHARP OBJECTIVE SOFT")
     @PatchMapping("/counsel/weekly/next-tone")
     public ResponseEntity<CounselToneResDto> updateNextWeekTone(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
@@ -86,6 +88,6 @@ public class EgoRoomController {
             @Parameter(description = "조회할 월", example = "11")
             @RequestParam int month
     ) {
-        return ResponseEntity.ok(egoRoomService.getMonthlyStats(userId, year, month));
+        return ResponseEntity.ok(egoRoomStatService.getMonthlyStats(userId, year, month));
     }
 }

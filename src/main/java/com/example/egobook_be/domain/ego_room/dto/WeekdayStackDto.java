@@ -2,8 +2,7 @@ package com.example.egobook_be.domain.ego_room.dto;
 
 import java.util.List;
 
-public record WeekdayStackedDto(
+public record WeekdayStackDto(
         String day,
-        List<LevelStatDto> levels
-) {
-}
+        List<LevelDto> levels
+) {}

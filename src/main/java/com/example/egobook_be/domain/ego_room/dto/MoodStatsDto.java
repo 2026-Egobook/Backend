@@ -1,9 +1,10 @@
 package com.example.egobook_be.domain.ego_room.dto;
 
-import java.util.List;
-
 public record MoodStatsDto(
-        List<DayCountDto> byDayOfWeek,
-        List<HourCountDto> byHour
+        MoodDetailDto goodMood,
+        MoodDetailDto badMood
 ) {
+    public static MoodStatsDto empty() {
+        return new MoodStatsDto(MoodDetailDto.empty(), MoodDetailDto.empty());
+    }
 }

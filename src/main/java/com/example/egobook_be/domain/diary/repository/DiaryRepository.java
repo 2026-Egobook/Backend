@@ -7,10 +7,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -23,6 +25,7 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
     boolean existsByUserAndTypeInAndCreatedAtBetween(User user, Set<DiaryType> praise, LocalDateTime startOfToday, LocalDateTime endOfToday);
 
     List<Diary> findAllByUserAndWrittenAtBetween(User user, LocalDateTime start, LocalDateTime end);
+
 
     @Query("""
     SELECT
@@ -52,8 +55,15 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
 
     int countByUserAndDate(User user, LocalDate date);
 
+    List<Diary> findAllByUserIdAndWrittenAtAfter(Long userId, LocalDateTime writtenAt);
+
     interface DailyEmotionCount {
         LocalDate getDate();
         Integer getEmotionLevel();
     }
+
+    @Query("SELECT AVG(d.emotionLevel) FROM Diary d WHERE d.userId = :userId AND d.writtenAt BETWEEN :start AND :end AND d.emotionLevel > 0")
+    Double findAvgEmotionLevel(@Param("userId") Long userId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+
 }

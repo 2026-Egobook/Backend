@@ -1,11 +1,14 @@
 package com.example.egobook_be.domain.ego_room.service;
 
+import com.example.egobook_be.domain.diary.entity.Diary;
 import com.example.egobook_be.domain.diary.exception.DiaryErrorCode;
+import com.example.egobook_be.domain.diary.repository.DiaryRepository;
 import com.example.egobook_be.domain.ego_room.dto.CounselTonePatchReqDto;
 import com.example.egobook_be.domain.ego_room.dto.*;
 import com.example.egobook_be.domain.ego_room.entity.DailyPraise;
 import com.example.egobook_be.domain.ego_room.entity.WeeklyCounsel;
 import com.example.egobook_be.domain.ego_room.enums.CounselTone;
+import com.example.egobook_be.domain.ego_room.exception.EgoRoomErrorCode;
 import com.example.egobook_be.domain.ego_room.exception.SubscriptionLockedException;
 import com.example.egobook_be.domain.ego_room.repository.DailyPraiseRepository;
 import com.example.egobook_be.domain.ego_room.repository.WeeklyCounselRepository;
@@ -26,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,7 +52,7 @@ public class EgoRoomService {
         List<DailyPraiseSimpleItemDto> values = praiseSlice.getContent().stream()
                 .map(praise -> new DailyPraiseSimpleItemDto(
                         praise.getId(),
-                        praise.getDiary().getWrittenAt().toLocalDate().toString(),
+                        praise.getPraiseDate().toString(), // 이제 diary가 아니라 praise 자체에서 날짜를 가져와!
                         praise.isRead()
                 ))
                 .collect(Collectors.toList());
@@ -79,7 +83,7 @@ public class EgoRoomService {
         }
 
         return new DailyPraiseItemDto(
-                praise.getDiary().getWrittenAt().toLocalDate().toString(),
+                praise.getDiary().getDate().toString(), // writtenAt 대신 date 사용
                 praise.getContent(),
                 praise.getCreatedAt().toString(),
                 praise.isRead(),
@@ -88,19 +92,17 @@ public class EgoRoomService {
     }
 
     public WeeklyCounselListResDto getWeeklyCounselList(Long userId, Long cursor, int size) {
-
         Slice<WeeklyCounsel> counselSlice = weeklyCounselRepository.findWeeklyCounselList(
                 userId,
                 cursor,
                 PageRequest.of(0, size)
         );
-       // log.info("현재 로그인한 유저 아이디: {}", userId);
-        log.info("DB에서 가져온 상담서 개수: {}", counselSlice.getContent().size()); // 이거 추가!
 
-        List<WeeklyCounselItemDto> values = counselSlice.getContent().stream()
-                .map(counsel -> new WeeklyCounselItemDto(
+        List<WeeklyCounselSimpleItemDto> values = counselSlice.getContent().stream()
+                .map(counsel -> new WeeklyCounselSimpleItemDto(
                         counsel.getId(),
-                        counsel.getStartDate().toString().replace("-", "."),
+                        counsel.getStartDate().toString(),
+                        counsel.getEndDate().toString(),
                         counsel.isRead()
                 ))
                 .collect(Collectors.toList());
@@ -111,26 +113,14 @@ public class EgoRoomService {
         return new WeeklyCounselListResDto(values, counselSlice.hasNext(), nextCursor);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public WeeklyCounselDetailResDto getWeeklyCounselDetail(Long userId, LocalDate startDate) {
         WeeklyCounsel counsel = weeklyCounselRepository.findByUserIdAndStartDate(userId, startDate)
                 .orElseThrow(() -> new CustomException(DiaryErrorCode.COUNSEL_NOT_FOUND));
 
-        if (!counsel.isRead()) {
-            counsel.unlock();
-        }
-
-        return new WeeklyCounselDetailResDto(
-                counsel.getStartDate().toString().replace("-", "."),
-                counsel.getEndDate().toString().replace("-", "."),
-                counsel.getSummary(),
-                counsel.getPraisePoints(),
-                counsel.getImprovementPoints(),
-                counsel.getManagementAdvice(),
-                counsel.getSupportMessage(),
-                counsel.isRead()
-        );
+        return WeeklyCounselDetailResDto.from(counsel);
     }
+
 
     @Transactional
     public CounselToneResDto updateNextWeekTone(Long userId, CounselTone toneStyle) {
@@ -142,31 +132,5 @@ public class EgoRoomService {
         return new CounselToneResDto(toneStyle);
     }
 
-    private final SubscriptionRepository subscriptionRepository;
-
-    /**
-     * 월간 통계 데이터 조회 (구독자 전용)
-     */
-    @Transactional(readOnly = true)
-    public EgoStatsResDto getMonthlyStats(Long userId, int year, int month) {
-        log.info("유저 {}번의 {}년 {}월 통계 조회 시도", userId, year, month);
-
-        // 활성화된 구독 정보가 있는지 확인
-        subscriptionRepository.findActiveSubscription(userId, LocalDate.now())
-                .orElseThrow(SubscriptionLockedException::new);
-
-        // 해당 월의 다이어리 데이터 가져오기
-        // (작성 시간 기준으로 한 달 치 데이터를 긁어와야 해)
-        LocalDateTime startOfMonth = LocalDateTime.of(year, month, 1, 0, 0);
-        LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
-
-        // diaryRepository.findAllByUserIdAndWrittenAtBetween(userId, startOfMonth, endOfMonth) 같은 메서드가 필요해!
-
-        log.info("구독 확인 완료! 이제 통계 계산 시작할게 다경!");
-
-        // 3. TODO: 다이어리 데이터를 바탕으로 상단 바 그래프, 스택 그래프, 워드클라우드 데이터 계산 로직
-
-        return null; // 우선 구조만 잡았어!
-    }
 
 }

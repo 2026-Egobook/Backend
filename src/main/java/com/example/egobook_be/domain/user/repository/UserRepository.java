@@ -1,8 +1,12 @@
 package com.example.egobook_be.domain.user.repository;
 
 import com.example.egobook_be.domain.user.entity.User;
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,4 +32,10 @@ public interface UserRepository extends JpaRepository<User, Long>,UserRepository
             String nickname,
             String accountCode
     );
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE User u SET u.counselingTone = :tone WHERE u.id = :userId")
+    void updateCounselingTone(
+            @Param("userId") Long userId, @Param("tone") String tone);
 }

@@ -14,7 +14,7 @@ public interface WeeklyCounselRepository extends JpaRepository<WeeklyCounsel, Lo
 
     @Query("SELECT wc FROM WeeklyCounsel wc " +
             "WHERE wc.user.id = :userId " +
-            "AND (:cursor = 0L OR wc.id < :cursor) " +
+            "AND (:cursor = 1L OR wc.id < :cursor) " +
             "ORDER BY wc.id DESC")
     Slice<WeeklyCounsel> findWeeklyCounselList(
             @Param("userId") Long userId,
@@ -22,11 +22,5 @@ public interface WeeklyCounselRepository extends JpaRepository<WeeklyCounsel, Lo
             Pageable pageable
     );
 
-    @Query("SELECT wc FROM WeeklyCounsel wc " +
-            "WHERE wc.user.id = :userId " +
-            "AND wc.startDate = :startDate")
-    Optional<WeeklyCounsel> findByUserIdAndStartDate(
-            @Param("userId") Long userId,
-            @Param("startDate") LocalDate startDate
-    );
+    Optional<WeeklyCounsel> findByUserIdAndStartDate(Long userId, LocalDate startDate);
 }
