@@ -133,11 +133,27 @@ public class Mission extends BaseTimeEntity {
         return this.weeklyMissionStatus.charAt(index) == '1';
     }
 
+    /** 일일 일기 작성 미션 상태를 변경하는 함수 (처음 일일 미션을 수행한 경우 true 반환)*/
+    public boolean updateDailyDiaryMissionStatus(boolean dailyDiaryWritten) {
+        return updateDailyMissionStatus(dailyDiaryWritten, this.dailyLetterWritten, this.dailyQuestionAnswered);
+    }
+
+    /** 일일 편지 작성 미션 상태를 변경하는 함수 (처음 일일 미션을 수행한 경우 true 반환)*/
+    public boolean updateDailyLetterMissionStatus(boolean dailyLetterWritten) {
+        return updateDailyMissionStatus(this.dailyDiaryWritten, dailyLetterWritten, this.dailyQuestionAnswered);
+    }
+
+    /** 일일 질문 답변 작성 미션 상태를 변경하는 함수 (처음 일일 미션을 수행한 경우 true 반환)*/
+    public boolean updateDailyQuestionMissionStatus(boolean dailyQuestionAnswered) {
+        return updateDailyMissionStatus(this.dailyDiaryWritten, this.dailyLetterWritten, dailyQuestionAnswered);
+    }
+
     /**
      * 일일 미션 상태 업데이트 메서드
      * - 매 미션을 수행할 때마다, 주간 미션이 업데이트되었는지 검사한 후 미션 상태를 변경한다.
+     * - 처음 일일 미션을 수행한 경우 true를 반환하며, 처음 일일 미션을 수행한 경우가 아니면 false를 반환한다.
      */
-    public void updateDailyStatus(boolean diary, boolean letter, boolean question) {
+    private boolean updateDailyMissionStatus(boolean diary, boolean letter, boolean question) {
         // 1. 매 미션 수행 시, 주간 미션이 업데이트되어있는지 상태를 검사한 후 미션 상태를 변경한다.
         this.checkAndResetWeekly(LocalDate.now());
 
@@ -146,9 +162,33 @@ public class Mission extends BaseTimeEntity {
         this.dailyLetterWritten = letter;
         this.dailyQuestionAnswered = question;
 
+        boolean prevDailyMissionStatus = this.dailyMissionSuccess;
         // 3개 중 하나만 true여도 DailyMission 성공
         this.dailyMissionSuccess = diary || letter || question;
+        // 이번 함수 호출 때 일일 미션을 성공한 경우, weeklyMissionStatus 변환한 후 true 반환
+        boolean tmp = !prevDailyMissionStatus && this.dailyMissionSuccess;
+        if(tmp){
+            // 1. 오늘이 무슨 요일인지 확인 (숫자값: 1=월요일 ~ 7=일요일)
+            LocalDate todayDay = LocalDate.now();
+            DayOfWeek dayOfWeek = todayDay.getDayOfWeek();
+            int dayOfWeekIndex = dayOfWeek.getValue() - 1;
+            // 1. 문자 배열로 변환
+            char[] chars = this.weeklyMissionStatus.toCharArray();
+
+            // 2. 배열 인덱스로 접근하여 값 변경
+            chars[dayOfWeekIndex] = '1';
+
+            // 3. 다시 문자열로 생성하여 할당
+            this.weeklyMissionStatus = new String(chars);
+        }
+        return tmp;
     }
+
+    /** 이번주 미션이 모두 완료되었는지 여부 확인하는 함수*/
+    public boolean isWeeklyMissionCompleted(){
+        return weeklyMissionStatus.equals("1111111");
+    }
+
 
     /**
      * 주간 데이터 정합성 체크 및 초기화 메서드

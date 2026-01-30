@@ -3,7 +3,12 @@ package com.example.egobook_be.domain.diary.service;
 import com.example.egobook_be.domain.diary.entity.Diary;
 import com.example.egobook_be.domain.diary.exception.DiaryErrorCode;
 import com.example.egobook_be.domain.diary.repository.DiaryRepository;
+import com.example.egobook_be.domain.home.entity.Mission;
+import com.example.egobook_be.domain.home.repository.MissionRepository;
+import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.enums.UserErrorCode;
+import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
@@ -21,11 +26,24 @@ public class DiaryQueryService {
 
     private final DiaryRepository diaryRepository;
     private final UserRepository userRepository;
+    private final MissionRepository missionRepository;
+    private final AbilityRepository abilityRepository;
 
     @Transactional(readOnly = true)
     public User getUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(DiaryErrorCode.USER_NOT_FOUND));
+    }
+
+    @Transactional(readOnly = true)
+    public Ability getAbilityByUser(User user) {
+        return abilityRepository.findByUser(user)
+                .orElseThrow(() -> new CustomException(UserErrorCode.ABILITY_NOT_FOUND));
+    }
+
+    @Transactional(readOnly = true)
+    public Mission getMissionByUser(User user) {
+        return missionRepository.findByUser(user).orElseThrow(() -> new CustomException(UserErrorCode.MISSION_NOT_FOUND));
     }
 
     @Transactional(readOnly = true)

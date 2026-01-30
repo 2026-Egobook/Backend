@@ -8,6 +8,8 @@ import com.example.egobook_be.domain.diary.enums.RewardType;
 import com.example.egobook_be.domain.diary.exception.DiaryErrorCode;
 import com.example.egobook_be.domain.diary.mapper.DiaryMapper;
 import com.example.egobook_be.domain.diary.repository.DiaryRepository;
+import com.example.egobook_be.domain.home.entity.Mission;
+import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.notification.entity.Notification;
 import com.example.egobook_be.domain.notification.mapper.NotificationMapper;
 import com.example.egobook_be.domain.user.entity.Ability;
@@ -39,31 +41,12 @@ public class DiaryService {
     /** 감정 일기 생성 */
     @Transactional
     public DiaryCreateResDto createDiary(Long userId, DiaryCreateReqDto dto) {
-
         User user = diaryQueryService.getUserById(userId);
+        Ability ability = diaryQueryService.getAbilityByUser(user);
+        Mission userMission = diaryQueryService.getMissionByUser(user);
 
-        // 일기 타입 선택 검증
-        if (dto.type() == null || dto.type().isEmpty()) {
-            throw new CustomException(DiaryErrorCode.DIARY_TYPE_REQUIRED);
-        }
-
-        // '감정(EMOTION)' 일기 감정 레벨 검증
-        if (dto.type().contains(DiaryType.EMOTION)) {
-            if (dto.emotionLevel() == null) {
-                throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_REQUIRED);
-            }
-
-            if (dto.emotionLevel() < 1 || dto.emotionLevel() > 5) {
-                throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_INVALID);
-            }
-        } else if (dto.emotionLevel() != null) {
-            throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_NOT_ALLOWED);
-        }
-
-        // 일기 400자 이하 검증
-        if (dto.content() != null && dto.content().length() > 400) {
-            throw new CustomException(DiaryErrorCode.DIARY_TEXT_LIMIT_EXCEEDED);
-        }
+        // DiaryCreateReqDto 검증
+        verifyDiaryCreateReqDto(dto);
 
         // 일기 저장 날짜 설정
         LocalDateTime writtenAt = (dto.dateTime() != null) ?
@@ -76,13 +59,11 @@ public class DiaryService {
             throw new CustomException(DiaryErrorCode.DIARY_DAILY_LIMIT_EXCEEDED);
         }
 
-        List<DiaryCreateResDto.RewardResDto> rewards = new ArrayList<>();
-
         LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
         LocalDateTime endOfToday = LocalDate.now().atTime(LocalTime.MAX);
 
         // 오늘 첫 일기 작성 여부
-        boolean isFirstToday = !diaryRepository.existsByUserAndCreatedAtBetween(user, startOfToday, endOfToday);
+        boolean isFirstDiaryToday = !diaryRepository.existsByUserAndCreatedAtBetween(user, startOfToday, endOfToday);
 
         // 오늘 첫 고민(CONCERN) 일기 작성 여부
         boolean isFirstConcernToday =
@@ -108,41 +89,122 @@ public class DiaryService {
                 .writtenAt(writtenAt)
                 .build());
 
-        // 리워드 지급
-        if (isFirstToday) {
+       
+        // Reward 객체들 생성 후 DiaryCreateResDto 반환
+        return DiaryMapper.toDiaryCreateDto(diary, getRewards(user, ability, userMission, isFirstDiaryToday, isFirstConcernToday, isFirstPositiveToday, dto.type()));
+    }
+
+    /** 조건에 따라 잉크, 능력치 부여 & 미션 갱신을 수행한 뒤 Reward 객체들을 생성하는 함수 */
+    private List<DiaryCreateResDto.RewardResDto> getRewards(User user, Ability ability, Mission userMission, boolean isFirstDiaryToday, boolean isFirstConcernToday, boolean isFirstPositiveToday, Set<DiaryType> diaryTypes) {
+        List<DiaryCreateResDto.RewardResDto> rewards = new ArrayList<>();
+        /*
+         * 1. 오늘 처음 감정 일기를 작성한 경우
+         * - 잉크 +1
+         * - 일일 미션 상태 업데이트
+         */
+        if (isFirstDiaryToday) {
             user.addInk(1);
             rewards.add(new DiaryCreateResDto.RewardResDto(
                     RewardType.INK, 1, "잉크를 1 획득했어요"
             ));
+            /*
+             * 1-1. 만약 이번이 처음 일일 미션을 수행한 경우일 때
+             * - 잉크 +1
+             * - reward 객체 추가
+             */
+            if(userMission.updateDailyDiaryMissionStatus(true)){
+                user.addInk(1);
+                rewards.add(new DiaryCreateResDto.RewardResDto(
+                        RewardType.INK, 1, "일일 미션 성공으로 잉크를 1 획득했어요"
+                ));
+                /*
+                 * 1-2. 만약 오늘이 일일 미션을 7일째 완료한 날인 경우
+                 * - 잉크 +2
+                 * - reward 객체 추가
+                 */
+                if(userMission.isWeeklyMissionCompleted()){
+                    user.addInk(2);
+                    rewards.add(new DiaryCreateResDto.RewardResDto(
+                            RewardType.INK, 2, "주간 미션 성공으로 잉크를 추가로 2 획득했어요"
+                    ));
+                }
+            }
         }
 
-        Ability ability = user.getAbility();
-
+        /*
+         * 2. 오늘 처음 고민 일기를 작성한 경우
+         * - 감정조절 +1 Score
+         * - 감정조절 레벨이 올랐으면 잉크 +1
+         */
         if (isFirstConcernToday) {
-            ability.addEmotionRegulation(1);
+            int earnedInk = ability.addEmotionRegulation(1); // 감정 조절 Score를 증가시켰을 때, 사용자가 레벨업한 경우 earnedInk의 값은 1이다
             rewards.add(new DiaryCreateResDto.RewardResDto(
-                    RewardType.EMOTION_REGULATION, 1, "고민 일기를 작성하여 감정조절이 상승했어요"
+                    RewardType.EMOTION_REGULATION, 1, "고민 일기를 작성하여 감정조절 스코어가 상승했어요"
             ));
+            // 2-1. 감정 조절 레벨이 올랐는지 확인
+            if(earnedInk == 1){
+                user.addInk(earnedInk);
+                rewards.add(new DiaryCreateResDto.RewardResDto(
+                        RewardType.INK, earnedInk, "[감정 조절 레벨업] 잉크를 추가로 1 획득했어요"+"(현재 감정 조절 레벨: " + ability.getEmotionRegulation() + ")"
+                ));
+            }
         }
 
+        /*
+         * 3. 오늘 처음 감사/칭찬 일기를 작성한 경우
+         * - 긍정사고 +1칸
+         * - 긍정 사고의 레벨이 올랐으면 잉크 +1
+         */
         if (isFirstPositiveToday) {
             int amount = 1;
-            ability.addPositiveThinking(1);
-            if (dto.type().contains(DiaryType.PRAISE)) {
+            int earnedInk = ability.addPositiveThinking(amount);
+            if (diaryTypes.contains(DiaryType.PRAISE)) {
                 rewards.add(new DiaryCreateResDto.RewardResDto(
-                        RewardType.POSITIVE_THINKING, amount, "오늘 첫 칭찬 일기를 작성하여 긍정적 사고가 상승했어요"
+                        RewardType.POSITIVE_THINKING, amount, "오늘 첫 칭찬 일기를 작성하여 긍정적 사고 스코어가 상승했어요"
                 ));
                 amount = 0;
             }
-            if (dto.type().contains(DiaryType.GRATITUDE)) {
+            if (diaryTypes.contains(DiaryType.GRATITUDE)) {
                 rewards.add(new DiaryCreateResDto.RewardResDto(
-                        RewardType.POSITIVE_THINKING, amount, "오늘 첫 감사 일기를 작성하여 긍정적 사고가 상승했어요"
+                        RewardType.POSITIVE_THINKING, amount, "오늘 첫 감사 일기를 작성하여 긍정적 사고 스코어가 상승했어요"
+                ));
+            }
+            // 3-1. 긍정 사고의 레벨이 올랐는지 확인
+            if(earnedInk == 1){
+                user.addInk(earnedInk);
+                rewards.add(new DiaryCreateResDto.RewardResDto(
+                        RewardType.INK, earnedInk, "[긍정 사고 레벨업] 잉크를 추가로 1 획득했어요"+"(현재 긍정 사고 레벨: " + ability.getPositiveThinking() + ")"
                 ));
             }
         }
-
-        return DiaryMapper.toDiaryCreateDto(diary, rewards);
+        return rewards;
     }
+
+    private void verifyDiaryCreateReqDto(DiaryCreateReqDto dto){
+        // 일기 타입 선택 검증
+        if (dto.type() == null || dto.type().isEmpty()) {
+            throw new CustomException(DiaryErrorCode.DIARY_TYPE_REQUIRED);
+        }
+
+        // '감정(EMOTION)' 일기 감정 레벨 검증
+        if (dto.type().contains(DiaryType.EMOTION)) {
+            if (dto.emotionLevel() == null) {
+                throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_REQUIRED);
+            }
+
+            if (dto.emotionLevel() < 1 || dto.emotionLevel() > 5) {
+                throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_INVALID);
+            }
+        } else if (dto.emotionLevel() != null) {
+            throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_NOT_ALLOWED);
+        }
+
+        // 일기 400자 이하 검증
+        if (dto.content() != null && dto.content().length() > 400) {
+            throw new CustomException(DiaryErrorCode.DIARY_TEXT_LIMIT_EXCEEDED);
+        }
+    }
+
 
     /** 감정 일기 상세 조회 */
     public DiaryResDto getDiary(Long userId, Long diaryId) {
