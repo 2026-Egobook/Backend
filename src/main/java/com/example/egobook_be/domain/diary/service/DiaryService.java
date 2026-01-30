@@ -13,10 +13,14 @@ import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.notification.entity.Notification;
 import com.example.egobook_be.domain.notification.mapper.NotificationMapper;
 import com.example.egobook_be.domain.user.entity.Ability;
+import com.example.egobook_be.domain.user.entity.InkLog;
+import com.example.egobook_be.domain.user.entity.InkLogType;
 import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.exception.GlobalErrorCode;
 import com.example.egobook_be.global.response.SliceResponse;
+import com.example.egobook_be.global.util.InkLogUtil;
 import com.example.egobook_be.infra.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -34,9 +38,11 @@ import java.util.*;
 public class DiaryService {
 
     private final DiaryRepository diaryRepository;
+    private final InkLogRepository inkLogRepository;
     private final DiaryExportService diaryExportService;
     private final DiaryQueryService diaryQueryService;
     private final S3Service s3Service;
+    private final InkLogUtil inkLogUtil;
 
     /** 감정 일기 생성 */
     @Transactional
@@ -97,33 +103,37 @@ public class DiaryService {
     /** 조건에 따라 잉크, 능력치 부여 & 미션 갱신을 수행한 뒤 Reward 객체들을 생성하는 함수 */
     private List<DiaryCreateResDto.RewardResDto> getRewards(User user, Ability ability, Mission userMission, boolean isFirstDiaryToday, boolean isFirstConcernToday, boolean isFirstPositiveToday, Set<DiaryType> diaryTypes) {
         List<DiaryCreateResDto.RewardResDto> rewards = new ArrayList<>();
+        List<InkLog> inkLogs = new ArrayList<>();
         /*
          * 1. 오늘 처음 감정 일기를 작성한 경우
          * - 잉크 +1
+         * - 잉크 로그 추가
          * - 일일 미션 상태 업데이트
          */
         if (isFirstDiaryToday) {
-            user.addInk(1);
+            inkLogUtil.addInkLog(inkLogs, user, 1, InkLogType.FIRST_EMOTION_DIARY); // 사용자에게 잉크 추가 & 잉크 로그 추가해주는 함수
             rewards.add(new DiaryCreateResDto.RewardResDto(
                     RewardType.INK, 1, "잉크를 1 획득했어요"
             ));
             /*
              * 1-1. 만약 이번이 처음 일일 미션을 수행한 경우일 때
              * - 잉크 +1
+             * - 잉크 로그 추가
              * - reward 객체 추가
              */
             if(userMission.updateDailyDiaryMissionStatus(true)){
-                user.addInk(1);
+                inkLogUtil.addInkLog(inkLogs, user, 1, InkLogType.DAILY_MISSION_REWARD);
                 rewards.add(new DiaryCreateResDto.RewardResDto(
                         RewardType.INK, 1, "일일 미션 성공으로 잉크를 1 획득했어요"
                 ));
                 /*
                  * 1-2. 만약 오늘이 일일 미션을 7일째 완료한 날인 경우
                  * - 잉크 +2
+                 * - 잉크 로그 추가
                  * - reward 객체 추가
                  */
                 if(userMission.isWeeklyMissionCompleted()){
-                    user.addInk(2);
+                    inkLogUtil.addInkLog(inkLogs, user, 2, InkLogType.WEEKLY_MISSION_REWARD);
                     rewards.add(new DiaryCreateResDto.RewardResDto(
                             RewardType.INK, 2, "주간 미션 성공으로 잉크를 추가로 2 획득했어요"
                     ));
@@ -143,7 +153,7 @@ public class DiaryService {
             ));
             // 2-1. 감정 조절 레벨이 올랐는지 확인
             if(earnedInk == 1){
-                user.addInk(earnedInk);
+                inkLogUtil.addInkLog(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
                 rewards.add(new DiaryCreateResDto.RewardResDto(
                         RewardType.INK, earnedInk, "[감정 조절 레벨업] 잉크를 추가로 1 획득했어요"+"(현재 감정 조절 레벨: " + ability.getEmotionRegulation() + ")"
                 ));
@@ -171,12 +181,15 @@ public class DiaryService {
             }
             // 3-1. 긍정 사고의 레벨이 올랐는지 확인
             if(earnedInk == 1){
-                user.addInk(earnedInk);
+                inkLogUtil.addInkLog(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
                 rewards.add(new DiaryCreateResDto.RewardResDto(
                         RewardType.INK, earnedInk, "[긍정 사고 레벨업] 잉크를 추가로 1 획득했어요"+"(현재 긍정 사고 레벨: " + ability.getPositiveThinking() + ")"
                 ));
             }
         }
+
+        // 지금까지의 과정에서 생성된 InkLog들 일괄 저장
+        inkLogRepository.saveAll(inkLogs);
         return rewards;
     }
 

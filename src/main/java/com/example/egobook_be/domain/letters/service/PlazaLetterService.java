@@ -1,5 +1,9 @@
 package com.example.egobook_be.domain.letters.service;
 
+import com.example.egobook_be.domain.diary.dto.DiaryCreateResDto;
+import com.example.egobook_be.domain.diary.enums.RewardType;
+import com.example.egobook_be.domain.home.entity.Mission;
+import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.letters.entity.*;
 import com.example.egobook_be.domain.letters.dto.*;
 import com.example.egobook_be.domain.letters.dto.request.CreateLetterRequest;
@@ -9,10 +13,16 @@ import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterThreadRepository;
+import com.example.egobook_be.domain.user.entity.InkLog;
+import com.example.egobook_be.domain.user.entity.InkLogType;
+import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.enums.UserErrorCode;
+import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.domain.letters.mapper.PlazaLetterMapper;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
+import com.example.egobook_be.global.util.InkLogUtil;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +31,7 @@ import org.springframework.stereotype.Service;
 
 
 import java.time.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -34,8 +45,11 @@ public class PlazaLetterService {
     private final PlazaLetterRepository plazaLetterRepository;
     private final PlazaLetterReplyRepository plazaLetterReplyRepository;
     private final PlazaLetterThreadRepository plazaLetterThreadRepository;
+    private final InkLogRepository inkLogRepository;
     private final UserRepository userRepository;
+    private final MissionRepository missionRepository;
     private final WordClientService wordClient;
+    private final InkLogUtil inkLogUtil;
 
 
     private final PlazaLetterMapper plazaLetterMapper;
@@ -66,8 +80,14 @@ public class PlazaLetterService {
 
     @Transactional
     public CreateLetterResponse createLetter(Long userId, CreateLetterRequest request) {
+        // 1. User, Mission 객체 가져오기
+        User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(LettersErrorCode.USER_NOT_FOUND));
+        Mission userMission = missionRepository.findByUser(user).orElseThrow(() -> new CustomException(UserErrorCode.MISSION_NOT_FOUND));
+
+        // 2. 들어온 CreateLetterRequest 검증
         validateCreateLetterRequest(request);
 
+        // 3. 해당 사용자가 편지를 작성할 수 있는 상태인지(이미 오늘 편지를 작성하였는지) 여부 검증
         OffsetDateTime now = OffsetDateTime.now();
         enforceDailyLimit(userId, now);
 
@@ -99,6 +119,30 @@ public class PlazaLetterService {
                 .replyDeadlineAt(now.plusHours(24))
                 .build();
 
+        // =================================================
+        // [ 보상 제공 로직 ] - 이미 enforceDailyLimit() 에서 오늘 편지를 썼는지 안썼는지 여부를 검사하였음 (하루에 1개의 편지 작성이 최대값임)
+        // =================================================
+        List<InkLog> inkLogs = new ArrayList<>();
+        // 1. 잉크 제공 & 일일 미션 상태 업데이트
+        inkLogUtil.addInkLog(inkLogs, user, 1, InkLogType.FIRST_LETTER_WRITE);
+        /*
+         * 1-1. 만약 이번이 처음 일일 미션을 수행한 경우일 때 (updateDailyLetterMissionStatus 함수가 true를 반환)
+         * - 잉크 +1
+         * - 잉크 로그 추가
+         */
+        if(userMission.updateDailyLetterMissionStatus(true)){
+            inkLogUtil.addInkLog(inkLogs, user, 1, InkLogType.DAILY_MISSION_REWARD);
+            /*
+             * 1-2. 만약 오늘이 일일 미션을 7일째 완료한 날인 경우
+             * - 잉크 +2
+             * - 잉크 로그 추가
+             */
+            if(userMission.isWeeklyMissionCompleted()){
+                inkLogUtil.addInkLog(inkLogs, user, 2, InkLogType.WEEKLY_MISSION_REWARD);
+            }
+        }
+        inkLogRepository.saveAll(inkLogs);
+
         PlazaLetter saved = plazaLetterRepository.save(letter);
 
         return CreateLetterResponse.builder()
@@ -109,7 +153,6 @@ public class PlazaLetterService {
                 .createdAt(saved.getCreatedAt())
                 .build();
     }
-
 
     private void enforceDailyLimit(Long userId, OffsetDateTime now) {
         ZoneId zoneId = ZoneId.of("Asia/Seoul");
