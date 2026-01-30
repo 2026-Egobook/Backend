@@ -29,7 +29,7 @@ public interface HomeControllerDocs {
               2. ```level```: 사용자 현재 레벨
               3. ```ink```: 사용자 현재 보유 잉크
               4. ```unreadNotifications```: 사용자가 아직 읽지 않은 알림 개수(Red Dot)
-              5. ```unopenedPsychology```: 사용자가 아직 열지 않은 오늘의 심리 지식 개수
+              5. ```hasUnopenedPsychology```: 사용자가 아직 열지 않은 오늘의 심리 지식 여부
               6. ```isFirstAttendanceToday```: 오늘 최초 출석인지 여부
               7. ```attendanceRewardInk```: 최초 출석시 보상 잉크 값
             """)

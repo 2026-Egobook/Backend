@@ -13,8 +13,8 @@ public record HomeResDto(
         Integer ink,
         @Schema(description = "사용자가 아직 읽지 않은 알림 개수", example = "10")
         Integer unreadNotifications,
-        @Schema(description = "사용자가 아직 열지 않은 오늘의 심리 지식 개수", example = "1")
-        Integer unopenedPsychology,
+        @Schema(description = "사용자가 아직 열지 않은 오늘의 심리 지식 여부", example = "true")
+        Boolean hasUnopenedPsychology,
         @Schema(description = "오늘 최초 출석인지 여부", example = "true")
         boolean isFirstAttendanceToday,
         @Schema(description = "최초 출석 보상 잉크 값", example = " 3")

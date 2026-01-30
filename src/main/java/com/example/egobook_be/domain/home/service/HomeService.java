@@ -8,10 +8,13 @@ import com.example.egobook_be.domain.home.entity.Mission;
 import com.example.egobook_be.domain.home.mapper.HomeMapper;
 import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.notification.repository.NotificationRepository;
+import com.example.egobook_be.domain.psychology.repository.UserKnowledgeRepository;
 import com.example.egobook_be.domain.user.entity.Ability;
+import com.example.egobook_be.domain.user.entity.InkLogType;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.enums.UserErrorCode;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
+import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.time.LocalDateTime;
+
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +32,7 @@ public class HomeService {
     private final NotificationRepository notificationRepository;
     private final AbilityRepository abilityRepository;
     private final MissionRepository missionRepository;
+    private final InkLogRepository inkLogRepository;
     private final HomeMapper homeMapper;
 
     private final Integer ATTENDANCE_REWARD_INK = 3;
@@ -50,8 +55,8 @@ public class HomeService {
         // 2. 사용자가 아직 읽지 않은 알림 개수 확인
         Integer unReadNotificationCount = notificationRepository.countByUserAndIsReadIsFalse(user);
 
-        // 3. 사용자가 열지 않은 오늘의 심리 지식 개수 -> 한다경님 merge하시면
-        Integer unopenedPsychology = 1;
+        // 3. 사용자가 열지 않은 오늘의 심리 지식 여부
+        Boolean hasUnopenedPsychology = hasUnopenedPsychologyKnowledge(user);
 
         // 4. 오늘 최초 출석인지 여부에 따라서 보상 잉크 값 결정
         Integer attendanceRewardInk = 0;
@@ -60,7 +65,7 @@ public class HomeService {
 
         }
         else attendanceRewardInk = 0;
-        HomeResDto resDto = homeMapper.toHomeResDto(user, unReadNotificationCount, unopenedPsychology, attendanceRewardInk);
+        HomeResDto resDto = homeMapper.toHomeResDto(user, unReadNotificationCount, hasUnopenedPsychology, attendanceRewardInk);
 
         // 5. 사용자가 이미 출석 보상을 받았다고 설정
         user.rewardAttendance();
@@ -122,4 +127,16 @@ public class HomeService {
         // 2. 사용자의 AccountCode 반환
         return homeMapper.toHomeSettingResDto(user);
     }
+
+    /**
+     * 사용자가 아직 읽지 않은 오늘의 심리 지식이 있는지 여부
+     * - 잉크 획득 로그에서 아직 오늘의 심리 지식으로 얻은 잉크가 없는 경우: true 반환
+     */
+    private boolean hasUnopenedPsychologyKnowledge(User user){
+        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
+        return !inkLogRepository.existsByUserAndReasonAndCreatedAtAfter(
+                user, InkLogType.FIRST_PSYCHOLOGY_VIEW, startOfToday);
+    }
+
+
 }

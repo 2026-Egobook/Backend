@@ -15,13 +15,13 @@ import java.util.List;
 @Component
 public class HomeMapper {
 
-    public HomeResDto toHomeResDto(User user, Integer unReadNotificationCount, Integer unopenedPsychology, Integer attendanceRewardInk) {
+    public HomeResDto toHomeResDto(User user, Integer unReadNotificationCount, Boolean hasUnopenedPsychology, Integer attendanceRewardInk) {
         return HomeResDto.builder()
                 .nickname(user.getNickname())
                 .level(user.getLevel())
                 .ink(user.getInk())
                 .unreadNotifications(unReadNotificationCount)
-                .unopenedPsychology(unopenedPsychology)
+                .hasUnopenedPsychology(hasUnopenedPsychology)
                 .isFirstAttendanceToday(user.isFirstAttendanceToday())
                 .attendanceRewardInk(attendanceRewardInk)
                 .build();
