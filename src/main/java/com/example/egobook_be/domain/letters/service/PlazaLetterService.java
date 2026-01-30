@@ -13,10 +13,12 @@ import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterThreadRepository;
+import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.InkLog;
 import com.example.egobook_be.domain.user.entity.InkLogType;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.enums.UserErrorCode;
+import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.domain.letters.mapper.PlazaLetterMapper;
@@ -48,6 +50,7 @@ public class PlazaLetterService {
     private final InkLogRepository inkLogRepository;
     private final UserRepository userRepository;
     private final MissionRepository missionRepository;
+    private final AbilityRepository abilityRepository;
     private final WordClientService wordClient;
     private final InkLogUtil inkLogUtil;
 
@@ -236,21 +239,36 @@ public class PlazaLetterService {
 
     @Transactional
     public ReplyResponse replyToLetter(Long userId, Long letterId, String text) {
+        // 1. User, Ability 가져오기
+        User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+        Ability userAbility = abilityRepository.findByUser(user).orElseThrow(() -> new CustomException(UserErrorCode.ABILITY_NOT_FOUND));
+
+        // 2. 답장할 텍스트 검증
         validateReplyText(text);
 
         PlazaLetter letter = plazaLetterRepository.findById(letterId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
 
+        // 3. 자기 자신에게 답장을 보내지 않도록 검증
         validateOwnership(letter, userId);
 
+        // 4. 답장 가능한 상태인지 검증
         OffsetDateTime now = OffsetDateTime.now();
         validateReplyable(letter, now);
 
+        // 5. 해당 편지에 대해 답장이 이미 되어있는 상태인지 확인
         if (plazaLetterReplyRepository.existsByLetterId(letter.getLetterId())) {
             throw new CustomException(LettersErrorCode.ALREADY_REPLIED);
         }
 
         enforceWordAiOrThrow(text);
+
+        // 6. plazaLetterReplyRepository로 PlazaLetterReply를 저장하기 전, 해당 사용자가 답장한 편지가 오늘 처음 답장한 편지인지 확인한다.
+        ZoneId zoneId = ZoneId.of("Asia/Seoul");
+        LocalDate today = LocalDate.now(zoneId);
+        OffsetDateTime startOfDay = today.atStartOfDay(zoneId).toOffsetDateTime();
+        OffsetDateTime endOfDay = today.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
+        boolean isFirstReplyToday = !plazaLetterReplyRepository.existsByReplierIdAndCreatedAtBetween(userId, startOfDay, endOfDay);
 
         plazaLetterReplyRepository.save(PlazaLetterReply.builder()
                 .threadId(letter.getThreadId())
@@ -263,10 +281,43 @@ public class PlazaLetterService {
 
         letter.markReplied(now);
 
-        List<ReplyResponse.RewardDto> rewards = List.of(
-                ReplyResponse.RewardDto.builder().kind(ReplyResponse.RewardKind.INK).amount(1).toastMessage(null).build(),
-                ReplyResponse.RewardDto.builder().kind(ReplyResponse.RewardKind.SINCERITY).amount(1).toastMessage(null).build()
-        );
+        // =============================================
+        // [ 보상 로직 ]
+        // =============================================
+        /*
+         * 1. 해당 사용자가 오늘 처음 편지 답장을 한 경우
+         * - 잉크 +1
+         * - 잉크 로그 작성
+         * - 공감성 +1
+         * + 레벨업 시 잉크 +1
+         */
+        List<ReplyResponse.RewardDto> rewards = new ArrayList<>();
+        List<InkLog> inkLogs = new ArrayList<>();
+        if(isFirstReplyToday){
+            inkLogUtil.addInkLog(inkLogs, user, 1, InkLogType.FIRST_LETTER_REPLY); // 잉크 +1
+            rewards.add(ReplyResponse.RewardDto.builder()
+                    .kind(ReplyResponse.RewardKind.INK)
+                    .amount(1)
+                    .toastMessage("첫 답장 보상으로 잉크를 획득했어요!")
+                    .build());
+
+            int earnedInk = userAbility.addEmpathy(1); // 공감성 +1
+            rewards.add(ReplyResponse.RewardDto.builder()
+                    .kind(ReplyResponse.RewardKind.EMPATHY) // [수정] SINCERITY -> EMPATHY
+                    .amount(1)
+                    .toastMessage("공감성 점수가 1 상승했어요.")
+                    .build());
+            // 1-1. 레벨업했는지 여부 확인
+            if(earnedInk == 1){
+                inkLogUtil.addInkLog(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
+                rewards.add(ReplyResponse.RewardDto.builder()
+                        .kind(ReplyResponse.RewardKind.EMPATHY) // [수정] SINCERITY -> EMPATHY
+                        .amount(1)
+                        .toastMessage("공감성 레벨이 1 상승했어요.")
+                        .build());
+            }
+        }
+        inkLogRepository.saveAll(inkLogs);
 
         return ReplyResponse.builder()
                 .letterId(letter.getLetterId())

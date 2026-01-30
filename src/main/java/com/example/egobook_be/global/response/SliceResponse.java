@@ -11,7 +11,7 @@
     @Schema(title = "SliceResponse Dto", description = "무한 스크롤 시 Slice된 데이터들 반환 Record")
     public record SliceResponse<T>(
             List<T> content,    // Slicing된 데이터 리스트
-            int currentSlice,   // 현재 slice 번호
+            int page,   // 현재 slice 번호
             int size,           // 현재 slice 크기(개수)
             boolean hasNext     // 다음 Slice 존재 여부
     ) {
@@ -26,7 +26,7 @@
         public static <T> SliceResponse<T> of(Slice<T> slice) {
             return SliceResponse.<T>builder()
                     .content(slice.getContent())
-                    .currentSlice(slice.getNumber()+1) // 프론트 기준이므로, 실제보다 1 더 많게 반환한다.
+                    .page(slice.getNumber()+1) // 프론트 기준이므로, 실제보다 1 더 많게 반환한다.
                     .size(slice.getSize())
                     .hasNext(slice.hasNext())
                     .build();
@@ -59,7 +59,7 @@
             // 2. 변환한 content를 SliceResponse<T>에 넣어 설정한 뒤, 다른 세부 설정들도 할당해준다.
             return SliceResponse.<T>builder()
                     .content(content)
-                    .currentSlice(slice.getNumber()+1)
+                    .page(slice.getNumber()+1)
                     .size(slice.getSize())
                     .hasNext(slice.hasNext())
                     .build();
