@@ -74,7 +74,7 @@ public class EgoStatsService {
         List<WordCloudDto> wordCloud = calculateWordCloud(sixMonthDiaries);
 
         // 전체 카운트 계산
-        List<TotalCountDto> totalCounts = calculateTotalCounts(yearlyDiaries);
+        TotalStatsDto totalCounts = calculateTotalCounts(yearlyDiaries);
 
         MoodPeakResDto moodPeak = calculateMoodPeak(yearlyDiaries);
 
@@ -83,7 +83,7 @@ public class EgoStatsService {
                 .startMonth(startOfOneYear.getMonthValue())
                 .year(year)
                 .month(month)
-                .totalCounts(totalCounts)
+                .totalStats(totalCounts)
                 .moodPeak(moodPeak)
                 .stacked(stacked)
                 .sixMonthAvgs(sixMonthAvgs)
@@ -92,13 +92,19 @@ public class EgoStatsService {
                 .build();
     }
 
-    private List<TotalCountDto> calculateTotalCounts(List<Diary> diaries) {
-        Map<Integer, Long> countsMap = diaries.stream()
-                .collect(Collectors.groupingBy(Diary::getEmotionLevel, Collectors.counting()));
+    private TotalStatsDto calculateTotalCounts(List<Diary> diaries) {
+        Map<Integer, Long> countsMap = diaries.stream() .collect(Collectors.groupingBy(Diary::getEmotionLevel, Collectors.counting()));
 
-        return IntStream.rangeClosed(1, 5)
+        List<TotalCountDto> counts = IntStream.rangeClosed(1, 5)
                 .mapToObj(lvl -> new TotalCountDto(lvl, countsMap.getOrDefault(lvl, 0L).intValue()))
                 .toList();
+
+        int maxCount = counts.stream()
+                .mapToInt(TotalCountDto::totalCount)
+                .max()
+                .orElse(0);
+
+        return new TotalStatsDto(maxCount, counts);
     }
 
     private MoodPeakResDto calculateMoodPeak(List<Diary> diaries) {
