@@ -52,8 +52,12 @@ public class HomeService {
      */
     @Transactional
     public HomeResDto getHomeData(Long userId){
-        // 1. 사용자 정보 가져오기
-        User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+        /*
+         * 1. 사용자 정보 가져오기
+         * - 해당 API가 동시에 호출되면 동시성 이슈로 2개의 스레드가 처리됨으로써 잉크 보상이 2번 주어질 수 있다.
+         * - 따라서 해당 사용자의 데이터에 비관적 락(Pessimistic Lock)을 적용하였습니다.
+         */
+        User user = userRepository.findByIdWithLock(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
 
         // 2. 사용자가 아직 읽지 않은 알림 개수 확인
         Integer unReadNotificationCount = notificationRepository.countByUserAndIsReadIsFalse(user);
