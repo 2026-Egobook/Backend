@@ -24,7 +24,6 @@ import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class PsychologyService {
 
     private final PsychologyKnowledgeRepository psychologyKnowledgeRepository;
@@ -115,6 +114,7 @@ public class PsychologyService {
         return new KnowledgeDeleteResDto(true, knowledgeId, "북마크가 취소되었습니다.");
     }
 
+    @Transactional(readOnly = true)
     public SavedKnowledgeListResDto getSavedKnowledgeList(Long userId) {
         User user = userRepository.findById(userId).orElseThrow();
 
@@ -130,6 +130,7 @@ public class PsychologyService {
         return new SavedKnowledgeListResDto(items, false, null);
     }
 
+    @Transactional(readOnly = true)
     public DailyStatusResDto getDailyStatus(Long userId) {
         User user = userRepository.findById(userId).orElseThrow();
         LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
