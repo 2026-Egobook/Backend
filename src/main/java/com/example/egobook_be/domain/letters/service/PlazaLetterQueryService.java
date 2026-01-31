@@ -10,6 +10,8 @@ import com.example.egobook_be.domain.letters.mapper.PlazaLetterMapper;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
+import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;

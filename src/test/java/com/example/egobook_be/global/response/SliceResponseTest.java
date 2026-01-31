@@ -44,7 +44,7 @@ class SliceResponseTest {
         // then
         assertThat(response.content()).hasSize(3);
         assertThat(response.content()).containsExactly("Apple", "Banana", "Cherry");
-        assertThat(response.currentSlice()).isEqualTo(1); // 프론트 기준으로 +1 하므로 1이어야 맞는 것이다.
+        assertThat(response.page()).isEqualTo(1); // 프론트 기준으로 +1 하므로 1이어야 맞는 것이다.
         assertThat(response.size()).isEqualTo(3);
         assertThat(response.hasNext()).isTrue();
     }
@@ -75,7 +75,7 @@ class SliceResponseTest {
         assertThat(response.content().get(1).name()).isEqualTo("User2");
 
         // 2. 메타데이터(Slice 정보) 검증
-        assertThat(response.currentSlice()).isEqualTo(2); // 페이지 번호
+        assertThat(response.page()).isEqualTo(2); // 페이지 번호
         assertThat(response.size()).isEqualTo(2);         // 페이지 크기
         assertThat(response.hasNext()).isFalse();         // 다음 페이지 여부
     }

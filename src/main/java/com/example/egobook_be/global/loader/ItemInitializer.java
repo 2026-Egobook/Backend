@@ -1,4 +1,4 @@
-package com.example.egobook_be.domain.shop.loader;
+package com.example.egobook_be.global.loader;
 
 import com.example.egobook_be.domain.shop.entity.Item;
 import com.example.egobook_be.domain.shop.enums.ItemCategory;

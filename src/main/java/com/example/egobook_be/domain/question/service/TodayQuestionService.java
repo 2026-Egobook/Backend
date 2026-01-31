@@ -1,6 +1,10 @@
 package com.example.egobook_be.domain.question.service;
 
+import com.example.egobook_be.domain.diary.dto.DiaryCreateResDto;
+import com.example.egobook_be.domain.diary.enums.RewardType;
 import com.example.egobook_be.domain.friend.repository.FriendRepository;
+import com.example.egobook_be.domain.home.entity.Mission;
+import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.question.dto.*;
 import com.example.egobook_be.domain.question.entity.QuestionAnswer;
 import com.example.egobook_be.domain.question.entity.TodayQuestion;
@@ -10,16 +14,26 @@ import com.example.egobook_be.domain.question.mapper.MyAnswerHistoryMapper;
 import com.example.egobook_be.domain.question.mapper.PublicAnswerMapper;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
 import com.example.egobook_be.domain.question.repository.TodayQuestionRepository;
+import com.example.egobook_be.domain.user.entity.Ability;
+import com.example.egobook_be.domain.user.entity.InkLog;
+import com.example.egobook_be.domain.user.entity.InkLogType;
 import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.enums.UserErrorCode;
+import com.example.egobook_be.domain.user.repository.AbilityRepository;
+import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
+import com.example.egobook_be.global.util.InkLogUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,8 +43,12 @@ public class TodayQuestionService {
 
     private final TodayQuestionRepository todayQuestionRepository;
     private final QuestionAnswerRepository questionAnswerRepository;
+    private final MissionRepository missionRepository;
     private final UserRepository userRepository;
+    private final InkLogRepository inkLogRepository;
+    private final AbilityRepository abilityRepository;
     private final FriendRepository friendRepository;
+    private final InkLogUtil inkLogUtil;
 
     /** 오늘의 질문 조회 **/
     @Transactional(readOnly = true)
@@ -77,11 +95,10 @@ public class TodayQuestionService {
     /** 답변 작성 **/
     @Transactional
     public void createAnswer(Long userId, AnswerCreateReqDto reqDto) {
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
-                );
+        // 1. User, Mission, Ability 객체 가져오기
+        User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+        Mission userMission = missionRepository.findByUser(user).orElseThrow(() -> new CustomException(UserErrorCode.MISSION_NOT_FOUND));
+        Ability userAbility = abilityRepository.findByUser(user).orElseThrow(() -> new CustomException(UserErrorCode.ABILITY_NOT_FOUND));
 
         TodayQuestion todayQuestion = todayQuestionRepository
                 .findByQuestionDate(LocalDate.now())
@@ -93,6 +110,14 @@ public class TodayQuestionService {
             throw new CustomException(QuestionErrorCode.ALREADY_ANSWERED_TODAY);
         }
 
+        // 오늘 처음 "오늘의 질문"에 답변했는지 여부 확인
+        ZoneId zoneId = ZoneId.of("Asia/Seoul");
+        LocalDate today = LocalDate.now(zoneId);
+        OffsetDateTime startOfDay = today.atStartOfDay(zoneId).toOffsetDateTime();
+        OffsetDateTime endOfDay = today.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
+        boolean isFirstAnswerToday = !questionAnswerRepository.existsByUserAndCreatedAtBetween(user, startOfDay, endOfDay);
+
+        // 해당 사용자의 오늘의 답변 저장
         questionAnswerRepository.save(
                 QuestionAnswer.builder()
                         .user(user)
@@ -101,6 +126,41 @@ public class TodayQuestionService {
                         .visibility(reqDto.visibility())
                         .build()
         );
+
+        // =============================================
+        // [ 보상 로직 ]
+        // =============================================
+        /*
+         * 1. 해당 사용자가 오늘 처음 오늘의 질문에 답변했을 경우
+         * - 잉크 +1
+         * - 잉크 로그 작성
+         * - 일일 미션 상태 업데이트
+         * - 성실성 +1
+         * + 레벨업 시 잉크 +1
+         */
+        List<InkLog> inkLogs = new ArrayList<>();
+        if(isFirstAnswerToday){
+            inkLogUtil.addInkLog(inkLogs, user, 1, InkLogType.FIRST_QUESTION_ANSWER); // 잉크 +1
+            // 1-1. 만약 이번이 처음 일일 미션을 수행한 경우일 때
+            if(userMission.updateDailyQuestionMissionStatus(true)){
+                inkLogUtil.addInkLog(inkLogs, user, 1, InkLogType.DAILY_MISSION_REWARD);
+
+                /*
+                 * 1-2. 만약 오늘이 일일 미션을 7일째 완료한 날인 경우
+                 * - 잉크 +2
+                 * - 잉크 로그 추가
+                 */
+                if(userMission.isWeeklyMissionCompleted()){
+                    inkLogUtil.addInkLog(inkLogs, user, 2, InkLogType.WEEKLY_MISSION_REWARD);
+                }
+            }
+            int earnedInk = userAbility.addDiligence(1); // 성실성 +1
+            // 1-3. 성실성 레벨업했는지 여부 확인
+            if(earnedInk == 1){
+                inkLogUtil.addInkLog(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
+            }
+        }
+        inkLogRepository.saveAll(inkLogs);
     }
 
     /** 오늘의 질문 PUBLIC 답변 전체 조회 **/

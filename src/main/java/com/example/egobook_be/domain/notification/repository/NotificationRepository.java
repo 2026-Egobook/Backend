@@ -11,4 +11,9 @@ import org.springframework.stereotype.Repository;
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
     Slice<Notification> findAllByUser(User user, Pageable pageable);
+
+    /**
+     * 해당 사용자가 아직 읽지 않은 알림의 개수를 반환하는 함수 
+     */
+    Integer countByUserAndIsReadIsFalse(User user);
 }

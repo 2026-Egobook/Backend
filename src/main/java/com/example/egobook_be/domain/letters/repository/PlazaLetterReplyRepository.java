@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.time.OffsetDateTime;
 import java.util.Optional;
 
 public interface PlazaLetterReplyRepository extends JpaRepository<PlazaLetterReply, Long> {
@@ -31,4 +32,5 @@ public interface PlazaLetterReplyRepository extends JpaRepository<PlazaLetterRep
             Pageable pageable
     );
 
+    boolean existsByReplierIdAndCreatedAtBetween(Long replierId, OffsetDateTime createdAtAfter, OffsetDateTime createdAtBefore);
 }

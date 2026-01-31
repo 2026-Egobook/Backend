@@ -47,10 +47,6 @@ public class User extends BaseTimeEntity {
     @Column(length = 255)
     private String email;
 
-    @Column(name = "streak_count", nullable = false)
-    @Builder.Default
-    private Integer streakCount = 0; // 연속 출석 수 기본값 0
-
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
@@ -80,6 +76,10 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     @Builder.Default
     private boolean notificationEnabled = true; // 알림 설정 (기본값 true)
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean isFirstAttendanceToday = true; // 오늘 첫 접속 상태인지 여부  
 
     // ========= 연관관계 매핑 ========= //
 
@@ -143,4 +143,7 @@ public class User extends BaseTimeEntity {
     public void updateNotificationEnabled() {
         this.notificationEnabled = !this.notificationEnabled;
     }
+
+    // 출석 보상을 주는 함수
+    public void rewardAttendance() { this.isFirstAttendanceToday = false; }
 }
