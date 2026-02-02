@@ -6,6 +6,7 @@ import com.example.egobook_be.domain.user.enums.RoleType;
 import com.example.egobook_be.global.enums.JwtTokenType;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.util.JwtUtil;
+import com.example.egobook_be.global.util.RedisUtil;
 import com.example.egobook_be.global.util.module.UserAuthDto;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -13,6 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -36,6 +38,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
+    private final RedisUtil redisUtil;
     private final CustomUserDetailService customUserDetailService;
     private final AuthenticationEntryPoint authenticationEntryPoint; // 예외 처리를 위한 클래스
     private static final String AUTHORIZATION_HEADER = "Authorization"; // HTTP 헤더 키
@@ -86,10 +89,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     throw new CustomException(AuthErrorCode.ACCESS_WITH_NON_ACCESS_TYPE_TOKEN);
                 }
 
-                // 4. DB 조회 없이 토큰 정보만으로 인증 객체 생성
+                // 4. 해당 Access Token이 Redis의 블랙리스트에 존재하는지 확인한다.
+                if(redisUtil.checkTokenInBlacklist(token)){
+                    log.warn("[Redis] BlackList에 등록된 Access Token으로 접근이 시도되었습니다. Token: {}", token);
+                    throw new CustomException(AuthErrorCode.BLACKLISTED_TOKEN);
+                }
+
+                // 5. DB 조회 없이 토큰 정보만으로 인증 객체 생성
                 Authentication authentication = createAuthentication(token);
 
-                // 5. SecurityContext에 저장
+                // 6. SecurityContext에 저장
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 log.debug("Security Context에 인증 정보를 저장했습니다: {}", authentication.getName());
             }
@@ -97,12 +106,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             log.error("인증 처리 중 비즈니스 예외 발생: {}", e.getMessage());
             request.setAttribute("exception", e); // EntryPoint에서 처리하도록 속성 저장
             authenticationEntryPoint.commence(request, response, new AuthenticationException(e.getMessage(), e) {});
+            return; // 여기서 끝내야지, 아래의 doFilter가 실행되지 않음 (Double Response 방지)
         } catch (Exception e) {
             log.error("인증 필터 내부 시스템 오류: {}", e.getMessage());
             request.setAttribute("exception", e);
             authenticationEntryPoint.commence(request, response, new AuthenticationException(e.getMessage(), e) {});
+            return; // 여기서 끝내야지, 아래의 doFilter가 실행되지 않음 (Double Response 방지)
         }
-        // 8. 다음 필터로 요청 전달
+        // 7. 다음 필터로 요청 전달
         filterChain.doFilter(request, response);
     }
 
