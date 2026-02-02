@@ -4,6 +4,7 @@ import com.example.egobook_be.domain.diary.entity.Diary;
 import com.example.egobook_be.domain.ego_room.enums.PraiseStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import com.example.egobook_be.domain.user.entity.User;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,17 +21,16 @@ public class DailyPraise {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "diary_id", nullable = false)
-    private Diary diary;
 
     private boolean isRead;
 
-    @Enumerated(EnumType.STRING)
-    private PraiseStatus status;
 
     @Column(name = "praise_date", nullable = false)
     private LocalDate praiseDate;
@@ -39,10 +39,10 @@ public class DailyPraise {
     private LocalDateTime createdAt;
 
     @Builder
-    public DailyPraise(String content, Diary diary, PraiseStatus status) {
+    public DailyPraise(User user, String content,  LocalDate praiseDate) {
+        this.user = user;
         this.content = content;
-        this.diary = diary;
-        this.status = status;
+        this.praiseDate = praiseDate; // 서비스에서 넘겨주는 날짜
         this.isRead = false;
         this.createdAt = LocalDateTime.now();
     }

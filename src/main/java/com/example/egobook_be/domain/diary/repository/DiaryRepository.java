@@ -65,5 +65,9 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
     @Query("SELECT AVG(d.emotionLevel) FROM Diary d WHERE d.user.id = :userId AND d.writtenAt BETWEEN :start AND :end AND d.emotionLevel > 0")
     Double findAvgEmotionLevel(@Param("userId") Long userId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
+    // 특정 날짜의 일기 목록 조회 (일간용)
+    List<Diary> findByUserIdAndDate(Long userId, LocalDate date);
 
+    // 특정 기간 사이의 일기 목록 조회 (주간용)
+    List<Diary> findByUserIdAndDateBetweenOrderByDateAsc(Long userId, LocalDate start, LocalDate end);
 }
