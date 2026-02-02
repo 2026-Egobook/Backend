@@ -60,7 +60,7 @@ public class WeeklyCounsel {
         this.createdAt = LocalDateTime.now();
     }
 
-    public void unlock() {
+    public void markAsRead() {
         this.isRead = true;
     }
 }

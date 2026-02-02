@@ -83,12 +83,6 @@ public class Ability {
         return this.diligence.addScore(amount);
     }
 
-    public Integer addSelfEsteem(int amount) {
-        return this.selfEsteem.addScore(amount);
-    }
-    public void addSelfEsteem(int value) {
-        this.selfEsteem += value;
-    }
 
 
 }

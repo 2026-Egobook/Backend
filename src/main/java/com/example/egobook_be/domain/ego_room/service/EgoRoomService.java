@@ -69,17 +69,17 @@ public class EgoRoomService {
             praise.markAsRead();
 
             Ability ability = praise.getDiary().getUser().getAbility();
-            ability.addSelfEsteem(1);
+          //  ability.addSelfEsteem(1); -> 대체 예정
 
-            rewards.add(new RewardDto(
-                    "SELF_ESTEEM",
-                    1,
-                    "칭찬서가 도착하여 자존감이 한 칸 상승했어요"
-            ));
+//            rewards.add(new RewardDto(
+//                    "SELF_ESTEEM",
+//                    1,
+//                    "칭찬서가 도착하여 자존감이 한 칸 상승했어요"
+//            ));
         }
 
         return new DailyPraiseItemDto(
-                praise.getDiary().getDate().toString(), // writtenAt 대신 date 사용
+                praise.getDiary().getDate().toString(),
                 praise.getContent(),
                 praise.getCreatedAt().toString(),
                 praise.isRead(),
@@ -112,11 +112,11 @@ public class EgoRoomService {
         ));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public WeeklyCounselDetailResDto getWeeklyCounselDetail(Long userId, LocalDate startDate) {
         WeeklyCounsel counsel = weeklyCounselRepository.findByUserIdAndStartDate(userId, startDate)
                 .orElseThrow(() -> new CustomException(DiaryErrorCode.COUNSEL_NOT_FOUND));
-
+        counsel.markAsRead();
         return WeeklyCounselDetailResDto.from(counsel);
     }
 
