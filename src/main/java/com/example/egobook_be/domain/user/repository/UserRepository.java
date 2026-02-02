@@ -33,9 +33,5 @@ public interface UserRepository extends JpaRepository<User, Long>,UserRepository
             String accountCode
     );
 
-    @Modifying
-    @Transactional
-    @Query("UPDATE User u SET u.counselingTone = :tone WHERE u.id = :userId")
-    void updateCounselingTone(
-            @Param("userId") Long userId, @Param("tone") String tone);
+   
 }

@@ -1,35 +1,27 @@
 package com.example.egobook_be.domain.ego_room.service;
 
-import com.example.egobook_be.domain.diary.entity.Diary;
 import com.example.egobook_be.domain.diary.exception.DiaryErrorCode;
-import com.example.egobook_be.domain.diary.repository.DiaryRepository;
-import com.example.egobook_be.domain.ego_room.dto.CounselTonePatchReqDto;
 import com.example.egobook_be.domain.ego_room.dto.*;
 import com.example.egobook_be.domain.ego_room.entity.DailyPraise;
 import com.example.egobook_be.domain.ego_room.entity.WeeklyCounsel;
 import com.example.egobook_be.domain.ego_room.enums.CounselTone;
-import com.example.egobook_be.domain.ego_room.exception.EgoRoomErrorCode;
-import com.example.egobook_be.domain.ego_room.exception.SubscriptionLockedException;
 import com.example.egobook_be.domain.ego_room.repository.DailyPraiseRepository;
 import com.example.egobook_be.domain.ego_room.repository.WeeklyCounselRepository;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.exception.UserErrorCode;
-import com.example.egobook_be.domain.user.repository.SubscriptionRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.exception.GlobalErrorCode;
+import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,25 +35,28 @@ public class EgoRoomService {
 
 
     @Transactional(readOnly = true)
-    public DailyPraiseListResDto getDailyPraiseList(Long userId, Long cursor, int size) {
-        Slice<DailyPraise> praiseSlice = dailyPraiseRepository.findPraiseList(
-                userId,
-                cursor,
-                PageRequest.of(0, size)
+    public SliceResponse<DailyPraiseSimpleItemDto> getDailyPraiseList(Long userId, int page, int size) {
+        if (page<1){
+            throw new CustomException(GlobalErrorCode.INVALID_SLICE_VALUE);
+        }
+        if (size<1 || size>100){
+            throw new CustomException(GlobalErrorCode.INVALID_SIZE_VALUE);
+        }
+
+        Pageable pageable = PageRequest.of(
+                page-1,
+                size,
+                Sort.by(Sort.Direction.DESC,"praiseDate")
         );
 
-        List<DailyPraiseSimpleItemDto> values = praiseSlice.getContent().stream()
-                .map(praise -> new DailyPraiseSimpleItemDto(
-                        praise.getId(),
-                        praise.getPraiseDate().toString(), // 이제 diary가 아니라 praise 자체에서 날짜를 가져와!
-                        praise.isRead()
-                ))
-                .collect(Collectors.toList());
+        Slice<DailyPraise> praiseSlice = dailyPraiseRepository.findAllByUserId(userId, pageable);
 
-        Long nextCursor = praiseSlice.hasNext() ?
-                praiseSlice.getContent().get(praiseSlice.getContent().size() - 1).getId() : null;
+        return SliceResponse.of(praiseSlice,praise->new DailyPraiseSimpleItemDto(
+                praise.getId(),
+                praise.getPraiseDate().toString(),
+                praise.isRead()
+        ));
 
-        return new DailyPraiseListResDto(values, praiseSlice.hasNext(), nextCursor);
     }
 
     @Transactional
@@ -93,26 +88,28 @@ public class EgoRoomService {
     }
 
     @Transactional(readOnly = true)
-    public WeeklyCounselListResDto getWeeklyCounselList(Long userId, Long cursor, int size) {
-        Slice<WeeklyCounsel> counselSlice = weeklyCounselRepository.findWeeklyCounselList(
-                userId,
-                cursor,
-                PageRequest.of(0, size)
+    public SliceResponse<WeeklyCounselSimpleItemDto> getWeeklyCounselList(Long userId, int page, int size) {
+        if (page < 1) {
+            throw new CustomException(GlobalErrorCode.INVALID_SLICE_VALUE);
+        }
+        if (size < 1 || size > 100) {
+            throw new CustomException(GlobalErrorCode.INVALID_SIZE_VALUE);
+        }
+
+        Pageable pageable = PageRequest.of(
+                page - 1,
+                size,
+                Sort.by(Sort.Direction.DESC, "startDate")
         );
 
-        List<WeeklyCounselSimpleItemDto> values = counselSlice.getContent().stream()
-                .map(counsel -> new WeeklyCounselSimpleItemDto(
-                        counsel.getId(),
-                        counsel.getStartDate().toString(),
-                        counsel.getEndDate().toString(),
-                        counsel.isRead()
-                ))
-                .collect(Collectors.toList());
+        Slice<WeeklyCounsel> counselSlice = weeklyCounselRepository.findAllByUserId(userId, pageable);
 
-        Long nextCursor = counselSlice.hasNext() ?
-                counselSlice.getContent().get(counselSlice.getContent().size() - 1).getId() : null;
-
-        return new WeeklyCounselListResDto(values, counselSlice.hasNext(), nextCursor);
+        return SliceResponse.of(counselSlice, counsel -> new WeeklyCounselSimpleItemDto(
+                counsel.getId(),
+                counsel.getStartDate().toString(),
+                counsel.getEndDate().toString(),
+                counsel.isRead()
+        ));
     }
 
     @Transactional(readOnly = true)

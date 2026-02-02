@@ -4,8 +4,11 @@ package com.example.egobook_be.domain.ego_room.controller;
 import com.example.egobook_be.domain.ego_room.dto.*;
 import com.example.egobook_be.domain.ego_room.service.EgoRoomService;
 import com.example.egobook_be.domain.ego_room.service.EgoStatsService;
+import com.example.egobook_be.global.response.SliceResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import com.example.egobook_be.global.response.GlobalResponse;
+import com.example.egobook_be.global.response.SliceResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -27,18 +30,15 @@ public class EgoRoomController {
 
     @Operation(summary = "일간 칭찬서 목록 조회", description = "일간 칭찬서들의 날짜를 보여줍니다.")
     @GetMapping("/praise/daily")
-    public ResponseEntity<DailyPraiseListResDto> getDailyPraiseList(
+    public GlobalResponse<SliceResponse<DailyPraiseSimpleItemDto>> getDailyPraiseList(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
-            @Parameter(description = "마지막으로 조회된 항목의 ID (1일 경우 처음부터 조회)", example = "1")
-            @RequestParam(defaultValue = "0") Long cursor,
-            @Parameter(description = "한 번에 가져올 항목 개수", example = "30")
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "30") int size
     ) {
-        return ResponseEntity.ok(egoRoomService.getDailyPraiseList(userId, cursor, size));
+        return GlobalResponse.success(egoRoomService.getDailyPraiseList(userId, page, size));
     }
 
     @Operation(summary = "일간 칭찬서 상세 조회", description = "특정 날짜의 칭찬서 내용을 확인하고 최초 열람 시 자존감을 1 상승시킵니다.")
-    @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping("/praise/daily/{date}")
     public ResponseEntity<DailyPraiseItemDto> getDailyPraiseDetail(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
@@ -50,15 +50,13 @@ public class EgoRoomController {
 
     @Operation(summary = "주간 상담서 목록 조회", description = "사용자에게 발행된 주간 상담서 목록을 조회합니다.")
     @GetMapping("/counsel/weekly")
-    public ResponseEntity<WeeklyCounselListResDto> getWeeklyCounselList(
+    public GlobalResponse<SliceResponse<WeeklyCounselSimpleItemDto>> getWeeklyCounselList(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
-            @Parameter(description = "마지막 조회 ID", example = "1")
-            @RequestParam(defaultValue = "1") Long cursor,
-            @Parameter(description = "조회 개수", example = "20")
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size
     ) {
-
-        return ResponseEntity.ok(egoRoomService.getWeeklyCounselList(userId, cursor, size));
+        // 서비스 메서드에 page와 size를 순서대로 넘겨줘
+        return GlobalResponse.success(egoRoomService.getWeeklyCounselList(userId, page, size));
     }
 
     @Operation(summary = "주간 상담서 상세 조회", description = "특정 주의 시작 날짜(월요일)로 상담서 상세 내용을 조회합니다.")

@@ -12,16 +12,7 @@ import java.util.Optional;
 
 public interface DailyPraiseRepository extends JpaRepository<DailyPraise, Long> {
 
-    @Query("SELECT dp FROM DailyPraise dp " +
-            "JOIN FETCH dp.diary d " +
-            "WHERE d.user.id = :userId " +
-            "AND (:cursor = 1L OR dp.id < :cursor) " +
-            "ORDER BY dp.id DESC")
-    Slice<DailyPraise> findPraiseList(
-            @Param("userId") Long userId,
-            @Param("cursor") Long cursor,
-            Pageable pageable
-    );
+    Slice<DailyPraise> findAllByUserId(Long userId, Pageable pageable);
 
     @Query("SELECT dp FROM DailyPraise dp " +
             "JOIN FETCH dp.diary d " +
@@ -31,4 +22,6 @@ public interface DailyPraiseRepository extends JpaRepository<DailyPraise, Long> 
             @Param("userId") Long userId,
             @Param("date") LocalDate date
     );
+
+
 }

@@ -1,6 +1,5 @@
 package com.example.egobook_be.global.exception;
 
-import com.example.egobook_be.domain.ego_room.exception.SubscriptionLockedException;
 import com.example.egobook_be.global.exception.model.BaseErrorCode;
 import com.example.egobook_be.global.response.GlobalResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -25,20 +24,6 @@ public class GlobalExceptionHandler {
         // 2. Custom 오류가 발생했다는 로그와 해당 예외로 설정해둔 Error Code를 로깅한다.
         log.error("Custom 오류 발생: {}", e.getErrorCode());
 
-        // 미구독시 cta 제공 위한 처리
-        if (e instanceof SubscriptionLockedException) {
-            SubscriptionLockedException subEx = (SubscriptionLockedException) e;
-
-
-            Map<String, Object> body = new java.util.LinkedHashMap<>();
-
-            body.put("status", baseErrorCode.getStatus().value());
-            body.put("code", subEx.getDynamicCode());
-            body.put("message", baseErrorCode.getMessage());
-            body.put("result", subEx.getResult()); // CTA 정보 포함
-
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
-        }
 
         // 3. ResponseEntity 객체에 baseErrorCode의 status를 설정해주고, body에는 GlobalResponse 클래스의 "error()" 함수로 error 내용을 담은 객체를 넣어준다.
         return ResponseEntity

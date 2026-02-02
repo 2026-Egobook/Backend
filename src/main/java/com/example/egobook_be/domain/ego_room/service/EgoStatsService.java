@@ -27,14 +27,6 @@ public class EgoStatsService {
     public EgoStatsResDto getMonthlyStats(Long userId, int year, int month) {
         log.info("유저 {}번의 {}년 {}월 통계 조회 시작", userId, year, month);
 
-        /* 구독 체크
-        subscriptionRepository.findActiveSubscription(userId, LocalDate.now())
-                .orElseThrow(() -> new SubscriptionLockedException(
-                        EgoRoomErrorCode.WEEKLY_COUNSEL_LOCKED,
-                        "SUB403_STATS_LOCKED",
-                        "B1.3_SETTINGS"
-                ));
-        */
 
         //광고보는 로직
 
