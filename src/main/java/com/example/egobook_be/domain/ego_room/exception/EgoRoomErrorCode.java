@@ -10,7 +10,8 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum EgoRoomErrorCode implements BaseErrorCode {
 
-    WEEKLY_COUNSEL_LOCKED(HttpStatus.FORBIDDEN, "월정액 미구독 시 이용 불가");
+
+    STATS_DATA_NOT_FOUND(HttpStatus.BAD_REQUEST, "첫 일기를 작성한 후 24시간이 지나야 통계 조회가 가능합니다.");
 
     private final HttpStatus status;
     private final String message;

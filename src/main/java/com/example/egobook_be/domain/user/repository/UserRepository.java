@@ -33,5 +33,5 @@ public interface UserRepository extends JpaRepository<User, Long>,UserRepository
             String accountCode
     );
 
-   
+
 }

@@ -12,6 +12,7 @@ import java.util.Optional;
 
 public interface DailyPraiseRepository extends JpaRepository<DailyPraise, Long> {
 
+    @Query("SELECT dp FROM DailyPraise dp WHERE dp.diary.user.id = :userId")
     Slice<DailyPraise> findAllByUserId(Long userId, Pageable pageable);
 
     @Query("SELECT dp FROM DailyPraise dp " +

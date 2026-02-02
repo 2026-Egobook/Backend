@@ -3,6 +3,13 @@ package com.example.egobook_be.domain.ego_room.service;
 import com.example.egobook_be.domain.diary.entity.Diary;
 import com.example.egobook_be.domain.diary.repository.DiaryRepository;
 import com.example.egobook_be.domain.ego_room.dto.*;
+import com.example.egobook_be.domain.ego_room.entity.UserStats;
+import com.example.egobook_be.domain.ego_room.exception.EgoRoomErrorCode;
+import com.example.egobook_be.domain.ego_room.repository.UserStatsRepository;
+import com.example.egobook_be.domain.user.repository.UserRepository;
+import com.example.egobook_be.global.exception.CustomException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,15 +27,57 @@ import java.util.stream.IntStream;
 @RequiredArgsConstructor
 public class EgoStatsService {
 
+    private final ObjectMapper objectMapper;
+    private final UserStatsRepository userStatsRepository;
     private final DiaryRepository diaryRepository;
-    // private final SubscriptionRepository subscriptionRepository;
+    private final UserRepository userRepository;
+
+    @Transactional
+    public EgoStatsResDto getStats(Long userId) {
+        Optional<UserStats> userStatsOpt = userStatsRepository.findByUserId(userId);
+
+        // 레코드가 아예 없거나, 레코드는 있어도 실제 통계 데이터가 비어있는 경우
+        if (userStatsOpt.isEmpty() || userStatsOpt.get().getStatsData() == null || userStatsOpt.get().getStatsData().isEmpty()) {
+            throw new CustomException(EgoRoomErrorCode.STATS_DATA_NOT_FOUND);
+        }
+
+        try {
+            return objectMapper.readValue(userStatsOpt.get().getStatsData(), EgoStatsResDto.class);
+        } catch (JsonProcessingException e) {
+            log.error("통계 데이터 파싱 실패", e);
+            LocalDate now = LocalDate.now();
+            return EgoStatsResDto.empty(now.getYear(), now.getMonthValue(), now.minusYears(1).getYear(), now.getMonthValue());
+        }
+
+    }
+
+    @Transactional
+    public void calculateAndSaveStats(Long userId, int year, int month) {
+
+        EgoStatsResDto statsDto = getMonthlyStats(userId, year, month);
+
+        try {
+            String jsonStats = objectMapper.writeValueAsString(statsDto);
+
+            // 레코드가 없으면 새로 생성해서 저장
+            UserStats userStats = userStatsRepository.findByUserId(userId)
+                    .orElseGet(() -> UserStats.builder()
+                            .user(userRepository.findById(userId)
+                                    .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다.")))
+                            .build());
+
+            userStats.updateStats(jsonStats);
+            userStatsRepository.save(userStats);
+        } catch (JsonProcessingException e) {
+            log.error("제이슨 변환 실패", e);
+        }
+    }
+
+
 
     @Transactional(readOnly = true)
     public EgoStatsResDto getMonthlyStats(Long userId, int year, int month) {
-        log.info("유저 {}번의 {}년 {}월 통계 조회 시작", userId, year, month);
 
-
-        //광고보는 로직
 
         LocalDate targetDate = LocalDate.of(year, month, 1);
         LocalDateTime endOfPeriod = targetDate.withDayOfMonth(targetDate.lengthOfMonth()).atTime(23, 59, 59);
