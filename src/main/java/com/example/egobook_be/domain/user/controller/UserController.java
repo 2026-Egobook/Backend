@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -48,11 +49,13 @@ public class UserController implements UserControllerDocs{
 
     @Override
     public ResponseEntity<GlobalResponse<Void>> withdrawAccount(
-            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String accessToken
     ){
+        userService.withDrawAccount(userId, accessToken);
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(null);
+                .body(GlobalResponse.success("회원 탈퇴 성공", null));
     }
 
 }

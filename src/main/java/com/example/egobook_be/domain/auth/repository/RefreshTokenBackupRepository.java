@@ -31,4 +31,7 @@ public interface RefreshTokenBackupRepository extends JpaRepository<RefreshToken
      * @return
      */
     Optional<RefreshTokenBackup> findByHashedTokenValue(String hashedRefreshToken);
+
+    /** AuthAccount와 연관된 RefreshTokenBackup 레코드를 삭제하는 함수 */
+    boolean deleteByAuthAccount(AuthAccount authAccount);
 }

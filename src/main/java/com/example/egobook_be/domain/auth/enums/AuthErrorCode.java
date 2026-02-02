@@ -32,6 +32,7 @@ public enum AuthErrorCode implements BaseErrorCode {
      * 404 NOT_FOUND: 리소스 없음
      */
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 사용자를 찾을 수 없습니다."),
+    USER_AUTH_ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 사용자의 인증 정보를 찾을 수 없습니다."),
     AUTH_ACCOUNT_NOT_FOUND_IN_REFRESH_TOKEN_BACKUP(HttpStatus.NOT_FOUND , "Refresh Token Backup Table에서 해당 Auth Account 인스턴스를 찾을 수 없습니다."),
     REFRESH_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 Refresh Token에 대한 정보를 서버에서 찾을 수 없습니다. Recover Token을 사용하여 Refresh Token을 재발급받으세요."),
 

@@ -223,7 +223,7 @@ public class AuthService {
          * - 조회를 성공한 경우, RedisValue Record Class에 담겨있는 값으로 Access Token을 재발급한다.
          * - 재발급 시 Recover Token은 안준다.
          */
-        RedisValue redisValue = redisUtil.getRefreshTokenValue(hashedRefreshToken);
+        RedisValue redisValue = redisUtil.getHashedRefreshTokenValue(hashedRefreshToken);
         if(redisValue != null){
             TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(redisValue.userId(), redisValue.authAccountId(), redisValue.subject(), redisValue.role());
             return buildJwtTokenResDto(newAccessTokenInfo.token(), reqDto.refreshToken(), null);
@@ -293,7 +293,7 @@ public class AuthService {
          */
         if(!authAccount.getHashedRecoverToken().equals(hashedRecoverToken)){
             log.warn("[Class:AuthService]: HashedDeviceUid: {}, 옳지 않은 Recover Token로 Refresh Token 복구 시도를 하였습니다..", hashedDeviceUid);
-            authAccount.getUser().deleteUser(purgeDurationInMs); // 사용자 삭제(실제로는 삭제 예정으로 상태 변경)
+            authAccount.getUser().withdrawUser(purgeDurationInMs); // 사용자 삭제(실제로는 삭제 예정으로 상태 변경)
             throw new CustomException(AuthErrorCode.INVALID_RECOVER_TOKEN);
         }
 
@@ -334,7 +334,7 @@ public class AuthService {
 
     /**
      * Google RefreshToken 재발급
-     * Refresh Token이 만료되었을 때, 프론트엔드가 Google Slient Login 후 받은 ID Token으로 호출하는 API
+     * Refresh Token이 만료되었을 때, 프론트엔드가 Google Silent Login 후 받은 ID Token으로 호출하는 API
      * - 회원가입(Register)과 달리, 이미 존재하는 계정이어야만 성공한다.
      * - Recover Token은 여전히 null이다.
      */
@@ -403,7 +403,7 @@ public class AuthService {
 
         // 4-2. Redis 삭제 (기존 토큰이 있었다면)
         if (oldHashedRefreshToken != null) {
-            redisUtil.deleteRefreshToken(oldHashedRefreshToken); // RedisUtil에 delete 메서드 필요 (없으면 setTTL(0))
+            redisUtil.deleteHashedRefreshToken(oldHashedRefreshToken); // RedisUtil에 delete 메서드 필요 (없으면 setTTL(0))
         }
 
         /*
@@ -545,7 +545,7 @@ public class AuthService {
             ttlInMillis = 0;
         }
         if(ttlInMillis > 0){
-            redisUtil.setRefreshTokenValue(key, value, ttlInMillis);
+            redisUtil.setHashedRefreshTokenValue(key, value, ttlInMillis);
         }
     }
 
@@ -595,7 +595,7 @@ public class AuthService {
      */
     private AuthAccount findAuthAccountByHashedDeviceUidAndProvider(String hashedDeviceUid, Provider provider){
         return authAccountRepository.findByHashedDeviceUidAndProvider(hashedDeviceUid, provider)
-                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_AUTH_ACCOUNT_NOT_FOUND));
     }
 
     /**

@@ -262,6 +262,15 @@ public class JwtUtil {
     }
 
     /**
+     * 해당 토큰의 만료 MS 시간을 반환하는 함수
+     */
+    public long getExpirationInMs(String token) {
+        // 1. Claims 객체의 내장 메서드 getExpiration(), JWT의 exp(초) 값을 Date 객체로 변환함
+        Date expirationDate = getPayload(token).getExpiration();
+        // 2. Date 객체의 getTime()은 해당 시간을 ms 단위로 반환함
+        return expirationDate.getTime();
+    }
+    /**
      * JWT Token에서 Claims를 추출하는 함수
      * @param token JWT Token
      * @return

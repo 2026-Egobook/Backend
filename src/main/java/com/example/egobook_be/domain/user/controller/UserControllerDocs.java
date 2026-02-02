@@ -17,10 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "User Controller", description = "사용자 관련 API")
 @RequestMapping("/users")
@@ -93,7 +90,7 @@ public interface UserControllerDocs {
               1. 사용자의 모든 식별 정보를 삭제하거나 비식별화(Anonymization) 처리합니다.
               2. **Redis에 저장된 Refresh Token을 즉시 삭제**하여 모든 기기에서 로그아웃 시킵니다.
               3. 발급받은 AccessToken의 jti를 Redis의 BlackList에 해당 Token의 유효시간동안 등록하여, 추가적인 접근을 막습니다. 
-              4. 해당 계정의 RefreshTokenBackup, AuthAccount 테이블의 레코드를 삭제함으로써, Recovery Token으로 Refresh Token을 재발급받지 못하게 합니다.
+              4. 해당 계정의 RefreshTokenBackup 테이블의 레코드를 삭제 및 사용자의 상태를 변화시킴으로써, Recovery Token으로 Refresh Token을 재발급받지 못하게 합니다.
               5. 더 이상 다른 사용자들은 해당 사용자에게 편지 작성, 친구 추가 등의 작업을 할 수 없습니다.   
               6. 탈퇴된 계정은 7일 뒤 완전히 정보가 삭제됩니다. 
             
@@ -112,7 +109,8 @@ public interface UserControllerDocs {
     @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping("/withdraw")
     ResponseEntity<GlobalResponse<Void>> withdrawAccount(
-            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String accessToken
     );
 
 }
