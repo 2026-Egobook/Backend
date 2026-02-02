@@ -31,7 +31,10 @@ public interface AuthAccountRepository extends JpaRepository<AuthAccount, Long> 
      * @param provider Provider
      * @return Optional<AuthAccount></AuthAccount>
      */
-    Optional<AuthAccount> findByHashedDeviceUidAndProvider(String hashedDeviceUid, Provider provider);
+    @Query("select a from AuthAccount a " +
+            "join fetch a.user u " +
+            "where a.hashedDeviceUid = :hashedDeviceUid and a.provider = :provider")
+    Optional<AuthAccount> findByHashedDeviceUidAndProvider(@Param("hashedDeviceUid") String hashedDeviceUid, @Param("provider") Provider provider);
     /**
      * 특정 유저의 특정 Provider 계정 조회 (Guest 계정 찾기용)
      */

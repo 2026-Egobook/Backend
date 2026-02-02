@@ -16,6 +16,7 @@ import com.example.egobook_be.domain.terms.repository.TermRepository;
 import com.example.egobook_be.domain.terms.repository.UserTermRepository;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.enums.RoleType;
+import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.global.util.*;
 import com.example.egobook_be.global.util.module.TokenInfo;
@@ -274,8 +275,9 @@ public class AuthService {
     }
 
     /**
-     * Guest RefreshToken 재발급
-     * Refresh Token이 만료되었을 때, 기기에 영구 저장된 Recover Token을 검증하여 세션을 복구하는 함수
+     * [ Guest RefreshToken 재발급 ]
+     * - 사용자의 상태가 "삭제 대기" 상태라면 사용자 재인증 금지
+     * - Refresh Token이 만료되었을 때, 기기에 영구 저장된 Recover Token을 검증하여 세션을 복구하는 함수
      */
     @Transactional
     public JwtTokenResDto recertificationGuestToken(GuestRecertificationReqDto reqDto){
@@ -298,12 +300,20 @@ public class AuthService {
         }
 
         /*
+         * 4. 해당 인증 정보를 갖고 있는 User의 Status가 삭제 대기 상태인지 확인한다.
+         * - findAuthAccountByHashedDeviceUidAndProvider에서 User도 Fetch Join으로 가져와 같은 영속성 컨텍스트에 있으므로, N+1이 발생하지 않는다.
+         */
+        User user = authAccount.getUser();
+        if(user.getStatus().equals(UserStatus.WITHDRAW_PENDING)){
+            throw new CustomException(AuthErrorCode.RECERTIFICATION_FAIL_USER_WITHDRAW_PENDING);
+        }
+
+        /*
          * 4. 검증 통과 시, 새로운 Access, Refresh, Recover Token 생성
          * - User 정보를 로드하여 토큰 생성에 필요한 Subject, Role 획득
          * - recoverTokenInfo는 CustomUserDetails 객체가 있어야 하므로 생성
          * - AuthAccount의 hashedRecoverToken 업데이트
          */
-        User user = authAccount.getUser();
         CustomUserDetails userDetails = buildCustomUserDetails(user, authAccount);
         String subject = jwtUtil.createSubject(authAccount.getProvider(), authAccount.getHashedDeviceUid()); // 토큰에 넣을 subject 생성
         TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(user.getId(), authAccount.getId(), subject, user.getRole());
@@ -351,17 +361,24 @@ public class AuthService {
         AuthAccount authAccount = authAccountRepository.findByHashedDeviceUidAndProvider(hashedGoogleSub, Provider.GOOGLE)
                 .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
 
+        /*
+         * 3. 해당 인증 정보를 갖고 있는 User의 Status가 삭제 대기 상태인지 확인한다.
+         * - findAuthAccountByHashedDeviceUidAndProvider에서 User도 Fetch Join으로 가져와 같은 영속성 컨텍스트에 있으므로, N+1이 발생하지 않는다.
+         */
         User user = authAccount.getUser();
+        if(user.getStatus().equals(UserStatus.WITHDRAW_PENDING)){
+            throw new CustomException(AuthErrorCode.RECERTIFICATION_FAIL_USER_WITHDRAW_PENDING);
+        }
 
-        // 3. 토큰 재발급 (Access + Refresh)
+        // 4. 토큰 재발급 (Access + Refresh)
         CustomUserDetails userDetails = buildCustomUserDetails(user, authAccount);
         TokenInfo accessTokenInfo = jwtUtil.createAccessToken(userDetails);
         TokenInfo refreshTokenInfo = jwtUtil.createRefreshToken(userDetails);
 
-        // 4. Refresh Token 저장 (DB + Redis)
+        // 5. Refresh Token 저장 (DB + Redis)
         processRefreshTokenSaving(user, authAccount, refreshTokenInfo);
 
-        // 5. 반환
+        // 6. 반환
         return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), null);
     }
 

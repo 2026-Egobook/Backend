@@ -21,6 +21,12 @@ public enum AuthErrorCode implements BaseErrorCode {
     INVALID_GOOGLE_TOKEN(HttpStatus.BAD_REQUEST, "Google Token이 null이거나 유효하지 않습니다."),
 
     /**
+     * 403 FORBIDDEN
+     */
+    RECERTIFICATION_FAIL_USER_WITHDRAW_PENDING(HttpStatus.FORBIDDEN, "사용자가 탈퇴 대기중이기 때문에, 해당 토큰으로 재인증할 수 없습니다."),
+    RECERTIFICATION_FAIL_USER_WITHDRAWN(HttpStatus.FORBIDDEN, "사용자가 탈퇴했기 때문에, 해당 토큰으로 재인증할 수 없습니다."),
+
+    /**
      * 401 UNAUTHORIZED: 인증되지 않음
      */
     ACCESS_WITH_NON_ACCESS_TYPE_TOKEN(HttpStatus.UNAUTHORIZED, "Access Token이 아닌 토큰으로 접근을 시도하였습니다."),
