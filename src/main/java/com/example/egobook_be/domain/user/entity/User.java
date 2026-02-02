@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.user.entity;
 
+import com.example.egobook_be.domain.ego_room.enums.CounselTone;
 import com.example.egobook_be.domain.shop.entity.UserItem;
 import com.example.egobook_be.domain.terms.entity.Term;
 import com.example.egobook_be.domain.user.enums.RoleType;
@@ -90,7 +91,12 @@ public class User extends BaseTimeEntity {
     )
     private Ability ability;
 
+    @Enumerated(EnumType.STRING)
+    private CounselTone counselingTone;
 
+    public void updateCounselingTone(CounselTone toneStyle) {
+        this.counselingTone = toneStyle;
+    }
     /*
      * 사용자가 보유한 아이템 리스트 (양방향 매핑)
      * User가 삭제되면 보유 목록도 같이 삭제되도록 CascadeType.ALL 설정
@@ -146,4 +152,6 @@ public class User extends BaseTimeEntity {
 
     // 출석 보상을 주는 함수
     public void rewardAttendance() { this.isFirstAttendanceToday = false; }
+
+
 }

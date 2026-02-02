@@ -92,7 +92,14 @@ public enum DiaryErrorCode implements BaseErrorCode {
             "내보낼 수 있는 감정 일기가 없어요",
             HttpStatus.NOT_FOUND
     ),
-    ;
+
+
+    PRAISE_NOT_FOUND( "DIARY_PRAISE_404_001", "해당 날짜의 칭찬서가 존재하지 않습니다", HttpStatus.NOT_FOUND ),
+
+    COUNSEL_NOT_FOUND( "DIARY_COUNSEL_404_001", "해당 주간의 상담서가 존재하지 않습니다", HttpStatus.NOT_FOUND ),
+
+    WEEKLY_LOCKED( "DIARY_COUNSEL_403_001", "월정액 미구독 시 이용 불가합니다", HttpStatus.FORBIDDEN );
+
 
     private final String code;
     private final String message;

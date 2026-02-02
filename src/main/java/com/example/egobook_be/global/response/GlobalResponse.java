@@ -37,6 +37,7 @@ public record GlobalResponse<T>(
         return new GlobalResponse<>(status, GlobalResponseCode.SUCCESS, message, data);
     }
 
+
     // error - 실패 응답 생성 함수
     public static <T> GlobalResponse<T> error(Integer status, String message){
         return new GlobalResponse<>(status, GlobalResponseCode.FAIL, message, null);

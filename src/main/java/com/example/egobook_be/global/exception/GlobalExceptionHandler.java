@@ -9,18 +9,21 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.Map;
+
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     // CustomException 예외 처리
     @ExceptionHandler(CustomException.class)
-    public ResponseEntity<GlobalResponse<?>> handleCustomException(CustomException e){
+    public ResponseEntity<Object> handleCustomException(CustomException e){
         // 1. 함수 인자로 받은 CustomException의 멤버변수인 "BaseErrorCode"를 상속받은 Enum Class를 "baseErrorCode" 변수로 받는다.
         BaseErrorCode baseErrorCode = e.getErrorCode();
 
         // 2. Custom 오류가 발생했다는 로그와 해당 예외로 설정해둔 Error Code를 로깅한다.
         log.error("Custom 오류 발생: {}", e.getErrorCode());
+
 
         // 3. ResponseEntity 객체에 baseErrorCode의 status를 설정해주고, body에는 GlobalResponse 클래스의 "error()" 함수로 error 내용을 담은 객체를 넣어준다.
         return ResponseEntity
@@ -51,4 +54,6 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(GlobalResponse.error(500, e.getMessage()));
     }
+
+
 }
