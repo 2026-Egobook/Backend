@@ -1,14 +1,15 @@
 package com.example.egobook_be.domain.user.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "ink_log")
 @Getter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class InkLog {
 
@@ -28,7 +29,8 @@ public class InkLog {
     private InkLogType reason;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     public InkLog(User user, Integer amount, InkLogType reason) {
         this.user = user;

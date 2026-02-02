@@ -1,6 +1,5 @@
 package com.example.egobook_be.domain.user.entity;
 
-import com.example.egobook_be.domain.ego_room.enums.CounselTone;
 import com.example.egobook_be.domain.shop.entity.UserItem;
 import com.example.egobook_be.domain.terms.entity.Term;
 import com.example.egobook_be.domain.user.enums.RoleType;
@@ -48,10 +47,6 @@ public class User extends BaseTimeEntity {
     @Column(length = 255)
     private String email;
 
-    @Column(name = "streak_count", nullable = false)
-    @Builder.Default
-    private Integer streakCount = 0; // 연속 출석 수 기본값 0
-
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
@@ -82,8 +77,9 @@ public class User extends BaseTimeEntity {
     @Builder.Default
     private boolean notificationEnabled = true; // 알림 설정 (기본값 true)
 
-    @Enumerated(EnumType.STRING)
-    private CounselTone counselingTone;
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean isFirstAttendanceToday = true; // 오늘 첫 접속 상태인지 여부  
 
     // ========= 연관관계 매핑 ========= //
 
@@ -148,7 +144,6 @@ public class User extends BaseTimeEntity {
         this.notificationEnabled = !this.notificationEnabled;
     }
 
-    public void updateCounselingTone(CounselTone toneStyle) {
-        this.counselingTone = toneStyle;
-    }
+    // 출석 보상을 주는 함수
+    public void rewardAttendance() { this.isFirstAttendanceToday = false; }
 }

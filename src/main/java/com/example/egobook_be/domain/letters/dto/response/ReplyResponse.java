@@ -29,6 +29,6 @@ public class ReplyResponse {
 
     public enum RewardKind {
         INK,
-        SINCERITY
+        EMPATHY
     }
 }
