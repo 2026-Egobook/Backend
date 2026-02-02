@@ -4,12 +4,15 @@ import com.example.egobook_be.global.util.module.RedisValue;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
 
+import java.security.SignatureException;
 import java.time.Duration;
 
 /**
@@ -93,27 +96,35 @@ public class RedisUtil {
      * - TTL: 해당 토큰의 만료까지 남은 시간
      */
     public void setTokenInBlacklist(String token) {
-        // 1. Redis에 등록할 Key, Value, Ttl 선언
-        String key = "BL:" + jwtUtil.getJtiFromToken(token);
-        String value = jwtUtil.getTokenType(token).name();
-        long ttl = jwtUtil.getExpirationInMs(token) - System.currentTimeMillis();
+        try{
+            // 1. Redis에 등록할 Key, Value, Ttl 선언
+            String key = "BL:" + jwtUtil.getJtiFromToken(token);
+            String value = jwtUtil.getTokenType(token).name();
+            long ttl = jwtUtil.getExpirationInMs(token) - System.currentTimeMillis();
 
-        // 2. 이미 만료된 토큰인지 확인
-        if(ttl <= 0) {
-            log.warn("[Redis] 이미 만료된 Token이 블랙리스트 요청됨 - jti: {}", key);
-            return;
+            // 2. 이미 만료된 토큰인지 확인
+            if(ttl <= 0) {
+                log.warn("[Redis] 이미 만료된 Token이 블랙리스트 요청됨 - jti: {}", key);
+                return;
+            }
+
+            // 3. 해당 Key가 이미 Redis에 존재하는지 확인
+            boolean hasKey = redisTemplate.hasKey(key);
+            if(hasKey) { return; }
+            /*
+             * 4. 해당 Key:Value Redis에 등록
+             * - opsForValue(): Redis String(단일 값, Key:Value) 구조의 자료구조를 반환하는 함수
+             */
+            redisTemplate.opsForValue()
+                    .set(key, value, Duration.ofMillis(ttl));
+            log.info("[Redis] Token Redis BlackList에 등록 완료: {}, TTL - {}ms", key, ttl);
+        } catch (MalformedJwtException | UnsupportedJwtException | IllegalArgumentException e) {
+            // [보안] 위조되거나 손상된 토큰은 JTI를 추출할 수 없으므로 등록 불가 -> 로그 남기고 무시
+            log.warn("[Redis] 잘못된 형식의 토큰 블랙리스트 등록 시도됨: {}", e.getMessage());
+        } catch (Exception e) {
+            // 그 외 알 수 없는 에러
+            log.error("[Redis] 블랙리스트 등록 중 시스템 에러 발생: {}", e.getMessage());
         }
-
-        // 3. 해당 Key가 이미 Redis에 존재하는지 확인
-        boolean hasKey = redisTemplate.hasKey(key);
-        if(hasKey) { return; }
-        /*
-         * 4. 해당 Key:Value Redis에 등록
-         * - opsForValue(): Redis String(단일 값, Key:Value) 구조의 자료구조를 반환하는 함수
-         */
-        redisTemplate.opsForValue()
-                .set(key, value, Duration.ofMillis(ttl));
-        log.info("[Redis] Token Redis BlackList에 등록 완료: {}, TTL - {}ms", key, ttl);
     }
 
     /**

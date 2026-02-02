@@ -76,32 +76,29 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         try {
-            // 2. 토큰 유효성 검증 (위조, 만료 등 확인)
-            if (jwtUtil.validateToken(token)) {
-                /*
-                 * 3. JwtTokenType을 가져와 Access Token인지 확인한다.
-                 * - Refresh Token으로는 API 접근이 불가하도록 설정한다.
-                 * - Access Token이 아닌 다른 토큰(Refresh, Recover)으로 요청이 왔다면 에러 로그 & 예외를 발생시킨다.
-                 */
-                JwtTokenType type = jwtUtil.getTokenType(token);
-                if (!JwtTokenType.ACCESS.equals(type)) {
-                    log.warn("Access Token이 아닌 토큰으로 접근 시도. Type: {}", type);
-                    throw new CustomException(AuthErrorCode.ACCESS_WITH_NON_ACCESS_TYPE_TOKEN);
-                }
-
-                // 4. 해당 Access Token이 Redis의 블랙리스트에 존재하는지 확인한다.
-                if(redisUtil.checkTokenInBlacklist(token)){
-                    log.warn("[Redis] BlackList에 등록된 Access Token으로 접근이 시도되었습니다. Token: {}", token);
-                    throw new CustomException(AuthErrorCode.BLACKLISTED_TOKEN);
-                }
-
-                // 5. DB 조회 없이 토큰 정보만으로 인증 객체 생성
-                Authentication authentication = createAuthentication(token);
-
-                // 6. SecurityContext에 저장
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.debug("Security Context에 인증 정보를 저장했습니다: {}", authentication.getName());
+            /*
+             * 3. JwtTokenType을 가져와 Access Token인지 확인한다.
+             * - Refresh Token으로는 API 접근이 불가하도록 설정한다.
+             * - Access Token이 아닌 다른 토큰(Refresh, Recover)으로 요청이 왔다면 에러 로그 & 예외를 발생시킨다.
+             */
+            JwtTokenType type = jwtUtil.getTokenType(token);
+            if (!JwtTokenType.ACCESS.equals(type)) {
+                log.warn("Access Token이 아닌 토큰으로 접근 시도. Type: {}", type);
+                throw new CustomException(AuthErrorCode.ACCESS_WITH_NON_ACCESS_TYPE_TOKEN);
             }
+
+            // 4. 해당 Access Token이 Redis의 블랙리스트에 존재하는지 확인한다.
+            if(redisUtil.checkTokenInBlacklist(token)){
+                log.warn("[Redis] BlackList에 등록된 Access Token으로 접근이 시도되었습니다. Token: {}", token);
+                throw new CustomException(AuthErrorCode.BLACKLISTED_TOKEN);
+            }
+
+            // 5. DB 조회 없이 토큰 정보만으로 인증 객체 생성
+            Authentication authentication = createAuthentication(token);
+
+            // 6. SecurityContext에 저장
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            log.debug("Security Context에 인증 정보를 저장했습니다: {}", authentication.getName());
         } catch (CustomException e) {
             log.error("인증 처리 중 비즈니스 예외 발생: {}", e.getMessage());
             request.setAttribute("exception", e); // EntryPoint에서 처리하도록 속성 저장

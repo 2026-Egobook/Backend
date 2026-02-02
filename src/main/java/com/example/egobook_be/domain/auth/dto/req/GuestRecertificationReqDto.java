@@ -14,6 +14,10 @@ public record GuestRecertificationReqDto(
         @JsonProperty("deviceUid")
         String deviceUid,
 
+        @Schema(description = "만료되었거나 만료되지 않은, 기존에 사용하던 Access Token (Bearer 제외)", example = "eyJhbGciOiJIUzI1NiJ9...")
+        @NotBlank(message = "Access Token은 필수입니다.")
+        String accessToken,
+
         @Schema(description = "Refresh Token을 재발급하기 위한 Recover Token", example = "eaifiiehig-afe...")
         @NotBlank(message = "Recover Token은 필수입니다.")
         @JsonProperty("recoverToken")
