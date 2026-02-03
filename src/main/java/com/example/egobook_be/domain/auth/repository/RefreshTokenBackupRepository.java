@@ -21,7 +21,7 @@ public interface RefreshTokenBackupRepository extends JpaRepository<RefreshToken
      * @return RefreshTokenBackup
      */
     Optional<RefreshTokenBackup> findByAuthAccount(AuthAccount authAccount);
-
+    List<RefreshTokenBackup> findAllByAuthAccount(AuthAccount authAccount);
     /**
      * 해당 테이블에 AuthAccount PK가 존재하는지 확인하는 함수
      * RefreshTokenBackup 테이블에서는 authAccount PK는 unique하다.
@@ -41,4 +41,6 @@ public interface RefreshTokenBackupRepository extends JpaRepository<RefreshToken
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM RefreshTokenBackup rtb WHERE rtb.authAccount.id IN (SELECT a.id FROM AuthAccount a WHERE a.user IN :users)")
     void bulkDeleteByAuthAccountUserIn(@Param("users") List<User> users);
+
+    void deleteByAuthAccount(AuthAccount authAccount);
 }

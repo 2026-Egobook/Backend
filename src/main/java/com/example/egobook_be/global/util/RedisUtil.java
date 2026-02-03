@@ -76,6 +76,7 @@ public class RedisUtil {
         String key = "RT:" + hashedRefreshToken;
         if (!redisTemplate.hasKey(key)) {return;} // 해당 RefreshToken이 Redis에 없으면 굳이 delete하지 않음
         redisTemplate.delete(key); //
+        log.info("[Redis] HashedRefreshToken이 Redis에서 삭제되었습니다. {}", hashedRefreshToken);
     }
 
     /**

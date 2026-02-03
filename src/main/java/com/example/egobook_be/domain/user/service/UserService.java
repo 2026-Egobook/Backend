@@ -17,6 +17,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -67,18 +70,31 @@ public class UserService {
         user.withdrawUser(purgeDurationInMs);
 
         // 4. 발급 받은 Access Token JTI Redis BlackList에 등록
-        redisUtil.setTokenInBlacklist(accessToken);
+
+        redisUtil.setTokenInBlacklist(resolveToken(accessToken));
 
         /*
          * 5. Redis에 저장된 Refresh Token 즉시 삭제 & 사용자와 연관된 RefreshTokenBackup 테이블 데이터 삭제
          * - 만약 refreshTokenBackup 테이블에 해당 내용이 없더라도, 회원탈퇴 로직을 계속해서 수행해야함
          * - 해당 사용자와 연관된 AuthAccount는 아직 삭제하지 않는다.(7일 뒤 스케줄러로 삭제한다)
          */
-        refreshTokenBackupRepository.findByAuthAccount(userAuthAccount)
-                .ifPresent(backup -> {
-                    redisUtil.deleteHashedRefreshToken(backup.getHashedTokenValue());
-                    refreshTokenBackupRepository.delete(backup);
-                });
+        List<RefreshTokenBackup> backups = refreshTokenBackupRepository.findAllByAuthAccount(userAuthAccount);
+
+        // 5-1. Redis에서 각 토큰 삭제 (반복문)
+        for (RefreshTokenBackup backup : backups) {
+            redisUtil.deleteHashedRefreshToken(backup.getHashedTokenValue());
+        }
+
+        // 5-2. orphanRemoval 설정 활용하여 refreshTokenBackup 객체 삭제
+        userAuthAccount.updateRefreshTokenBackup(null);
+
+    }
+
+    private String resolveToken(String token) {
+        if (StringUtils.hasText(token) && token.startsWith("Bearer ")) {
+            return token.substring(7);
+        }
+        return token;
     }
 
 
