@@ -92,6 +92,10 @@ dependencies {
     implementation 'org.apache.pdfbox:pdfbox:3.0.3'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 
+    // openai
+    implementation platform('dev.langchain4j:langchain4j-bom:0.36.2')
+    implementation 'dev.langchain4j:langchain4j-spring-boot-starter'
+    implementation 'dev.langchain4j:langchain4j-open-ai'
 }
 
 tasks.named('test') {

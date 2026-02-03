@@ -12,17 +12,9 @@ import java.util.Optional;
 
 public interface DailyPraiseRepository extends JpaRepository<DailyPraise, Long> {
 
-    @Query("SELECT dp FROM DailyPraise dp WHERE dp.diary.user.id = :userId")
     Slice<DailyPraise> findAllByUserId(Long userId, Pageable pageable);
 
-    @Query("SELECT dp FROM DailyPraise dp " +
-            "JOIN FETCH dp.diary d " +
-            "WHERE d.user.id = :userId " +
-            "AND dp.praiseDate = :date")
-    Optional<DailyPraise> findByUserIdAndDate(
-            @Param("userId") Long userId,
-            @Param("date") LocalDate date
-    );
+    Optional<DailyPraise> findByUserIdAndPraiseDate(Long userId, LocalDate praiseDate);
 
 
 }
