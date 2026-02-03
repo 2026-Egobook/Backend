@@ -51,7 +51,7 @@ public class AiScheduler {
         LocalDate lastMonday = LocalDate.now().minusWeeks(1).with(java.time.DayOfWeek.MONDAY);
 
         List<User> targetUsers = userRepository.findAllByWeeklyAnalysisEnabledTrue();
-        
+
         for (User user : targetUsers) {
             try {
                 egoRoomService.createWeeklyAnalysis(user.getId(), lastMonday);

@@ -66,7 +66,7 @@ public class User extends BaseTimeEntity {
     private Boolean dailyPraise = true; // AI 칭찬서 수신 여부 (기본값 true)
 
     @Setter
-    @Column(name = "weekly_analysis_enabled")
+    @Column(name = "weekly_analysis_enabled", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
     @Builder.Default
     private Boolean weeklyAnalysisEnabled = true;
 

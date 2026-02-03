@@ -31,37 +31,42 @@ public class EgoRoomController {
     private final EgoRoomService egoRoomService;
     private final EgoStatsService egoRoomStatService;
 
-    //토글표시 위함
+    @Operation(summary = "일간칭찬/주간보고서 수신 여부 get", description = "토글 on/off 정보를 받아옵니다")
     @GetMapping("/ai/toggle")
-    public ResponseEntity<Map<String, Boolean>> getSettings(@AuthenticationPrincipal User user) {
-        Map<String, Boolean> settings = new HashMap<>();
-        settings.put("dailyPraiseEnabled", user.getDailyPraise());
-        settings.put("weeklyAnalysisEnabled", user.getWeeklyAnalysisEnabled());
-
-        return ResponseEntity.ok(settings);
+    public GlobalResponse<Map<String, Boolean>> getSettings(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    ) {
+        return GlobalResponse.success(egoRoomService.getSettings(userId));
     }
 
-    //일간칭찬서 onoff
+    @Operation(summary = "일간칭찬서 수신 여부 설정", description = "일간칭찬서 수신 여부를 설정합니다")
     @PatchMapping("/praise/daily")
-    public ResponseEntity<Void> toggleDailyPraise(
-            @AuthenticationPrincipal User user,
+    public GlobalResponse<Map<String, Boolean>> toggleDailyPraise(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @io.swagger.v3.oas.annotations.media.Content(
+                    schema = @io.swagger.v3.oas.annotations.media.Schema(example = "{\"enabled\": true}")
+            ))
             @RequestBody Map<String, Boolean> payload) {
 
         Boolean enabled = payload.get("enabled");
-        egoRoomService.updateDailyPraiseSetting(user, enabled);
+        egoRoomService.updateDailyPraiseSetting(userId, enabled);
 
-        return ResponseEntity.ok().build();
+        return GlobalResponse.success(Map.of("enabled", enabled));
     }
 
-    //주간보고서 onoff
+    @Operation(summary = "주간보고서 수신 여부 설정", description = "주간보고서 수신 여부를 설정합니다")
     @PatchMapping("/counsel/weekly")
-    public ResponseEntity<Void> toggleWeeklyAnalysis(
-            @AuthenticationPrincipal User user,
+    public GlobalResponse<Map<String, Boolean>> toggleWeeklyAnalysis(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @io.swagger.v3.oas.annotations.media.Content(
+                    schema = @io.swagger.v3.oas.annotations.media.Schema(example = "{\"enabled\": true}")
+            ))
             @RequestBody Map<String, Boolean> payload) {
 
         Boolean enabled = payload.get("enabled");
-        egoRoomService.updateWeeklyAnalysisSetting(user, enabled);
-        return ResponseEntity.ok().build();
+        egoRoomService.updateWeeklyAnalysisSetting(userId, enabled);
+
+        return GlobalResponse.success(Map.of("enabled", enabled));
     }
 
 

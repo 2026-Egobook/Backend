@@ -15,6 +15,7 @@ import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.exception.GlobalErrorCode;
 import com.example.egobook_be.global.response.SliceResponse;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
@@ -22,9 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,18 +38,32 @@ public class EgoRoomService {
     private final WeeklyAnalysisAiService weeklyAnalysisAiService;
     private final DiaryRepository diaryRepository;
 
-    @Transactional
-    public void updateDailyPraiseSetting(User user, Boolean enabled) {
-        if (enabled != null) {
-            user.setDailyPraise(enabled);
-        }
+    @Transactional(readOnly = true)
+    public Map<String, Boolean> getSettings(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("유저를 찾을 수 없습니다."));
+
+        Map<String, Boolean> settings = new HashMap<>();
+        settings.put("dailyPraiseEnabled", user.getDailyPraise());
+        settings.put("weeklyAnalysisEnabled", user.getWeeklyAnalysisEnabled());
+
+        return settings;
     }
 
     @Transactional
-    public void updateWeeklyAnalysisSetting(User user, Boolean enabled) {
-        if (enabled != null) {
-            user.setWeeklyAnalysisEnabled(enabled);
-        }
+    public void updateDailyPraiseSetting(Long userId, Boolean enabled) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("유저를 찾을 수 없습니다."));
+
+        user.setDailyPraise(enabled);
+    }
+
+    @Transactional
+    public void updateWeeklyAnalysisSetting(Long userId, Boolean enabled) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("유저를 찾을 수 없습니다."));
+
+        user.setWeeklyAnalysisEnabled(enabled);
     }
 
     @Transactional(readOnly = true)
