@@ -55,7 +55,7 @@ public class EgoRoomService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("유저를 찾을 수 없습니다."));
 
-        user.setDailyPraise(enabled);
+        user.updateDailyPraiseEnabled(enabled);
     }
 
     @Transactional
@@ -63,7 +63,7 @@ public class EgoRoomService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("유저를 찾을 수 없습니다."));
 
-        user.setWeeklyAnalysisEnabled(enabled);
+        user.updateWeeklyAnalysisEnabled(enabled);
     }
 
     @Transactional(readOnly = true)

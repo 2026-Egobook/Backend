@@ -158,4 +158,11 @@ public class User extends BaseTimeEntity {
     // 출석 보상을 주는 함수
     public void rewardAttendance() { this.isFirstAttendanceToday = false; }
 
+    public void updateDailyPraiseEnabled(boolean enabled) {
+        this.dailyPraise = enabled;
+    }
+
+    public void updateWeeklyAnalysisEnabled(boolean enabled) {
+        this.weeklyAnalysisEnabled = enabled;
+    }
 }
