@@ -10,6 +10,7 @@ import com.example.egobook_be.domain.letters.entity.PlazaLetterReplyReport;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
+import com.example.egobook_be.domain.letters.repository.PlazaLetterThreadRepository;
 import com.example.egobook_be.domain.notification.repository.NotificationRepository;
 import com.example.egobook_be.domain.psychology.repository.UserKnowledgeRepository;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
@@ -49,6 +50,7 @@ public class DailySchedular {
     private final UserKnowledgeRepository userKnowledgeRepository;
     private final QuestionAnswerRepository questionAnswerRepository;
     private final InkLogRepository inkLogRepository;
+    private final PlazaLetterThreadRepository plazaLetterThreadRepository;
 
     /**
      * 모든 사용자들의 일일 미션을 초기화하는 스케줄러 함수
@@ -82,7 +84,7 @@ public class DailySchedular {
      * 사용자들 중 purgeAt이 지난 사용자 데이터들을 모두 삭제하는 스케줄러
      * - 매일 자정(00:00:00)에 실행
      */
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "10 17 17 * * *")
     @Transactional
     public void purgeUsers() {
         log.info("🕛 [DailySchedular] 탈퇴한 사용자들의 정보들 일괄 삭제 작업 시작");
@@ -164,10 +166,13 @@ public class DailySchedular {
          * (1) 탈퇴하는 user가 보낸(Sender) 편지의 senderId를 Null로 변경
          * (2) 탈퇴하는 user가 받은(Receiver) 편지의 receiverId를 null로 변경
          * (3) Sender, Receiver가 모두 null이 된(양쪽 다 탈퇴한) 편지는 DB에서 삭제
+         * (4) 편지가 모두 삭제되어, 자식 객체들이 모두 사라져버린 Thread 삭제
          */
         plazaLetterRepository.bulkNullifySenderId(users.stream().map(User::getId).toList());
         plazaLetterRepository.bulkNullifyReceiverId(users.stream().map(User::getId).toList());
         plazaLetterRepository.bulkDeleteOrphanedLetters();
+        plazaLetterThreadRepository.bulkDeleteEmptyThreads();
+
 
         // 11. 사용자가 받은 알림 정보 삭제
         notificationRepository.bulkDeleteByUserIn(users);
