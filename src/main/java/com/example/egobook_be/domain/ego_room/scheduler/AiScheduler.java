@@ -28,16 +28,11 @@ public class AiScheduler {
         // 기준 날짜 설정 (어제 날짜의 일기를 처리)
         LocalDate yesterday = LocalDate.now().minusDays(1);
 
-        // 모든 유저를 돌면서 처리
-        List<User> users = userRepository.findAll();
+        // 일간칭찬 true인 유저를 돌면서 처리
+        List<User> targetUsers = userRepository.findByDailyPraiseTrue();
 
-        for (User user : users) {
+        for (User user : targetUsers) {
             try {
-                if (!user.getDailyPraise()) {
-                    log.info("[스케줄러 스킵] 유저 {}님은 일간 칭찬 수신을 비활성화했습니다.", user.getId());
-                    continue;
-                }
-
                 egoRoomService.createDailyPraise(user.getId(), yesterday);
             } catch (Exception e) {
                 log.error("[스케줄러 오류] 유저 {}의 일간 칭찬 생성 중 실패: {}", user.getId(), e.getMessage());

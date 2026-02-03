@@ -185,6 +185,10 @@ public class EgoRoomService {
             return;
         }
 
+        String lastSummary = weeklyCounselRepository.findTopByUserOrderByEndDateDesc(user)
+                .map(WeeklyCounsel::getSummary)
+                .orElse("첫 주 분석입니다. 이전 데이터가 없습니다.");
+
         String userTone = (user.getCounselingTone() != null) ? user.getCounselingTone().name() : "SOFT";
 
         LocalDate endDate = startDate.plusDays(6);
@@ -203,7 +207,7 @@ public class EgoRoomService {
                 .collect(Collectors.joining("\n\n")); // 날짜별로 두 칸 띄우기
 
 
-        WeeklyCounselResDto aiResponse = weeklyAnalysisAiService.getAnalysis(formattedDiaries, userTone);
+        WeeklyCounselResDto aiResponse = weeklyAnalysisAiService.getAnalysis(formattedDiaries,lastSummary, userTone);
 
         WeeklyCounsel counsel = WeeklyCounsel.builder()
                 .user(user)

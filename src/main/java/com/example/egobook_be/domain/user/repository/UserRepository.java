@@ -43,4 +43,8 @@ public interface UserRepository extends JpaRepository<User, Long>,UserRepository
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from User u where u.id = :userId")
     Optional<User> findByIdWithLock(@Param("userId") Long userId);
+
+    // 일간 칭찬 수신에 동의한 유저만 조회
+    List<User> findByDailyPraiseTrue();
+
 }

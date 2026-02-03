@@ -1,6 +1,8 @@
 package com.example.egobook_be.domain.ego_room.repository;
 
+import aj.org.objectweb.asm.commons.Remapper;
 import com.example.egobook_be.domain.ego_room.entity.WeeklyCounsel;
+import com.example.egobook_be.domain.user.entity.User;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -27,4 +29,6 @@ public interface WeeklyCounselRepository extends JpaRepository<WeeklyCounsel, Lo
     Optional<WeeklyCounsel> findByUserIdAndStartDate(Long userId, LocalDate startDate);
 
     Slice<WeeklyCounsel> findAllByUserId(Long userId, Pageable pageable);
+
+    Optional<WeeklyCounsel> findTopByUserOrderByEndDateDesc(User user);
 }
