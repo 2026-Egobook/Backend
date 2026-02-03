@@ -22,7 +22,13 @@ spring:
     aws:
       cloudfront:
         domain: "https://dev-img.egobook.site" # 프론트가 S3 요소들에 접속하기 위한 도메인 주소
-
+langchain4j:
+  open-ai:
+    chat-model:
+      api-key: ${OPENAI_API_KEY}
+      model-name: gpt-4o-mini
+      log-requests: true
+      log-responses: true
 server:
   url: https://dev.egobook.site
   servlet:

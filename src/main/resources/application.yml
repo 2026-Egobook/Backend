@@ -18,7 +18,13 @@ spring:
         static: ap-northeast-2
       s3:
         bucket: egobook-${spring.profiles.active} # profiles.active대로 버킷 이름 설정되도록 함
-
+langchain4j:
+  open-ai:
+    chat-model:
+      api-key: ${OPENAI_API_KEY}
+      model-name: gpt-4o-mini
+      log-requests: true
+      log-responses: true
 server:
   servlet:
     session:
