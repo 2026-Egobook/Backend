@@ -73,6 +73,7 @@ jobs:
           sed -i "s|\${DEV_REDIS_PW}|${{ secrets.DEV_REDIS_PW }}|g" $FILE
           sed -i "s|\${DEV_ANDROID_CLIENT_IDS}|${{ secrets.DEV_ANDROID_CLIENT_IDS }}|g" $FILE
           sed -i "s|\${WORD_AI_BASE_URL}|${{ secrets.WORD_AI_BASE_URL }}|g" $FILE
+          sed -i "s|\${OPENAI_API_KEY}|${{ secrets.OPENAI_API_KEY }}|g" $FILE
         # 같은 값이 중복되면, 최근에 설정된 env값이 사용된다.
         shell: bash
 
@@ -90,6 +91,7 @@ jobs:
           sed -i "s|\${PROD_SALT}|${{ secrets.PROD_SALT }}|g" $FILE
           sed -i "s|\${PROD_REDIS_PW}|${{ secrets.PROD_REDIS_PW }}|g" $FILE
           sed -i "s|\${PROD_ANDROID_CLIENT_IDS}|${{ secrets.PROD_ANDROID_CLIENT_IDS }}|g" $FILE
+          sed -i "s|\${OPENAI_API_KEY}|${{ secrets.OPENAI_API_KEY }}|g" $FILE
         shell: bash
 
       # (5) gradlew 파일에 실행 권한 부여
@@ -139,6 +141,7 @@ jobs:
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           # => github secrets에 설정해놓은 값들 env로 가져오기
 
         run: |
