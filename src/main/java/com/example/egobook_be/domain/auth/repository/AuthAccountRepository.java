@@ -4,10 +4,13 @@ import com.example.egobook_be.domain.auth.entity.AuthAccount;
 import com.example.egobook_be.domain.auth.enums.Provider;
 import com.example.egobook_be.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -49,6 +52,8 @@ public interface AuthAccountRepository extends JpaRepository<AuthAccount, Long> 
      */
     boolean existsByHashedDeviceUidAndProvider(String hashedDeviceUid, Provider provider);
 
-    /** 사용자와 연관된 AuthAccount 레코드를 삭제하는 함수*/
-    boolean deleteByUser(User user);
+    /** 사용자 리스트 안에 있는 User이면 삭제하는 함수 */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM AuthAccount a WHERE a.user IN :users")
+    void bulkDeleteByUserIn(@Param("users") List<User> users);
 }

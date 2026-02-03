@@ -5,7 +5,9 @@ import com.example.egobook_be.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface MissionRepository extends JpaRepository<Mission, Long> {
@@ -28,4 +30,8 @@ public interface MissionRepository extends JpaRepository<Mission, Long> {
             "m.dailyLetterWritten = false, " +
             "m.dailyQuestionAnswered = false ")
     void resetAllDailyMissions();
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM Mission m WHERE m.user IN :users")
+    void bulkDeleteByUserIn(@Param("users") List<User> users);
 }

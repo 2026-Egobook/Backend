@@ -2,9 +2,14 @@ package com.example.egobook_be.domain.auth.repository;
 
 import com.example.egobook_be.domain.auth.entity.AuthAccount;
 import com.example.egobook_be.domain.auth.entity.RefreshTokenBackup;
+import com.example.egobook_be.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -33,5 +38,7 @@ public interface RefreshTokenBackupRepository extends JpaRepository<RefreshToken
     Optional<RefreshTokenBackup> findByHashedTokenValue(String hashedRefreshToken);
 
     /** AuthAccount와 연관된 RefreshTokenBackup 레코드를 삭제하는 함수 */
-    boolean deleteByAuthAccount(AuthAccount authAccount);
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM RefreshTokenBackup rtb WHERE rtb.authAccount.id IN (SELECT a.id FROM AuthAccount a WHERE a.user IN :users)")
+    void bulkDeleteByAuthAccountUserIn(@Param("users") List<User> users);
 }
