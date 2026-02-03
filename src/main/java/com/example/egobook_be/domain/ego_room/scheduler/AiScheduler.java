@@ -50,8 +50,9 @@ public class AiScheduler {
         // 지난주 월요일 날짜 계산
         LocalDate lastMonday = LocalDate.now().minusWeeks(1).with(java.time.DayOfWeek.MONDAY);
 
-        List<User> users = userRepository.findAll();
-        for (User user : users) {
+        List<User> targetUsers = userRepository.findAllByWeeklyAnalysisEnabledTrue();
+        
+        for (User user : targetUsers) {
             try {
                 egoRoomService.createWeeklyAnalysis(user.getId(), lastMonday);
             } catch (Exception e) {

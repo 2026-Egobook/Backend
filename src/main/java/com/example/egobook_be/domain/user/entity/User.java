@@ -2,7 +2,6 @@ package com.example.egobook_be.domain.user.entity;
 
 import com.example.egobook_be.domain.ego_room.enums.CounselTone;
 import com.example.egobook_be.domain.shop.entity.UserItem;
-import com.example.egobook_be.domain.terms.entity.Term;
 import com.example.egobook_be.domain.user.enums.RoleType;
 import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.user.enums.WeeklyReportStyle;
@@ -61,9 +60,15 @@ public class User extends BaseTimeEntity {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt; // 삭제 요청 시각
 
+    @Setter
     @Column(name = "daily_praise")
     @Builder.Default
     private Boolean dailyPraise = true; // AI 칭찬서 수신 여부 (기본값 true)
+
+    @Setter
+    @Column(name = "weekly_analysis_enabled")
+    @Builder.Default
+    private Boolean weeklyAnalysisEnabled = true;
 
     @Column(name = "weekly_report_style")
     @Enumerated(EnumType.STRING)
@@ -152,6 +157,5 @@ public class User extends BaseTimeEntity {
 
     // 출석 보상을 주는 함수
     public void rewardAttendance() { this.isFirstAttendanceToday = false; }
-
 
 }

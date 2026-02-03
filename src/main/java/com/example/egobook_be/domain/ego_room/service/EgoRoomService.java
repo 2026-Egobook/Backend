@@ -39,6 +39,20 @@ public class EgoRoomService {
     private final WeeklyAnalysisAiService weeklyAnalysisAiService;
     private final DiaryRepository diaryRepository;
 
+    @Transactional
+    public void updateDailyPraiseSetting(User user, Boolean enabled) {
+        if (enabled != null) {
+            user.setDailyPraise(enabled);
+        }
+    }
+
+    @Transactional
+    public void updateWeeklyAnalysisSetting(User user, Boolean enabled) {
+        if (enabled != null) {
+            user.setWeeklyAnalysisEnabled(enabled);
+        }
+    }
+
     @Transactional(readOnly = true)
     public SliceResponse<DailyPraiseSimpleItemDto> getDailyPraiseList(Long userId, int page, int size) {
         if (page<1){

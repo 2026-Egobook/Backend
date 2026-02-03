@@ -4,6 +4,7 @@ package com.example.egobook_be.domain.ego_room.controller;
 import com.example.egobook_be.domain.ego_room.dto.*;
 import com.example.egobook_be.domain.ego_room.service.EgoRoomService;
 import com.example.egobook_be.domain.ego_room.service.EgoStatsService;
+import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.global.response.SliceResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -18,6 +19,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
 
 @Tag(name = "EgoRoom Controller", description = "일간 칭찬서 및 주간 상담서 관리 API")
 @RestController
@@ -27,6 +30,40 @@ public class EgoRoomController {
 
     private final EgoRoomService egoRoomService;
     private final EgoStatsService egoRoomStatService;
+
+    //토글표시 위함
+    @GetMapping("/ai/toggle")
+    public ResponseEntity<Map<String, Boolean>> getSettings(@AuthenticationPrincipal User user) {
+        Map<String, Boolean> settings = new HashMap<>();
+        settings.put("dailyPraiseEnabled", user.getDailyPraise());
+        settings.put("weeklyAnalysisEnabled", user.getWeeklyAnalysisEnabled());
+
+        return ResponseEntity.ok(settings);
+    }
+
+    //일간칭찬서 onoff
+    @PatchMapping("/praise/daily")
+    public ResponseEntity<Void> toggleDailyPraise(
+            @AuthenticationPrincipal User user,
+            @RequestBody Map<String, Boolean> payload) {
+
+        Boolean enabled = payload.get("enabled");
+        egoRoomService.updateDailyPraiseSetting(user, enabled);
+
+        return ResponseEntity.ok().build();
+    }
+
+    //주간보고서 onoff
+    @PatchMapping("/counsel/weekly")
+    public ResponseEntity<Void> toggleWeeklyAnalysis(
+            @AuthenticationPrincipal User user,
+            @RequestBody Map<String, Boolean> payload) {
+
+        Boolean enabled = payload.get("enabled");
+        egoRoomService.updateWeeklyAnalysisSetting(user, enabled);
+        return ResponseEntity.ok().build();
+    }
+
 
     @Operation(summary = "일간 칭찬서 목록 조회", description = "일간 칭찬서들의 날짜를 보여줍니다.")
     @GetMapping("/praise/daily")
