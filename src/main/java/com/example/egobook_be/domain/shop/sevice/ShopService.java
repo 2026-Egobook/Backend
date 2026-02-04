@@ -184,4 +184,15 @@ public class ShopService {
         return userItemMapper.toItemInfoResDto(targetUserItem, targetUserItem.getItem(), cloudfrontDomain);
     }
 
+    /** 사용자가 장착하고 있는 아이템들의 정보 리스트를 반환하는 함수 */
+    @Transactional(readOnly = true)
+    public List<ItemInfoResDto> getEquippedItems(Long userId){
+        // 1. 해당 사용자가 보유하고 있는 아이템들 조회
+        List<UserItem> equippedItems = userItemRepository.findEquippedItems(userId);
+        // 2. 조회해온 각 아이템을 dto로 변환 (Fetch Join 썼으므로 N+1 발생 안함)
+        return equippedItems.stream()
+                .map(userItem -> userItemMapper.toItemInfoResDto(userItem, userItem.getItem(), cloudfrontDomain))
+                .toList();
+    }
+
 }

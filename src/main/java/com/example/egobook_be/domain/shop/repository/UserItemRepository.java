@@ -39,5 +39,10 @@ public interface UserItemRepository extends JpaRepository<UserItem, Long> {
     List<UserItem> findEquippedItemsByCategory(@Param("userId") Long userId,
                                                @Param("category") ItemCategory category);
 
+    @Query("select ui from UserItem ui " +
+            "join fetch ui.item " +
+            "where ui.user.id = :userId and ui.isEquipped = true")
+    List<UserItem> findEquippedItems(@Param("userId")Long userId);
+
     void deleteByUserIn(List<User> users);
 }
