@@ -2,6 +2,7 @@ package com.example.egobook_be.domain.letters.service;
 
 import com.example.egobook_be.domain.diary.dto.DiaryCreateResDto;
 import com.example.egobook_be.domain.diary.enums.RewardType;
+import com.example.egobook_be.domain.friend.repository.FriendRepository;
 import com.example.egobook_be.domain.home.entity.Mission;
 import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.letters.entity.*;
@@ -48,6 +49,7 @@ public class PlazaLetterService {
     private final PlazaLetterRepository plazaLetterRepository;
     private final PlazaLetterReplyRepository plazaLetterReplyRepository;
     private final PlazaLetterThreadRepository plazaLetterThreadRepository;
+    private final FriendRepository friendRepository;
     private final InkLogRepository inkLogRepository;
     private final UserRepository userRepository;
     private final MissionRepository missionRepository;
@@ -82,6 +84,7 @@ public class PlazaLetterService {
         }
     }
 
+
     @Transactional
     public CreateLetterResponse createLetter(Long userId, CreateLetterRequest request) {
         // 1. User, Mission 객체 가져오기
@@ -96,6 +99,18 @@ public class PlazaLetterService {
         enforceDailyLimit(userId, now);
 
         enforceWordAiOrThrow(request.getText());
+
+        // 친구 관계 검증 추가
+        if (request.getMode() == PlazaLetterMode.FRIEND) {
+            // 친구 관계가 없으면 예외 처리
+            User receiver = userRepository.findById(request.getToFriendId())
+                    .orElseThrow(() -> new CustomException(LettersErrorCode.USER_NOT_FOUND));
+
+            // 친구 관계가 아닌 경우 예외 발생
+            if (!friendRepository.existsByUserAndFriend(user, receiver)) {
+                throw new CustomException(LettersErrorCode.NOT_FRIEND);
+            }
+        }
 
         PlazaLetterThread thread = plazaLetterThreadRepository.save(PlazaLetterThread.createNow());
         String bg = request.getBackgroundColor() == null ? "WHITE" : request.getBackgroundColor().name();
@@ -115,7 +130,7 @@ public class PlazaLetterService {
         OffsetDateTime replyDeadlineAt = null;
 
         if (request.getMode() == PlazaLetterMode.FRIEND) {
-            // TODO: friend 관계 검증 추가
+            // FRIEND 모드일 때 친구 관계 검증 후 진행
             receiverId = request.getToFriendId();
             status = PlazaLetterStatus.ARRIVED;
             arrivedAt = now;
@@ -182,6 +197,7 @@ public class PlazaLetterService {
                 .createdAt(saved.getCreatedAt())
                 .build();
     }
+
 
     private void enforceDailyLimit(Long userId, OffsetDateTime now) {
         ZoneId zoneId = ZoneId.of("Asia/Seoul");
