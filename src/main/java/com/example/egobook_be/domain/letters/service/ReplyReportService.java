@@ -70,10 +70,12 @@ public class ReplyReportService {
     // 신고 횟수 3회 누적 시 답장 삭제 및 신고 DB로 이동
     private void moveReplyToReportDbAndDelete(Long replyId) {
         // 신고 DB로 이동하고 답장 삭제 처리
-        replyReportRepository.moveReplyToReportDbAndDelete(replyId);
+        replyReportRepository.moveReplyToReportDbAndDelete(replyId, PlazaLetterReply.ReplyStatus.DELETED);
 
         // 해당 답장 삭제
         plazaLetterReplyRepository.deleteById(replyId);
     }
+
+
 }
 

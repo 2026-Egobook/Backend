@@ -38,5 +38,14 @@ public class PlazaLetterReply {
 
     @Column(nullable = false)
     private OffsetDateTime createdAt;
+
+    // status 필드 추가
+    @Enumerated(EnumType.STRING) // Enum 값이 문자열로 저장되도록 설정
+    @Column(nullable = false)
+    private ReplyStatus status;
+
+    public enum ReplyStatus {
+        AI_REPLIED, ARRIVED, DEFERRED, GAVE_UP, REPLIED, SENT, WAITING, DELETED
+    }
 }
 
