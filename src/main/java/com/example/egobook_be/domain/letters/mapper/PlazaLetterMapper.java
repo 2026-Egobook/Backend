@@ -101,7 +101,7 @@ public class PlazaLetterMapper {
                 .mode(letter.getMode())
 
                 .content(letter.getContent())
-                .backgroundColor(letter.getBackgroundColor())
+                .backgroundColor(letter.getBackgroundColor().name())
 
                 .createdAt(letter.getCreatedAt())
                 .arrivedAt(letter.getArrivedAt())

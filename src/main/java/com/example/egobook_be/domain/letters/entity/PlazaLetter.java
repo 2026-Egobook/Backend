@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.letters.entity;
 
+import com.example.egobook_be.domain.letters.enums.PlazaLetterColor;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,8 +31,10 @@ public class PlazaLetter {
     @Column(nullable = false)
     private OffsetDateTime createdAt;
 
-    @Column(length = 20)
-    private String backgroundColor;
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    @Column(nullable = false, length = 20)
+    private PlazaLetterColor backgroundColor = PlazaLetterColor.WHITE;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

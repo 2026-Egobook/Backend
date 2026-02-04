@@ -10,6 +10,7 @@ import com.example.egobook_be.domain.letters.dto.request.CreateLetterRequest;
 import com.example.egobook_be.domain.letters.dto.response.WordDetectResponse;
 import com.example.egobook_be.domain.letters.dto.response.*;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
+import com.example.egobook_be.domain.letters.enums.PlazaLetterColor;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterThreadRepository;
@@ -97,7 +98,7 @@ public class PlazaLetterService {
         enforceWordAiOrThrow(request.getText());
 
         PlazaLetterThread thread = plazaLetterThreadRepository.save(PlazaLetterThread.createNow());
-        String bg = resolveBackgroundColor(request.getBackgroundColor());
+        String bg = request.getBackgroundColor() == null ? "WHITE" : request.getBackgroundColor().name();
 
         String fromLabel = "익명";
         if (request.getMode() == PlazaLetterMode.FRIEND) {
@@ -140,7 +141,7 @@ public class PlazaLetterService {
                 .mode(request.getMode())
                 .fromLabel(fromLabel)
                 .content(request.getText())
-                .backgroundColor(bg)
+                .backgroundColor(PlazaLetterColor.valueOf(bg))
                 .status(status)                    // ARRIVED or WAITING
                 .createdAt(now)
                 .arrivedAt(arrivedAt)              // WAITING이면 null
@@ -211,11 +212,15 @@ public class PlazaLetterService {
     }
 
 
-    private String resolveBackgroundColor(String requested) {
+    private PlazaLetterColor resolveBackgroundColor(String requested) {
         if (requested == null || requested.isBlank()) {
-            return "WHITE";
+            return PlazaLetterColor.WHITE; // 기본 값: WHITE
         }
-        return requested.trim().toUpperCase();
+        try {
+            return PlazaLetterColor.valueOf(requested.trim().toUpperCase()); // Enum으로 변환
+        } catch (IllegalArgumentException e) {
+            return PlazaLetterColor.WHITE; // 잘못된 값은 기본 WHITE로 처리
+        }
     }
 
 
