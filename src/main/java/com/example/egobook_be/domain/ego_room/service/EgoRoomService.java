@@ -9,6 +9,8 @@ import com.example.egobook_be.domain.ego_room.entity.WeeklyCounsel;
 import com.example.egobook_be.domain.ego_room.enums.CounselTone;
 import com.example.egobook_be.domain.ego_room.repository.DailyPraiseRepository;
 import com.example.egobook_be.domain.ego_room.repository.WeeklyCounselRepository;
+import com.example.egobook_be.domain.notification.enums.NotificationType;
+import com.example.egobook_be.domain.notification.service.NotificationService;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.exception.UserErrorCode;
 import com.example.egobook_be.domain.user.repository.UserRepository;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,6 +40,8 @@ public class EgoRoomService {
     private final DailyPraiseAiService dailyPraiseAiService;
     private final WeeklyAnalysisAiService weeklyAnalysisAiService;
     private final DiaryRepository diaryRepository;
+
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public Map<String, Boolean> getSettings(Long userId) {
@@ -197,8 +202,14 @@ public class EgoRoomService {
                 .content(praiseContent)
                 .build();
 
-
         dailyPraiseRepository.save(dailyPraise);
+
+        notificationService.createNotification(
+                userId,
+                NotificationType.PRAISE,
+                dailyPraise.getId(),
+                dailyPraise.getPraiseDate().format(DateTimeFormatter.ofPattern("M.d"))
+        );
     }
 
     // 주간 분석서 생성 로직
@@ -250,7 +261,11 @@ public class EgoRoomService {
         weeklyCounselRepository.save(counsel);
 //        log.info("[AI 저장 완료] 유저 {}의 주간 분석이 성공적으로 저장되었습니다.", userId);
 
+        notificationService.createNotification(
+                userId,
+                NotificationType.REPORT,
+                counsel.getId()
+        );
+
     }
-
-
 }
