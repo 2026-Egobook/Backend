@@ -58,5 +58,68 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
             Pageable pageable
     );
 
+
+    @Query("""
+        select l
+        from PlazaLetter l
+        where l.createdAt <= :cutoff
+          and l.status not in (:replied, :aiReplied)
+          and not exists (
+              select 1
+              from PlazaLetterReply r
+              where r.letterId = l.letterId
+          )
+        order by l.createdAt asc
+    """)
+    List<PlazaLetter> findAiReplyTargets(
+            @Param("cutoff") OffsetDateTime cutoff,
+            @Param("replied") PlazaLetterStatus replied,
+            @Param("aiReplied") PlazaLetterStatus aiReplied,
+            Pageable pageable
+    );
+
+    @Query("""
+        select l
+        from PlazaLetter l
+        where l.replyDeadlineAt <= :now
+          and l.status in (:arrived, :deferred)
+          and not exists (
+              select 1 from PlazaLetterReply r
+              where r.letterId = l.letterId
+          )
+        order by l.replyDeadlineAt asc
+    """)
+    List<PlazaLetter> findGiveUpTargets(
+            @Param("now") OffsetDateTime now,
+            @Param("arrived") PlazaLetterStatus arrived,
+            @Param("deferred") PlazaLetterStatus deferred,
+            Pageable pageable
+    );
+
+
+    @Query("""
+    select l
+    from PlazaLetter l
+    where l.status = :waiting
+      and l.receiverId is null
+      and l.senderId <> :receiverId
+    order by l.createdAt asc
+""")
+    List<PlazaLetter> findWaitingLettersForReceiver(
+            @Param("receiverId") Long receiverId,
+            @Param("waiting") PlazaLetterStatus waiting,
+            Pageable pageable
+    );
+
+
+    @Query("""
+        select l
+        from PlazaLetter l
+        where l.status = com.example.egobook_be.domain.letters.entity.PlazaLetterStatus.WAITING
+        order by l.createdAt asc
+    """)
+    List<PlazaLetter> findWaitingLetters(Pageable pageable);
+
+
 }
 
