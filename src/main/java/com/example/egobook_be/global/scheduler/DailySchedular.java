@@ -84,7 +84,7 @@ public class DailySchedular {
      * 사용자들 중 purgeAt이 지난 사용자 데이터들을 모두 삭제하는 스케줄러
      * - 매일 자정(00:00:00)에 실행
      */
-    @Scheduled(cron = "10 17 17 * * *")
+    @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void purgeUsers() {
         log.info("🕛 [DailySchedular] 탈퇴한 사용자들의 정보들 일괄 삭제 작업 시작");
