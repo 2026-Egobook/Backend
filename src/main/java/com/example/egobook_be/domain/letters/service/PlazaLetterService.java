@@ -97,7 +97,6 @@ public class PlazaLetterService {
         enforceWordAiOrThrow(request.getText());
 
         PlazaLetterThread thread = plazaLetterThreadRepository.save(PlazaLetterThread.createNow());
-        Long receiverId = resolveReceiverId(userId, request);
         String bg = resolveBackgroundColor(request.getBackgroundColor());
 
         String fromLabel = "익명";
@@ -108,18 +107,44 @@ public class PlazaLetterService {
             fromLabel = (nickname == null || nickname.isBlank()) ? "친구" : nickname;
         }
 
+        // ===== 핵심: receiverId/status/도착시간은 모드에 따라 다르게 =====
+        Long receiverId = null;
+        PlazaLetterStatus status;
+        OffsetDateTime arrivedAt = null;
+        OffsetDateTime replyDeadlineAt = null;
+
+        if (request.getMode() == PlazaLetterMode.FRIEND) {
+            // TODO: friend 관계 검증 추가
+            receiverId = request.getToFriendId();
+            status = PlazaLetterStatus.ARRIVED;
+            arrivedAt = now;
+            replyDeadlineAt = now.plusHours(24);
+        } else {
+            // RANDOM 모드: 후보가 없으면 WAITING으로 적재
+            List<Long> candidates = userRepository.findHighReplyRateCandidates(userId, 50);
+            if (candidates.isEmpty()) {
+                status = PlazaLetterStatus.WAITING;
+                // receiverId/arrivedAt/replyDeadlineAt = null 유지
+            } else {
+                receiverId = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
+                status = PlazaLetterStatus.ARRIVED;
+                arrivedAt = now;
+                replyDeadlineAt = now.plusHours(24);
+            }
+        }
+
         PlazaLetter letter = PlazaLetter.builder()
                 .threadId(thread.getThreadId())
                 .senderId(userId)
-                .receiverId(receiverId)
+                .receiverId(receiverId)            // WAITING이면 null
                 .mode(request.getMode())
                 .fromLabel(fromLabel)
                 .content(request.getText())
                 .backgroundColor(bg)
-                .status(PlazaLetterStatus.ARRIVED)
+                .status(status)                    // ARRIVED or WAITING
                 .createdAt(now)
-                .arrivedAt(now)
-                .replyDeadlineAt(now.plusHours(24))
+                .arrivedAt(arrivedAt)              // WAITING이면 null
+                .replyDeadlineAt(replyDeadlineAt)  // WAITING이면 null
                 .build();
 
         // =================================================
@@ -353,7 +378,15 @@ public class PlazaLetterService {
         OffsetDateTime now = OffsetDateTime.now();
         validateGiveUpable(letter, now);
 
+        // 유저 가져오기
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+
+        // 포기 처리
         letter.markGaveUp(now);
+
+        // 4시간 수신 제한
+        user.blockLetterReceiveUntil(now.plusHours(4));
 
         return GiveUpResponse.builder()
                 .letterId(letter.getLetterId())

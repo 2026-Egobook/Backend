@@ -47,10 +47,10 @@ public class PlazaLetter {
     @Column(nullable = false, length = 400)
     private String content;
 
-    @Column(nullable = false)
+    @Column
     private OffsetDateTime arrivedAt;
 
-    @Column(nullable = false)
+    @Column
     private OffsetDateTime replyDeadlineAt;
 
     private OffsetDateTime repliedAt;
@@ -71,5 +71,29 @@ public class PlazaLetter {
         this.status = PlazaLetterStatus.GAVE_UP;
         this.gaveUpAt = gaveUpAt;
     }
+
+    public void markAiReplied(OffsetDateTime repliedAt) {
+        this.status = PlazaLetterStatus.AI_REPLIED;
+        this.repliedAt = repliedAt; // repliedAt 필드를 그대로 사용 (AI 답장)
+    }
+
+    public void assignToReceiver(Long receiverId, OffsetDateTime arrivedAt, OffsetDateTime replyDeadlineAt) {
+        this.receiverId = receiverId;
+        this.arrivedAt = arrivedAt;
+        this.replyDeadlineAt = replyDeadlineAt;
+        this.status = PlazaLetterStatus.ARRIVED;
+    }
+
+    public void assignReceiver(
+            Long receiverId,
+            OffsetDateTime arrivedAt,
+            OffsetDateTime replyDeadlineAt
+    ) {
+        this.receiverId = receiverId;
+        this.arrivedAt = arrivedAt;
+        this.replyDeadlineAt = replyDeadlineAt;
+        this.status = PlazaLetterStatus.ARRIVED;
+    }
+
 
 }
