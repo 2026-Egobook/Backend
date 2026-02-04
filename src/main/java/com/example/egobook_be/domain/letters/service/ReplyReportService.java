@@ -56,6 +56,24 @@ public class ReplyReportService {
                 .build();
 
         replyReportRepository.save(report);
+
+        // 신고된 답장의 신고 횟수 확인
+        long reportCount = replyReportRepository.countByReply_ReplyId(replyId);
+
+        // 3회 신고가 누적되었으면 해당 답장 삭제 및 신고 DB로 이동
+        if (reportCount >= 3) {
+            // 3회 누적 신고된 답장 삭제 및 신고 DB로 이동
+            moveReplyToReportDbAndDelete(replyId);
+        }
+    }
+
+    // 신고 횟수 3회 누적 시 답장 삭제 및 신고 DB로 이동
+    private void moveReplyToReportDbAndDelete(Long replyId) {
+        // 신고 DB로 이동하고 답장 삭제 처리
+        replyReportRepository.moveReplyToReportDbAndDelete(replyId);
+
+        // 해당 답장 삭제
+        plazaLetterReplyRepository.deleteById(replyId);
     }
 }
 

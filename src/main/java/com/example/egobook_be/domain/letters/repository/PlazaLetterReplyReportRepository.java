@@ -30,4 +30,13 @@ public interface PlazaLetterReplyReportRepository extends JpaRepository<PlazaLet
     @Modifying(clearAutomatically = true)
     @Query("UPDATE PlazaLetterReplyReport r SET r.replierId = NULL WHERE r.replierId IN :replierIds")
     void bulkNullifyReplierId(@Param("replierIds") List<Long> replierIds);
+
+    // 3회 이상 신고된 답장 삭제하고 신고 DB로 이동
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE PlazaLetterReply r SET r.status = 'DELETED' WHERE r.replyId = :replyId")
+    void moveReplyToReportDbAndDelete(@Param("replyId") Long replyId);
+
+    // 신고된 답장에 대한 신고 횟수를 셈
+    @Query("SELECT COUNT(r) FROM PlazaLetterReplyReport r WHERE r.reply.replyId = :replyId")
+    long countByReply_ReplyId(@Param("replyId") Long replyId);
 }
