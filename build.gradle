@@ -96,6 +96,9 @@ dependencies {
     implementation platform('dev.langchain4j:langchain4j-bom:0.36.2')
     implementation 'dev.langchain4j:langchain4j-spring-boot-starter'
     implementation 'dev.langchain4j:langchain4j-open-ai'
+
+    // WebClient
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
 }
 
 tasks.named('test') {
