@@ -58,6 +58,21 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
             Pageable pageable
     );
 
+    /** 탈퇴한 Sender의 ID를 NULL로 변경 (익명화) */
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE PlazaLetter l SET l.senderId = NULL WHERE l.senderId IN :senderIds")
+    void bulkNullifySenderId(@Param("senderIds") List<Long> senderIds);
+
+    /** 탈퇴한 Receiver의 ID를 NULL로 변경 */
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE PlazaLetter l SET l.receiverId = NULL WHERE l.receiverId IN :receiverIds")
+    void bulkNullifyReceiverId(@Param("receiverIds") List<Long> receiverIds);
+
+    /** Sender와 Receiver가 모두 사라진(NULL) "완전 고아 편지" 삭제(이 메서드는 두 ID가 모두 NULL인 데이터만 지웁니다) */
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM PlazaLetter l WHERE l.senderId IS NULL AND l.receiverId IS NULL")
+    void bulkDeleteOrphanedLetters();
+
 
     @Query("""
         select l

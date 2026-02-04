@@ -19,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "Shop Controller", description = "[상점] 관련 API")
 @RequestMapping("/shop")
 public interface ShopControllerDocs {
@@ -117,4 +119,25 @@ public interface ShopControllerDocs {
             @RequestBody @Valid EquipItemReqDto reqDto
     );
 
+    @Operation(summary = "착용 중인 아이템 목록 조회", description = """
+            현재 사용자가 착용(Equipped)하고 있는 모든 아이템 정보를 조회하는 API입니다.
+            
+            [**기능**]
+            - 사용자의 인벤토리에서 `isEquipped` 상태가 `true`인 아이템들을 카테고리에 상관없이 모두 반환합니다.
+            
+            [**비즈니스 로직**]
+            - `UserItem` 테이블에서 `userId`와 `isEquipped = true` 조건을 만족하는 데이터를 조회합니다.
+            - 결과가 없을 경우 빈 리스트(`[]`)를 반환하며, 이는 404가 아닌 200 OK로 처리됩니다.
+            """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "착용 중인 아이템 목록을 성공적으로 조회했습니다.",
+                    content = @Content(schema = @Schema(implementation = ItemInfoResDto.class))),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자입니다.", content = @Content),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.", content = @Content)
+    })
+    @GetMapping("/items/equipped")
+    ResponseEntity<GlobalResponse<List<ItemInfoResDto>>> getEquippedItems(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    );
 }

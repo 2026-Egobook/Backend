@@ -1,6 +1,7 @@
 package com.example.egobook_be.domain.user.repository;
 
 import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.enums.UserStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import org.springframework.data.domain.Pageable;
 import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,10 +49,13 @@ public interface UserRepository extends JpaRepository<User, Long>,UserRepository
     @Query("select u from User u where u.id = :userId")
     Optional<User> findByIdWithLock(@Param("userId") Long userId);
 
+    /** 삭제 대상 유저 조회 (PurgeAt이 현재 시간보다 과거인 경우) */
+    List<User> findByStatusAndPurgeAtBefore(UserStatus status, LocalDateTime now);
+
     // 수신에 동의한 유저만 조회
+    List<User> findByDailyPraiseTrue();
     List<User> findAllByWeeklyAnalysisEnabledTrue();
 
-    List<User> findByDailyPraiseTrue();
 
     // 편지 수신 가능으로 변한 유저 찾기
     @Query("""

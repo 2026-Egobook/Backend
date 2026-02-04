@@ -282,7 +282,7 @@ public class PlazaLetterService {
         validateReplyable(letter, now);
 
         // 5. 해당 편지에 대해 답장이 이미 되어있는 상태인지 확인
-        if (plazaLetterReplyRepository.existsByLetterId(letter.getLetterId())) {
+        if (plazaLetterReplyRepository.existsByLetter(letter)) {
             throw new CustomException(LettersErrorCode.ALREADY_REPLIED);
         }
 
@@ -297,7 +297,7 @@ public class PlazaLetterService {
 
         plazaLetterReplyRepository.save(PlazaLetterReply.builder()
                 .threadId(letter.getThreadId())
-                .letterId(letter.getLetterId())
+                .letter(letter)
                 .replierId(userId)
                 .text(text)
                 .isAiGenerated(false)
@@ -470,7 +470,7 @@ public class PlazaLetterService {
     private ReplyItemDto toReplyItemDto(PlazaLetterReply reply) {
         return ReplyItemDto.builder()
                 .replyId(reply.getReplyId())
-                .letterId(reply.getLetterId())
+                .letterId(reply.getLetter().getLetterId())
                 .replyText(reply.getText())
                 .createdAt(reply.getCreatedAt())
                 .build();

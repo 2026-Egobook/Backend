@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -113,8 +114,8 @@ public class TodayQuestionService {
         // 오늘 처음 "오늘의 질문"에 답변했는지 여부 확인
         ZoneId zoneId = ZoneId.of("Asia/Seoul");
         LocalDate today = LocalDate.now(zoneId);
-        OffsetDateTime startOfDay = today.atStartOfDay(zoneId).toOffsetDateTime();
-        OffsetDateTime endOfDay = today.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
+        LocalDateTime startOfDay = today.atStartOfDay(zoneId).toLocalDateTime();
+        LocalDateTime endOfDay = today.plusDays(1).atStartOfDay(zoneId).toLocalDateTime();
         boolean isFirstAnswerToday = !questionAnswerRepository.existsByUserAndCreatedAtBetween(user, startOfDay, endOfDay);
 
         // 해당 사용자의 오늘의 답변 저장

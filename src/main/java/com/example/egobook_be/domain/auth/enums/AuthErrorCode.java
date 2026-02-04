@@ -21,6 +21,17 @@ public enum AuthErrorCode implements BaseErrorCode {
     INVALID_GOOGLE_TOKEN(HttpStatus.BAD_REQUEST, "Google Token이 null이거나 유효하지 않습니다."),
 
     /**
+     * 401 UNAUTHORIZED
+     */
+    BLACKLISTED_TOKEN(HttpStatus.UNAUTHORIZED, "블랙리스트에 등록된 토큰입니다. 해당 토큰을 사용할 수 없습니다."),
+
+    /**
+     * 403 FORBIDDEN
+     */
+    RECERTIFICATION_FAIL_USER_WITHDRAW_PENDING(HttpStatus.FORBIDDEN, "사용자가 탈퇴 대기중이기 때문에, 해당 토큰으로 재인증할 수 없습니다."),
+    RECERTIFICATION_FAIL_USER_WITHDRAWN(HttpStatus.FORBIDDEN, "사용자가 탈퇴했기 때문에, 해당 토큰으로 재인증할 수 없습니다."),
+
+    /**
      * 401 UNAUTHORIZED: 인증되지 않음
      */
     ACCESS_WITH_NON_ACCESS_TYPE_TOKEN(HttpStatus.UNAUTHORIZED, "Access Token이 아닌 토큰으로 접근을 시도하였습니다."),
@@ -32,6 +43,7 @@ public enum AuthErrorCode implements BaseErrorCode {
      * 404 NOT_FOUND: 리소스 없음
      */
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 사용자를 찾을 수 없습니다."),
+    USER_AUTH_ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 사용자의 인증 정보를 찾을 수 없습니다."),
     AUTH_ACCOUNT_NOT_FOUND_IN_REFRESH_TOKEN_BACKUP(HttpStatus.NOT_FOUND , "Refresh Token Backup Table에서 해당 Auth Account 인스턴스를 찾을 수 없습니다."),
     REFRESH_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 Refresh Token에 대한 정보를 서버에서 찾을 수 없습니다. Recover Token을 사용하여 Refresh Token을 재발급받으세요."),
 

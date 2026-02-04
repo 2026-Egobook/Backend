@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+import static com.example.egobook_be.domain.letters.entity.QPlazaLetter.plazaLetter;
+
 @Service
 @RequiredArgsConstructor
 public class PlazaLetterAiReplyService {
@@ -57,7 +59,7 @@ public class PlazaLetterAiReplyService {
         }
 
         // reply 존재하면 스킵
-        if (plazaLetterReplyRepository.existsByLetterId(letterId)) {
+        if (plazaLetterReplyRepository.existsByLetter(letter)) { // 수정된 부분
             return false;
         }
 
@@ -79,7 +81,7 @@ public class PlazaLetterAiReplyService {
 
         PlazaLetterReply aiReply = PlazaLetterReply.builder()
                 .threadId(letter.getThreadId())
-                .letterId(letter.getLetterId())
+                .letter(letter)
                 .replierId(letter.getSenderId())
                 .text(normalized)
                 .isAiGenerated(true)
