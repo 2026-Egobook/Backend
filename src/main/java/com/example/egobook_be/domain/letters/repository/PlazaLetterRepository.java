@@ -82,7 +82,7 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
           and not exists (
               select 1
               from PlazaLetterReply r
-              where r.letterId = l.letterId
+              where r.letter = l
           )
         order by l.createdAt asc
     """)
@@ -93,23 +93,21 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
             Pageable pageable
     );
 
-    @Query("""
-        select l
-        from PlazaLetter l
-        where l.replyDeadlineAt <= :now
-          and l.status in (:arrived, :deferred)
-          and not exists (
-              select 1 from PlazaLetterReply r
-              where r.letterId = l.letterId
-          )
-        order by l.replyDeadlineAt asc
-    """)
+    @Query("SELECT l FROM PlazaLetter l " +
+            "WHERE l.replyDeadlineAt <= :now " +
+            "AND l.status IN (:arrived, :deferred) " +
+            "AND NOT EXISTS (" +
+            "   SELECT 1 FROM PlazaLetterReply r " +
+            "   WHERE r.letter.letterId = l.letterId" +
+            ") " +
+            "ORDER BY l.replyDeadlineAt ASC")
     List<PlazaLetter> findGiveUpTargets(
             @Param("now") OffsetDateTime now,
             @Param("arrived") PlazaLetterStatus arrived,
             @Param("deferred") PlazaLetterStatus deferred,
             Pageable pageable
     );
+
 
 
     @Query("""

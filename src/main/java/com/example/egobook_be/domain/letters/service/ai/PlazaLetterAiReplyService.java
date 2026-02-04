@@ -28,8 +28,7 @@ public class PlazaLetterAiReplyService {
 
     @Transactional
     public int generateAiReplies(int batchSize) {
-        //OffsetDateTime cutoff = OffsetDateTime.now().minusHours(48);
-        OffsetDateTime cutoff = OffsetDateTime.now().plusMinutes(1);  // 1분 뒤로 설정
+        OffsetDateTime cutoff = OffsetDateTime.now().minusHours(48);
 
 
         List<PlazaLetter> targets = plazaLetterRepository.findAiReplyTargets(
@@ -65,8 +64,7 @@ public class PlazaLetterAiReplyService {
 
         // 48시간 지났는지 최종 확인 (스케줄러 지연/수동 호출 대비)
         OffsetDateTime createdAt = letter.getCreatedAt();
-        //if (createdAt == null || OffsetDateTime.now().isBefore(createdAt.plusHours(48))) {
-        if (createdAt == null || OffsetDateTime.now().isBefore(createdAt.plusMinutes(1))) {
+        if (createdAt == null || OffsetDateTime.now().isBefore(createdAt.plusHours(48))) {
             return false;
         }
 

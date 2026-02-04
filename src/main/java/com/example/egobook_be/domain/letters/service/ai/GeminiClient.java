@@ -48,7 +48,7 @@ public class GeminiClient {
         // WebClient로 요청 보내기
         Mono<GeminiResponse> response = webClient.post()
                 .uri(url)
-                .header("X-goog-api-key", apiKey) // API 키를 헤더에 추가
+                .header("X-goog-api-key", apiKey)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(body)
                 .retrieve()
