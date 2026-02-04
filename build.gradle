@@ -25,6 +25,7 @@ configurations {
 
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencyManagement {
@@ -96,6 +97,9 @@ dependencies {
     implementation platform('dev.langchain4j:langchain4j-bom:0.36.2')
     implementation 'dev.langchain4j:langchain4j-spring-boot-starter'
     implementation 'dev.langchain4j:langchain4j-open-ai'
+
+    // KOMORAN 형태소 분석기
+    implementation 'com.github.shin285:KOMORAN:3.3.4'
 }
 
 tasks.named('test') {
