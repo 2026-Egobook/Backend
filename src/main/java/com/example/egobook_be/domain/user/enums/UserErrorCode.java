@@ -9,6 +9,11 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum UserErrorCode implements BaseErrorCode {
     /*
+     * 400
+     */
+    ALREADY_WITHDRAW_PENDING(HttpStatus.CONFLICT, "해당 사용자는 이미 탈퇴 대기 상태입니다."),
+
+    /*
      * 404 NOT FOUND
      */
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 사용자를 찾지 못했습니다."),

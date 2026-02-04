@@ -34,13 +34,12 @@ public class ReplyReportService {
         }
 
         // 신고 대상 답장과 편지를 가져오기
-        PlazaLetterReply reply = plazaLetterReplyRepository.findById(replyId)
+        PlazaLetterReply reply = plazaLetterReplyRepository.findByIdWithLetter(replyId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
 
-        PlazaLetter letter = plazaLetterRepository.findById(reply.getLetterId())
-                .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+        PlazaLetter letter = reply.getLetter();
 
-        if (!userId.equals(letter.getReceiverId())) {
+        if (userId.equals(letter.getReceiverId())) {
             throw new CustomException(LettersErrorCode.FORBIDDEN);
         }
 

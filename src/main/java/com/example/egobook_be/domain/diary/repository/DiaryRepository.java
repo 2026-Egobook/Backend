@@ -6,6 +6,7 @@ import com.example.egobook_be.domain.user.entity.User;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -25,7 +26,6 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
     boolean existsByUserAndTypeInAndCreatedAtBetween(User user, Set<DiaryType> praise, LocalDateTime startOfToday, LocalDateTime endOfToday);
 
     List<Diary> findAllByUserAndWrittenAtBetween(User user, LocalDateTime start, LocalDateTime end);
-
 
     @Query("""
     SELECT
@@ -61,6 +61,9 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
         LocalDate getDate();
         Integer getEmotionLevel();
     }
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM Diary d WHERE d.user IN :users")
+    void bulkDeleteByUserIn(@Param("users") List<User> users);
 
     @Query("SELECT AVG(d.emotionLevel) FROM Diary d WHERE d.user.id = :userId AND d.writtenAt BETWEEN :start AND :end AND d.emotionLevel > 0")
     Double findAvgEmotionLevel(@Param("userId") Long userId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);

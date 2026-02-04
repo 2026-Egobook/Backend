@@ -40,6 +40,10 @@ public interface AuthControllerDocs {
 
     @Operation(summary = "Access Token 재발급", description = """
             Access Token이 만료되었을 때, Refresh Token을 이용하여 토큰을 갱신합니다.
+            [ 입력값 ]
+            1. AccessToken: 만료되었거나 만료되지 않은, 기존에 사용하던 Access Token (Bearer 제외)
+            - 기존에 사용하던 AccessToken을 Redis의 블랙리스트에 등록하기 위함입니다.
+            2. RefreshToken: 만료되지 않은 Refresh Token (Bearer 제외)
             
             - **기능**: 유효한 Refresh Token을 검증하고, **새로운 Access Token**을 발급합니다.
             - **실패 시**: 401 Unauthorized 리턴 -> 클라이언트는 [Guest 복구(Recertification)] API를 호출해야 합니다.

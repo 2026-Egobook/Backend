@@ -2,7 +2,9 @@ package com.example.egobook_be.domain.letters.repository;
 
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReplyReport;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -19,4 +21,13 @@ public interface PlazaLetterReplyReportRepository extends JpaRepository<PlazaLet
           and r.reply.replyId in :replyIds
     """)
     List<Long> findReportedReplyIds(Long reporterId, List<Long> replyIds);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM PlazaLetterReplyReport r WHERE r.reporterId IN :reporterIds")
+    void bulkDeleteByReporterIdIn(@Param("reporterIds") List<Long> reporterIds);
+
+    /** 내가 신고당한 내역에서는 Replier ID를 Null로 익명화한다. */
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE PlazaLetterReplyReport r SET r.replierId = NULL WHERE r.replierId IN :replierIds")
+    void bulkNullifyReplierId(@Param("replierIds") List<Long> replierIds);
 }

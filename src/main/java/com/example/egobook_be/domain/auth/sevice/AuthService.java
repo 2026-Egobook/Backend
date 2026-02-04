@@ -16,6 +16,7 @@ import com.example.egobook_be.domain.terms.repository.TermRepository;
 import com.example.egobook_be.domain.terms.repository.UserTermRepository;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.enums.RoleType;
+import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.global.util.*;
 import com.example.egobook_be.global.util.module.TokenInfo;
@@ -32,6 +33,7 @@ import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.security.CustomUserDetails;
 import com.example.egobook_be.global.util.module.RedisValue;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -214,17 +216,19 @@ public class AuthService {
      * @return JwtTokenResDto
      */
     @Transactional
-    public JwtTokenResDto refreshGuestToken(RefreshReqDto reqDto){
+    public JwtTokenResDto refreshToken(RefreshReqDto reqDto){
         // 1. 전달받은 Refresh Token Hashing
         String hashedRefreshToken = hashingUtil.hashingValue(reqDto.refreshToken());
-
+        
         /*
          * 2. Redis에서 조회 시도
          * - 조회를 성공한 경우, RedisValue Record Class에 담겨있는 값으로 Access Token을 재발급한다.
          * - 재발급 시 Recover Token은 안준다.
          */
-        RedisValue redisValue = redisUtil.getRefreshTokenValue(hashedRefreshToken);
+        RedisValue redisValue = redisUtil.getHashedRefreshTokenValue(hashedRefreshToken);
         if(redisValue != null){
+            // 기존 AccessToken Redis 블랙리스트에 추가
+            addAccessTokenInRedisBlackList(reqDto.accessToken());
             TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(redisValue.userId(), redisValue.authAccountId(), redisValue.subject(), redisValue.role());
             return buildJwtTokenResDto(newAccessTokenInfo.token(), reqDto.refreshToken(), null);
         }
@@ -266,16 +270,38 @@ public class AuthService {
         RedisValue restoreRedisValue = buildRedisValue(user.getId(), authAccount.getId(), subject, user.getRole(), backup.getExpiresAt()); // RedisValue 생성
         registerToRedis(hashedRefreshToken, restoreRedisValue, backup.getExpiresAt()); // Redis에 해당 데이터들 복구
 
-        /*
-         * 6. Access Token 재생성 후 Access, Refresh Token 반환
-         */
+        // 6. 기존 Access Token Redis의 BlackList에 추가
+        addAccessTokenInRedisBlackList(reqDto.accessToken());
+
+        // 7. Access Token 재생성 후 Access, Refresh Token 반환
         TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(user.getId(), authAccount.getId(), subject, user.getRole());
         return buildJwtTokenResDto(newAccessTokenInfo.token(), reqDto.refreshToken(), null);
     }
 
+    /** HttpServletRequest에 들어있는 AccessToken 추출 및 블랙리스트 등록 */
+    private void addAccessTokenInRedisBlackList(String accessToken){
+            // 만료되지 않은 토큰이라도 강제로 블랙리스트 처리
+            redisUtil.setTokenInBlacklist(accessToken);
+            log.info("🪪 재발급 요청에 사용된 기존 Access Token을 블랙리스트에 등록했습니다.");
+    }
+
+    private void deleteOldRefreshTokenFromRedis(AuthAccount authAccount) {
+        // DB에 백업된 정보가 있는지 확인
+        refreshTokenBackupRepository.findByAuthAccount(authAccount).ifPresent(backup -> {
+            String oldHashedToken = backup.getHashedTokenValue();
+
+            // RedisUtil을 통해 삭제 (존재하면 삭제, 없으면 무시됨)
+            if (oldHashedToken != null) {
+                redisUtil.deleteHashedRefreshToken(oldHashedToken);
+                log.info("🔄 [Rotation] 기존 Refresh Token을 Redis에서 삭제했습니다. User: {}", authAccount.getId());
+            }
+        });
+    }
+
     /**
-     * Guest RefreshToken 재발급
-     * Refresh Token이 만료되었을 때, 기기에 영구 저장된 Recover Token을 검증하여 세션을 복구하는 함수
+     * [ Guest RefreshToken 재발급 ]
+     * - 사용자의 상태가 "삭제 대기" 상태라면 사용자 재인증 금지
+     * - Refresh Token이 만료되었을 때, 기기에 영구 저장된 Recover Token을 검증하여 세션을 복구하는 함수
      */
     @Transactional
     public JwtTokenResDto recertificationGuestToken(GuestRecertificationReqDto reqDto){
@@ -293,17 +319,33 @@ public class AuthService {
          */
         if(!authAccount.getHashedRecoverToken().equals(hashedRecoverToken)){
             log.warn("[Class:AuthService]: HashedDeviceUid: {}, 옳지 않은 Recover Token로 Refresh Token 복구 시도를 하였습니다..", hashedDeviceUid);
-            authAccount.getUser().deleteUser(purgeDurationInMs); // 사용자 삭제(실제로는 삭제 예정으로 상태 변경)
+            authAccount.getUser().withdrawUser(purgeDurationInMs); // 사용자 삭제(실제로는 삭제 예정으로 상태 변경)
             throw new CustomException(AuthErrorCode.INVALID_RECOVER_TOKEN);
         }
 
         /*
-         * 4. 검증 통과 시, 새로운 Access, Refresh, Recover Token 생성
+         * 4. 해당 인증 정보를 갖고 있는 User의 Status가 삭제 대기 상태인지 확인한다.
+         * - findAuthAccountByHashedDeviceUidAndProvider에서 User도 Fetch Join으로 가져와 같은 영속성 컨텍스트에 있으므로, N+1이 발생하지 않는다.
+         */
+        User user = authAccount.getUser();
+        if(user.getStatus().equals(UserStatus.WITHDRAW_PENDING)){
+            throw new CustomException(AuthErrorCode.RECERTIFICATION_FAIL_USER_WITHDRAW_PENDING);
+        }
+
+        /*
+         * 5. Redis 상태 업데이트
+         * (1) 기존에 사용되던 AccessToken 블랙리스트에 등록
+         * (2) 기존에 Refresh Token Backup 테이블에 있던 Refresh Token Redis에서 삭제 (아직 만료되지 않은 상태에서 복구 로직이 실행될 수도 있으므로)
+         */
+        addAccessTokenInRedisBlackList(reqDto.accessToken());
+        deleteOldRefreshTokenFromRedis(authAccount);
+
+        /*
+         * 6. 검증 통과 시, 새로운 Access, Refresh, Recover Token 생성
          * - User 정보를 로드하여 토큰 생성에 필요한 Subject, Role 획득
          * - recoverTokenInfo는 CustomUserDetails 객체가 있어야 하므로 생성
          * - AuthAccount의 hashedRecoverToken 업데이트
          */
-        User user = authAccount.getUser();
         CustomUserDetails userDetails = buildCustomUserDetails(user, authAccount);
         String subject = jwtUtil.createSubject(authAccount.getProvider(), authAccount.getHashedDeviceUid()); // 토큰에 넣을 subject 생성
         TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(user.getId(), authAccount.getId(), subject, user.getRole());
@@ -312,29 +354,29 @@ public class AuthService {
         authAccount.updateHashedRecoverToken(hashingUtil.hashingValue(newRecoverTokenInfo.token())); // authAccount Table의 HashedRecoverToken값 최신화
 
         /*
-         * 5. Refresh Token 백업 테이블 업데이트
+         * 7. Refresh Token 백업 테이블 업데이트
          * - 기존에 만료된 Refresh Token 정보를 새로운 토큰 정보로 덮어씌운다.
          */
-        String hashedRefreshToken = hashingUtil.hashingValue(newRefreshTokenInfo.token());
+        String newHashedRefreshToken = hashingUtil.hashingValue(newRefreshTokenInfo.token());
         updateRefreshTokenBackupTable(
                 authAccount,
-                hashedRefreshToken,
+                newHashedRefreshToken,
                 newRefreshTokenInfo.expiresAt());
 
         /*
-         * 6. Redis 업데이트
+         * 8. Redis 업데이트
          * - 새로운 Refresh Token을 Redis에 등록하여 바로 사용 가능하도록 처리
          */
         RedisValue newRedisValue = buildRedisValue(user.getId(), authAccount.getId(), subject, user.getRole(), newRefreshTokenInfo.expiresAt());
-        registerToRedis(hashedRefreshToken, newRedisValue, newRefreshTokenInfo.expiresAt());
+        registerToRedis(newHashedRefreshToken, newRedisValue, newRefreshTokenInfo.expiresAt());
 
-        // 7. 결과 반환
+        // 9. 결과 반환
         return buildJwtTokenResDto(newAccessTokenInfo.token(), newRefreshTokenInfo.token(), newRecoverTokenInfo.token());
     }
 
     /**
      * Google RefreshToken 재발급
-     * Refresh Token이 만료되었을 때, 프론트엔드가 Google Slient Login 후 받은 ID Token으로 호출하는 API
+     * Refresh Token이 만료되었을 때, 프론트엔드가 Google Silent Login 후 받은 ID Token으로 호출하는 API
      * - 회원가입(Register)과 달리, 이미 존재하는 계정이어야만 성공한다.
      * - Recover Token은 여전히 null이다.
      */
@@ -351,17 +393,32 @@ public class AuthService {
         AuthAccount authAccount = authAccountRepository.findByHashedDeviceUidAndProvider(hashedGoogleSub, Provider.GOOGLE)
                 .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
 
+        /*
+         * 3. 해당 인증 정보를 갖고 있는 User의 Status가 삭제 대기 상태인지 확인한다.
+         * - findAuthAccountByHashedDeviceUidAndProvider에서 User도 Fetch Join으로 가져와 같은 영속성 컨텍스트에 있으므로, N+1이 발생하지 않는다.
+         */
         User user = authAccount.getUser();
+        if(user.getStatus().equals(UserStatus.WITHDRAW_PENDING)){
+            throw new CustomException(AuthErrorCode.RECERTIFICATION_FAIL_USER_WITHDRAW_PENDING);
+        }
 
-        // 3. 토큰 재발급 (Access + Refresh)
+        /*
+         * 4. Redis 상태 업데이트
+         * (1) 기존에 사용되던 AccessToken 블랙리스트에 등록
+         * (2) 기존에 Refresh Token Backup 테이블에 있던 Refresh Token Redis에서 삭제 (아직 만료되지 않은 상태에서 복구 로직이 실행될 수도 있으므로)
+         */
+        addAccessTokenInRedisBlackList(reqDto.accessToken());
+        deleteOldRefreshTokenFromRedis(authAccount);
+
+        // 5. 토큰 재발급 (Access + Refresh)
         CustomUserDetails userDetails = buildCustomUserDetails(user, authAccount);
         TokenInfo accessTokenInfo = jwtUtil.createAccessToken(userDetails);
         TokenInfo refreshTokenInfo = jwtUtil.createRefreshToken(userDetails);
 
-        // 4. Refresh Token 저장 (DB + Redis)
+        // 5. Refresh Token 저장 (DB + Redis)
         processRefreshTokenSaving(user, authAccount, refreshTokenInfo);
 
-        // 5. 반환
+        // 6. 반환
         return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), null);
     }
 
@@ -403,7 +460,7 @@ public class AuthService {
 
         // 4-2. Redis 삭제 (기존 토큰이 있었다면)
         if (oldHashedRefreshToken != null) {
-            redisUtil.deleteRefreshToken(oldHashedRefreshToken); // RedisUtil에 delete 메서드 필요 (없으면 setTTL(0))
+            redisUtil.deleteHashedRefreshToken(oldHashedRefreshToken); // RedisUtil에 delete 메서드 필요 (없으면 setTTL(0))
         }
 
         /*
@@ -545,7 +602,7 @@ public class AuthService {
             ttlInMillis = 0;
         }
         if(ttlInMillis > 0){
-            redisUtil.setRefreshTokenValue(key, value, ttlInMillis);
+            redisUtil.setHashedRefreshTokenValue(key, value, ttlInMillis);
         }
     }
 
@@ -595,7 +652,7 @@ public class AuthService {
      */
     private AuthAccount findAuthAccountByHashedDeviceUidAndProvider(String hashedDeviceUid, Provider provider){
         return authAccountRepository.findByHashedDeviceUidAndProvider(hashedDeviceUid, provider)
-                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_AUTH_ACCOUNT_NOT_FOUND));
     }
 
     /**
