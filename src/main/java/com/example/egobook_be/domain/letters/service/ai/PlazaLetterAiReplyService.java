@@ -52,10 +52,11 @@ public class PlazaLetterAiReplyService {
         PlazaLetter letter = plazaLetterRepository.findById(letterId).orElse(null);
         if (letter == null) return false;
 
-
+        // 상태가 이미 REPLIED 또는 AI_REPLIED인 경우 건너뛰기
         if (letter.getStatus() == PlazaLetterStatus.REPLIED || letter.getStatus() == PlazaLetterStatus.AI_REPLIED) {
             return false;
         }
+
 
         // reply 존재하면 스킵
         if (plazaLetterReplyRepository.existsByLetter(letter)) { // 수정된 부분
@@ -92,6 +93,10 @@ public class PlazaLetterAiReplyService {
             return false;
         }
 
+        // 편지 상태 업데이트: AI가 답변한 경우 상태를 AI_REPLIED로 설정
+        letter.setStatus(PlazaLetterStatus.AI_REPLIED);
+        letter.setArrivedAt(now);
+        plazaLetterRepository.save(letter);
 
         letter.markAiReplied(now);
 

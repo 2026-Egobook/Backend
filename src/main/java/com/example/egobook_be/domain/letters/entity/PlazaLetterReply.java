@@ -44,8 +44,16 @@ public class PlazaLetterReply {
     @Column(nullable = false)
     private ReplyStatus status;
 
+    @PrePersist
+    public void prePersist() {
+        if (status == null) {
+            // 기본값을 SENT로 설정
+            status = ReplyStatus.SENT;
+        }
+    }
+
     public enum ReplyStatus {
-        AI_REPLIED, ARRIVED, DEFERRED, GAVE_UP, REPLIED, SENT, WAITING, DELETED
+        AI_REPLIED, ARRIVED, SENT, DELETED
     }
 }
 

@@ -99,4 +99,16 @@ public class PlazaLetter {
     }
 
 
+    // status에 대한 setter 메서드 추가
+    public void setStatus(PlazaLetterStatus status) {
+        this.status = status;
+    }
+
+
+
+    // arrivedAt에 대한 setter 메서드 추가
+    public void setArrivedAt(OffsetDateTime arrivedAt) {
+        this.arrivedAt = arrivedAt;
+    }
+
 }
