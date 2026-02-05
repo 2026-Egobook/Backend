@@ -14,6 +14,7 @@ public class UserItemMapper {
     public ItemInfoResDto toItemInfoResDto(UserItem userItem, Item item, String cloudfrontDomain) {
         return ItemInfoResDto.builder()
                 .itemId(item.getId())
+                .itemCategory(item.getCategory())
                 .imageUrl(item.getFullUrl(cloudfrontDomain))
                 .price(item.getPrice())
                 .isPurchased(true)

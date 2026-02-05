@@ -2,6 +2,8 @@ package com.example.egobook_be.domain.letters.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.OffsetDateTime;
 
@@ -17,10 +19,12 @@ public class PlazaLetterReply {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long replyId;
 
-    @Column(nullable = false)
-    private Long letterId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "letter_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE) // 편지가 삭제되면 답장도 자동 삭제
+    private PlazaLetter letter;
 
-    @Column(nullable = false)
+    @Column
     private Long replierId;
 
     @Column(nullable = false)

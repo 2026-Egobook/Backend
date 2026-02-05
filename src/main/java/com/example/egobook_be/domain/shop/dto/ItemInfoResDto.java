@@ -1,10 +1,12 @@
 package com.example.egobook_be.domain.shop.dto;
 
+import com.example.egobook_be.domain.shop.enums.ItemCategory;
 import lombok.Builder;
 
 /**
  * 한개의 아이템에 대한 정보를 담은 DTO
  * @param itemId Item PK
+ * @param itemCategory 아이템의 종류
  * @param imageUrl Item의 S3 경로
  * @param price 아이템 가격
  * @param isPurchased 해당 아이템이 구매되었는지 여부
@@ -13,6 +15,7 @@ import lombok.Builder;
 @Builder
 public record ItemInfoResDto(
         Long itemId,
+        ItemCategory itemCategory,
         String imageUrl,
         Integer price,
         Boolean isPurchased,

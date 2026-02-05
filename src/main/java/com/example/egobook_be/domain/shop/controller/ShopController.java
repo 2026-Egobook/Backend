@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 public class ShopController implements ShopControllerDocs{
@@ -87,5 +89,15 @@ public class ShopController implements ShopControllerDocs{
                 .body(GlobalResponse.success("아이템 해제 성공", resDto));
     }
 
+    @Override
+    public ResponseEntity<GlobalResponse<List<ItemInfoResDto>>> getEquippedItems(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    ){
+        List<ItemInfoResDto> equippedItems = shopService.getEquippedItems(userId);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(GlobalResponse.success("사용자가 장착하고 있는 아이템 리스트 조회 완료", equippedItems));
+    }
 
 }

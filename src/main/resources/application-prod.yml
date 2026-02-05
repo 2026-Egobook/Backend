@@ -30,7 +30,6 @@ langchain4j:
       model-name: gpt-4o-mini
       log-requests: true
       log-responses: true
-      
 server:
   url: https://www.egobook.site
   servlet:

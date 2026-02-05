@@ -20,7 +20,7 @@ public class PlazaLetter {
     @Column(nullable = false)
     private Long threadId;
 
-    @Column(nullable = false)
+    @Column
     private Long senderId;
 
     @Column

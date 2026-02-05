@@ -4,6 +4,7 @@ import com.example.egobook_be.domain.friend.entity.FriendRequest;
 import com.example.egobook_be.domain.friend.enums.FriendRequestStatus;
 import com.example.egobook_be.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -44,4 +45,9 @@ public interface FriendRequestRepository extends JpaRepository<FriendRequest, Lo
             @Param("sender") User sender,
             @Param("status") FriendRequestStatus status
     );
+
+    /** Sender in Senders || Receiver in Receivers 인 경우 bulk 삭제하는 함수 */
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM FriendRequest fr WHERE fr.sender IN :senders OR fr.receiver IN :receivers")
+    void bulkDeleteBySenderInOrReceiverIn(@Param("senders")List<User> senders, @Param("receivers") List<User> receivers);
 }

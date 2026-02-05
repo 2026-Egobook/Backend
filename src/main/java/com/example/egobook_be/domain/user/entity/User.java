@@ -135,12 +135,19 @@ public class User extends BaseTimeEntity {
     public void updateEmail(String newEmail) {this.email = newEmail;}
     /**
      * 사용자가 탈퇴를 수행했을 때, 바로 삭제하지 않고 실제 삭제 예정 날짜를 설정하는 함수입니다.
+     * (1) status -> WITHDRAW_PENDING
+     * (2) deletedAt(삭제 요청 시각) 최신화
+     * (3) purgeAt(완전 삭제 예정 시각) 최신화
+     * (4) dailPraise (AI 칭찬서 수신 여부) false
+     * (5) notificationEnabled (알림 설정) false
      * @param purgeDurationInMs : 완전 삭제까지의 기간(일주일)
      */
-    public void deleteUser(Long purgeDurationInMs) {
-        this.status = UserStatus.DELETED_PENDING;
+    public void withdrawUser(Long purgeDurationInMs) {
+        this.status = UserStatus.WITHDRAW_PENDING;
         this.deletedAt = LocalDateTime.now();
         this.purgeAt = this.deletedAt.plus(purgeDurationInMs, ChronoUnit.MILLIS);
+        this.dailyPraise = false;
+        this.notificationEnabled = false;
     }
 
     public void addInk(int amount) {
@@ -158,4 +165,11 @@ public class User extends BaseTimeEntity {
     // 출석 보상을 주는 함수
     public void rewardAttendance() { this.isFirstAttendanceToday = false; }
 
+    public void updateDailyPraiseEnabled(boolean enabled) {
+        this.dailyPraise = enabled;
+    }
+
+    public void updateWeeklyAnalysisEnabled(boolean enabled) {
+        this.weeklyAnalysisEnabled = enabled;
+    }
 }

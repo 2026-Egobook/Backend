@@ -4,6 +4,7 @@ package com.example.egobook_be.domain.friend.repository;
 import com.example.egobook_be.domain.friend.entity.Friend;
 import com.example.egobook_be.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -35,4 +36,9 @@ public interface FriendRepository extends JpaRepository<Friend, Long> {
     List<Friend> findByUserWithFriend(
             @Param("user") User user
     );
+
+    /** 해당 레코드가 "user_id in User List", "friend_id in Friend List"인 경우 Bulk 삭제하는 함수 */
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM Friend f WHERE f.user IN :users OR f.friend IN :friends")
+    void bulkDeleteByUsersInOrFriendsIn(@Param("users") List<User> users, @Param("friends") List<User> friends);
 }
