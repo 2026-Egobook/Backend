@@ -35,6 +35,8 @@ public class NotificationService {
     private final PlazaLetterRepository plazaLetterRepository;
     private final PlazaLetterReplyRepository plazaLetterReplyRepository;
 
+    private final FcmService fcmService;
+
     /** 알림 생성 */
     @Transactional
     public void createNotification(Long userId, NotificationType type, Long targetId, String... args) {
@@ -65,6 +67,8 @@ public class NotificationService {
                 .build();
 
         notificationRepository.save(notification);
+
+        fcmService.sendPushNotification(user, notification);
     }
 
     /** 알림 목록 */

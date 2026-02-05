@@ -2,6 +2,7 @@ package com.example.egobook_be.domain.user.controller;
 
 import com.example.egobook_be.domain.auth.dto.req.GoogleJoinReqDto;
 import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
+import com.example.egobook_be.domain.user.dto.FcmTokenReqDto;
 import com.example.egobook_be.domain.user.dto.UserNicknameResDto;
 import com.example.egobook_be.domain.user.dto.UserNicknameUpdateReqDto;
 import com.example.egobook_be.global.response.GlobalResponse;
@@ -113,4 +114,15 @@ public interface UserControllerDocs {
             @Parameter(hidden = true) @RequestHeader("Authorization") String accessToken
     );
 
+    @Operation(summary = "유저 FCM 토큰 업데이트", description = """
+            
+            - 로그인한 사용자의 FCM 토큰을 등록하거나 업데이트합니다.
+            - 사용자가 앱을 새로 설치하거나 재로그인, 또는 토큰이 만료되어 새로 발급된 경우 이 API를 호출하여 토큰을 최신 상태로 유지합니다.
+            - 해당 토큰은 푸시 알람 발송 시 사용됩니다.
+            """)
+    @PatchMapping("/fcm-token")
+    ResponseEntity<GlobalResponse<Void>> updateFcmToken(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestBody FcmTokenReqDto dto
+    );
 }

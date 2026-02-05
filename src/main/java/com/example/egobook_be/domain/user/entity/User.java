@@ -85,7 +85,10 @@ public class User extends BaseTimeEntity {
 
     @Column(nullable = false)
     @Builder.Default
-    private boolean isFirstAttendanceToday = true; // 오늘 첫 접속 상태인지 여부  
+    private boolean isFirstAttendanceToday = true; // 오늘 첫 접속 상태인지 여부
+
+    @Column(length = 500)
+    private String fcmToken;
 
     // ========= 연관관계 매핑 ========= //
 
@@ -111,6 +114,11 @@ public class User extends BaseTimeEntity {
     private List<UserItem> userItems = new ArrayList<>();
 
     // ========= Entity 비즈니스 메서드 ========= //
+
+    public void updateFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
+    }
+
     /**
      * 사용자가 login했을 때 User Entity 스스로가 자신의 상태를 최신으로 갱신하는 함수
      * - 함수 동작
