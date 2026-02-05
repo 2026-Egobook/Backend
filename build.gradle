@@ -96,6 +96,9 @@ dependencies {
     implementation platform('dev.langchain4j:langchain4j-bom:0.36.2')
     implementation 'dev.langchain4j:langchain4j-spring-boot-starter'
     implementation 'dev.langchain4j:langchain4j-open-ai'
+
+    implementation 'com.google.crypto.tink:tink:1.7.0'
+    implementation 'org.json:json:20230227'
 }
 
 tasks.named('test') {
