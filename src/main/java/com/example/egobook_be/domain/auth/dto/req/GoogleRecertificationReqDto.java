@@ -11,7 +11,6 @@ public record GoogleRecertificationReqDto(
         String idToken, // 안드로이드가 구글에서 받아온 ID Token
 
         @Schema(description = "만료되었거나 만료되지 않은, 기존에 사용하던 Access Token (Bearer 제외)", example = "eyJhbGciOiJIUzI1NiJ9...")
-        @NotBlank(message = "Access Token은 필수입니다.")
         String accessToken
 ) {
 }
