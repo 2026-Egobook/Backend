@@ -97,9 +97,8 @@ dependencies {
     implementation 'dev.langchain4j:langchain4j-spring-boot-starter'
     implementation 'dev.langchain4j:langchain4j-open-ai'
 
-    // Cloudinary SDK
-    implementation 'com.cloudinary:cloudinary-http44:1.37.0' // 최신 버전 확인 권장
-    implementation 'com.cloudinary:cloudinary-taglib:1.37.0'
+    implementation 'com.google.crypto.tink:tink:1.7.0'
+    implementation 'org.json:json:20230227'
 }
 
 tasks.named('test') {

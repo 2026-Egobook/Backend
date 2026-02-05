@@ -73,9 +73,3 @@ word:
   ai:
     base-url: ${WORD_AI_BASE_URL}
 
-# Cloudinary 설정
-cloudinary:
-  cloud-name: ${CLOUDINARY_CLOUD_NAME}
-  api-key: ${CLOUDINARY_API_KEY}
-  api-secret: ${CLOUDINARY_API_SECRET_KEY}
-

@@ -74,9 +74,6 @@ jobs:
           sed -i "s|\${DEV_ANDROID_CLIENT_IDS}|${{ secrets.DEV_ANDROID_CLIENT_IDS }}|g" $FILE
           sed -i "s|\${WORD_AI_BASE_URL}|${{ secrets.WORD_AI_BASE_URL }}|g" $FILE
           sed -i "s|\${OPENAI_API_KEY}|${{ secrets.OPENAI_API_KEY }}|g" $FILE
-          sed -i "s|\${CLOUDINARY_CLOUD_NAME}|${{ secrets.CLOUDINARY_CLOUD_NAME }}|g" $FILE
-          sed -i "s|\${CLOUDINARY_API_KEY}|${{ secrets.CLOUDINARY_API_KEY }}|g" $FILE
-          sed -i "s|\${CLOUDINARY_API_SECRET_KEY}|${{ secrets.CLOUDINARY_API_SECRET_KEY }}|g" $FILE
         # 같은 값이 중복되면, 최근에 설정된 env값이 사용된다.
         shell: bash
 
