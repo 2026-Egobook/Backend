@@ -96,6 +96,10 @@ dependencies {
     implementation platform('dev.langchain4j:langchain4j-bom:0.36.2')
     implementation 'dev.langchain4j:langchain4j-spring-boot-starter'
     implementation 'dev.langchain4j:langchain4j-open-ai'
+
+    // Cloudinary SDK
+    implementation 'com.cloudinary:cloudinary-http44:1.37.0' // 최신 버전 확인 권장
+    implementation 'com.cloudinary:cloudinary-taglib:1.37.0'
 }
 
 tasks.named('test') {

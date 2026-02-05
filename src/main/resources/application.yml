@@ -18,6 +18,11 @@ spring:
         static: ap-northeast-2
       s3:
         bucket: egobook-${spring.profiles.active} # profiles.active대로 버킷 이름 설정되도록 함
+  # Cloudinary 광고 영상 업로드를 위한 설정
+  servlet:
+    multipart:
+      max-file-size: 200MB # 파일 하나당 최대 크기 (기본값: 1 -> 200MB)
+      max-request-size: 200MB # 요청 전체 최대 크기 (기본값: 10 -> 200MB)
 langchain4j:
   open-ai:
     chat-model:
@@ -67,3 +72,10 @@ management:
 word:
   ai:
     base-url: ${WORD_AI_BASE_URL}
+
+# Cloudinary 설정
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET_KEY}
+
