@@ -9,9 +9,6 @@ import com.example.egobook_be.domain.diary.exception.DiaryErrorCode;
 import com.example.egobook_be.domain.diary.mapper.DiaryMapper;
 import com.example.egobook_be.domain.diary.repository.DiaryRepository;
 import com.example.egobook_be.domain.home.entity.Mission;
-import com.example.egobook_be.domain.home.repository.MissionRepository;
-import com.example.egobook_be.domain.notification.entity.Notification;
-import com.example.egobook_be.domain.notification.mapper.NotificationMapper;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.InkLog;
 import com.example.egobook_be.domain.user.entity.InkLogType;
@@ -111,7 +108,7 @@ public class DiaryService {
          * - 일일 미션 상태 업데이트
          */
         if (isFirstDiaryToday) {
-            inkLogUtil.addInkLog(inkLogs, user, 1, InkLogType.FIRST_EMOTION_DIARY); // 사용자에게 잉크 추가 & 잉크 로그 추가해주는 함수
+            inkLogUtil.addInkLogToList(inkLogs, user, 1, InkLogType.FIRST_EMOTION_DIARY); // 사용자에게 잉크 추가 & 잉크 로그 추가해주는 함수
             rewards.add(new DiaryCreateResDto.RewardResDto(
                     RewardType.INK, 1, "잉크를 1 획득했어요"
             ));
@@ -122,7 +119,7 @@ public class DiaryService {
              * - reward 객체 추가
              */
             if(userMission.updateDailyDiaryMissionStatus(true)){
-                inkLogUtil.addInkLog(inkLogs, user, 1, InkLogType.DAILY_MISSION_REWARD);
+                inkLogUtil.addInkLogToList(inkLogs, user, 1, InkLogType.DAILY_MISSION_REWARD);
                 rewards.add(new DiaryCreateResDto.RewardResDto(
                         RewardType.INK, 1, "일일 미션 성공으로 잉크를 1 획득했어요"
                 ));
@@ -133,7 +130,7 @@ public class DiaryService {
                  * - reward 객체 추가
                  */
                 if(userMission.isWeeklyMissionCompleted()){
-                    inkLogUtil.addInkLog(inkLogs, user, 2, InkLogType.WEEKLY_MISSION_REWARD);
+                    inkLogUtil.addInkLogToList(inkLogs, user, 2, InkLogType.WEEKLY_MISSION_REWARD);
                     rewards.add(new DiaryCreateResDto.RewardResDto(
                             RewardType.INK, 2, "주간 미션 성공으로 잉크를 추가로 2 획득했어요"
                     ));
@@ -153,7 +150,7 @@ public class DiaryService {
             ));
             // 2-1. 감정 조절 레벨이 올랐는지 확인
             if(earnedInk == 1){
-                inkLogUtil.addInkLog(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
+                inkLogUtil.addInkLogToList(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
                 rewards.add(new DiaryCreateResDto.RewardResDto(
                         RewardType.INK, earnedInk, "[감정 조절 레벨업] 잉크를 추가로 1 획득했어요"+"(현재 감정 조절 레벨: " + ability.getEmotionRegulation() + ")"
                 ));
@@ -181,7 +178,7 @@ public class DiaryService {
             }
             // 3-1. 긍정 사고의 레벨이 올랐는지 확인
             if(earnedInk == 1){
-                inkLogUtil.addInkLog(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
+                inkLogUtil.addInkLogToList(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
                 rewards.add(new DiaryCreateResDto.RewardResDto(
                         RewardType.INK, earnedInk, "[긍정 사고 레벨업] 잉크를 추가로 1 획득했어요"+"(현재 긍정 사고 레벨: " + ability.getPositiveThinking() + ")"
                 ));

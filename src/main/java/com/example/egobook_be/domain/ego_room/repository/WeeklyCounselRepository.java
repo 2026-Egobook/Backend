@@ -31,4 +31,6 @@ public interface WeeklyCounselRepository extends JpaRepository<WeeklyCounsel, Lo
     Slice<WeeklyCounsel> findAllByUserId(Long userId, Pageable pageable);
 
     Optional<WeeklyCounsel> findTopByUserOrderByEndDateDesc(User user);
+
+    Optional<WeeklyCounsel> findByIdAndUser(Long id, User user);
 }

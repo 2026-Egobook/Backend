@@ -1,7 +1,5 @@
 package com.example.egobook_be.domain.question.service;
 
-import com.example.egobook_be.domain.diary.dto.DiaryCreateResDto;
-import com.example.egobook_be.domain.diary.enums.RewardType;
 import com.example.egobook_be.domain.friend.repository.FriendRepository;
 import com.example.egobook_be.domain.home.entity.Mission;
 import com.example.egobook_be.domain.home.repository.MissionRepository;
@@ -32,7 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
@@ -141,10 +138,10 @@ public class TodayQuestionService {
          */
         List<InkLog> inkLogs = new ArrayList<>();
         if(isFirstAnswerToday){
-            inkLogUtil.addInkLog(inkLogs, user, 1, InkLogType.FIRST_QUESTION_ANSWER); // 잉크 +1
+            inkLogUtil.addInkLogToList(inkLogs, user, 1, InkLogType.FIRST_QUESTION_ANSWER); // 잉크 +1
             // 1-1. 만약 이번이 처음 일일 미션을 수행한 경우일 때
             if(userMission.updateDailyQuestionMissionStatus(true)){
-                inkLogUtil.addInkLog(inkLogs, user, 1, InkLogType.DAILY_MISSION_REWARD);
+                inkLogUtil.addInkLogToList(inkLogs, user, 1, InkLogType.DAILY_MISSION_REWARD);
 
                 /*
                  * 1-2. 만약 오늘이 일일 미션을 7일째 완료한 날인 경우
@@ -152,13 +149,13 @@ public class TodayQuestionService {
                  * - 잉크 로그 추가
                  */
                 if(userMission.isWeeklyMissionCompleted()){
-                    inkLogUtil.addInkLog(inkLogs, user, 2, InkLogType.WEEKLY_MISSION_REWARD);
+                    inkLogUtil.addInkLogToList(inkLogs, user, 2, InkLogType.WEEKLY_MISSION_REWARD);
                 }
             }
             int earnedInk = userAbility.addDiligence(1); // 성실성 +1
             // 1-3. 성실성 레벨업했는지 여부 확인
             if(earnedInk == 1){
-                inkLogUtil.addInkLog(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
+                inkLogUtil.addInkLogToList(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
             }
         }
         inkLogRepository.saveAll(inkLogs);

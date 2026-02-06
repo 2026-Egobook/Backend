@@ -1,7 +1,5 @@
 package com.example.egobook_be.domain.letters.service;
 
-import com.example.egobook_be.domain.diary.dto.DiaryCreateResDto;
-import com.example.egobook_be.domain.diary.enums.RewardType;
 import com.example.egobook_be.domain.home.entity.Mission;
 import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.letters.entity.*;
@@ -127,21 +125,21 @@ public class PlazaLetterService {
         // =================================================
         List<InkLog> inkLogs = new ArrayList<>();
         // 1. 잉크 제공 & 일일 미션 상태 업데이트
-        inkLogUtil.addInkLog(inkLogs, user, 1, InkLogType.FIRST_LETTER_WRITE);
+        inkLogUtil.addInkLogToList(inkLogs, user, 1, InkLogType.FIRST_LETTER_WRITE);
         /*
          * 1-1. 만약 이번이 처음 일일 미션을 수행한 경우일 때 (updateDailyLetterMissionStatus 함수가 true를 반환)
          * - 잉크 +1
          * - 잉크 로그 추가
          */
         if(userMission.updateDailyLetterMissionStatus(true)){
-            inkLogUtil.addInkLog(inkLogs, user, 1, InkLogType.DAILY_MISSION_REWARD);
+            inkLogUtil.addInkLogToList(inkLogs, user, 1, InkLogType.DAILY_MISSION_REWARD);
             /*
              * 1-2. 만약 오늘이 일일 미션을 7일째 완료한 날인 경우
              * - 잉크 +2
              * - 잉크 로그 추가
              */
             if(userMission.isWeeklyMissionCompleted()){
-                inkLogUtil.addInkLog(inkLogs, user, 2, InkLogType.WEEKLY_MISSION_REWARD);
+                inkLogUtil.addInkLogToList(inkLogs, user, 2, InkLogType.WEEKLY_MISSION_REWARD);
             }
         }
         inkLogRepository.saveAll(inkLogs);
@@ -294,7 +292,7 @@ public class PlazaLetterService {
         List<ReplyResponse.RewardDto> rewards = new ArrayList<>();
         List<InkLog> inkLogs = new ArrayList<>();
         if(isFirstReplyToday){
-            inkLogUtil.addInkLog(inkLogs, user, 1, InkLogType.FIRST_LETTER_REPLY); // 잉크 +1
+            inkLogUtil.addInkLogToList(inkLogs, user, 1, InkLogType.FIRST_LETTER_REPLY); // 잉크 +1
             rewards.add(ReplyResponse.RewardDto.builder()
                     .kind(ReplyResponse.RewardKind.INK)
                     .amount(1)
@@ -309,7 +307,7 @@ public class PlazaLetterService {
                     .build());
             // 1-1. 레벨업했는지 여부 확인
             if(earnedInk == 1){
-                inkLogUtil.addInkLog(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
+                inkLogUtil.addInkLogToList(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
                 rewards.add(ReplyResponse.RewardDto.builder()
                         .kind(ReplyResponse.RewardKind.EMPATHY) // [수정] SINCERITY -> EMPATHY
                         .amount(1)
