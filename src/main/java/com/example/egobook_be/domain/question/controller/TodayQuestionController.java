@@ -1,6 +1,7 @@
 package com.example.egobook_be.domain.question.controller;
 
 import com.example.egobook_be.domain.question.dto.*;
+import com.example.egobook_be.domain.question.service.AnswerReportAdminService;
 import com.example.egobook_be.domain.question.service.AnswerReportService;
 import com.example.egobook_be.domain.question.service.TodayQuestionService;
 import com.example.egobook_be.global.response.GlobalResponse;
@@ -21,7 +22,7 @@ public class TodayQuestionController {
 
     private final TodayQuestionService todayQuestionService;
     private final AnswerReportService answerReportService;
-
+    private final AnswerReportAdminService answerReportAdminService;
 
     @Operation(
             summary = "오늘의 질문 조회",
@@ -179,6 +180,23 @@ public class TodayQuestionController {
                 GlobalResponse.success(
                         "답변 신고 완료",
                         answerReportService.reportAnswer(userId, answerId, reqDto)
+                )
+        );
+    }
+
+    @Operation(
+            summary = "신고된 답변 목록 조회 (관리자)",
+            description = "신고된 모든 답변을 조회합니다."
+    )
+    @GetMapping
+    public ResponseEntity<GlobalResponse<SliceResponse<AnswerReportAdminResDto>>> getReportedAnswers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success(
+                        "신고된 답변 조회 성공",
+                        answerReportAdminService.getReportedAnswers(page, size)
                 )
         );
     }
