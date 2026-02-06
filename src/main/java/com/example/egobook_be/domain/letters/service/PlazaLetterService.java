@@ -194,6 +194,8 @@ public class PlazaLetterService {
                 .threadId(saved.getThreadId())
                 .status(saved.getStatus())
                 .mode(saved.getMode())
+                .fromLabel(saved.getFromLabel())
+                .backgroundColor(saved.getBackgroundColor().name())
                 .createdAt(saved.getCreatedAt())
                 .build();
     }
@@ -483,15 +485,20 @@ public class PlazaLetterService {
         );
 
         return SliceResponse.of(
-                plazaLetterReplyRepository.findByReplierIdOrderByReplyIdDesc(userId, pageable),
+                plazaLetterReplyRepository.findMyRepliesWithLetter(userId, pageable),
                 this::toReplyItemDto
         );
     }
 
     private ReplyItemDto toReplyItemDto(PlazaLetterReply reply) {
+        PlazaLetter letter = reply.getLetter();
+
         return ReplyItemDto.builder()
                 .replyId(reply.getReplyId())
-                .letterId(reply.getLetter().getLetterId())
+                .letterId(letter.getLetterId())
+                .threadId(reply.getThreadId())
+                .mode(letter.getMode())
+                .backgroundColor(letter.getBackgroundColor().name())
                 .replyText(reply.getText())
                 .createdAt(reply.getCreatedAt())
                 .build();
