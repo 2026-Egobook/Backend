@@ -49,10 +49,18 @@ public class AdsService {
             String transactionId, String userIdStr, String weeklyCounselIdStr,
             String rewardType, String adUnitId
     ) {
-        // 1. 보안 검증 - 주어진 SSV 서명을 key_id로 검증
-        long keyId = Long.parseLong(keyIdStr);
-        if (!adMobVerifier.verify(queryString, signature, keyId)) {
-            throw new SecurityException("AdMob Signature Failed");
+        /*
+          * 1. 보안 검증 - 주어진 SSV 서명을 key_id로 검증
+          * - Swagger Test를 위해, 값이 "TEST_PASS"가 들어오면 검증을 패스하도록 설정한다.
+         */
+        if ("TEST_PASS".equals(signature)) {
+            log.info("🚧 [Swagger Test] 서명 검증을 건너뜁니다. (Transaction: {})", transactionId);
+        } else {
+            // [REAL MODE] 실제 운영 로직 (서명 검증 수행)
+            long keyId = Long.parseLong(keyIdStr);
+            if (!adMobVerifier.verify(queryString, signature, keyId)) {
+                throw new SecurityException("AdMob Signature Failed");
+            }
         }
 
         // 2. 멱등성(중복) 체크 - AdRewardHistory 엔티티에 인덱스 설정을 걸어두었으므로 빠르다

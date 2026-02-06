@@ -27,13 +27,14 @@ public interface AdsControllerDocs {
                     - `reward_item` (지급할 보상 아이템 타입)을 통해 어떤 상황의 광고(잉크 보상용 vs 주간 AI 보고서용)인지 구분합니다.
                     
                     **[ 프론트엔드 가이드 ]**
+                    
                     **(1) 보상 1:잉크 보상**
-                    - UserId값으로 해당 사용자의 userId 값을 설정해주세요.
+                    - AdMob에게 광고 시청 요청을 보낼 때, UserId값으로 해당 사용자의 userId 값을 설정해주세요.
                     - 커스텀 데이터는 설정하지 않아주셔도 됩니다.
                     
                     **(2) 보상 2:주간 AI 리포트 확인**
-                    - UserId값으로 해당 사용자의 userId 값을 설정해주세요.
-                    - **커스텀 데이터에 보고 싶은 주간 AI 리포트의 PK값을 넣어주세요.**
+                    - AdMob에게 광고 시청 요청을 보낼 때, UserId값으로 해당 사용자의 userId 값을 설정해주세요.
+                    - 마찬가지로, 해당 요청의 **커스텀 데이터에 보고 싶은 주간 AI 리포트의 PK값을 반드시 넣어주어야합니다.**
                     
                     **[ 핵심 로직 ]**
                     1. **서명 검증:** ECDSA 서명을 통해 요청이 구글에서 온 것인지 확인합니다.
@@ -55,25 +56,25 @@ public interface AdsControllerDocs {
     ResponseEntity<Void> callback(
             @Parameter(hidden = true) HttpServletRequest request, // 원본 쿼리 스트링 추출용 (서명 검증에 필수임)
 
-            @Parameter(description = "AdMob에서 생성한 SSV 콜백 서명 값", required = true)
+            @Parameter(description = "AdMob에서 생성한 SSV 콜백 서명 값", required = true, example = "TEST_PASS")
             @RequestParam("signature") String signature,
 
-            @Parameter(description = "서명 검증에 사용할 키 ID", required = true)
+            @Parameter(description = "서명 검증에 사용할 키 ID", required = true, example = "test_key_123")
             @RequestParam("key_id") String keyId,
 
-            @Parameter(description = "광고 시청 고유 트랜잭션 ID (중복 방지 키)", required = true)
+            @Parameter(description = "광고 시청 고유 트랜잭션 ID (중복 방지 키)", required = true, example = "TX_TEST_001")
             @RequestParam("transaction_id") String transactionId,
 
-            @Parameter(description = "사용자 식별자 (앱에서 설정한 값)", required = true)
+            @Parameter(description = "사용자 식별자 (앱에서 설정한 값)", required = true, example = "1")
             @RequestParam("user_id") String userId,
 
-            @Parameter(description = "지급할 보상 아이템 타입")
+            @Parameter(description = "지급할 보상 아이템 타입 (INK or WEEK_COUNSEL)", example = "INK")
             @RequestParam("reward_item") String rewardType,
 
-            @Parameter(description = "광고 단위 ID (어떤 광고를 봤는지)")
+            @Parameter(description = "광고 단위 ID (어떤 광고를 봤는지)", required = false, example = "ca-app-pub-3940256099942544/5224354917")
             @RequestParam(value = "ad_unit", required = false) String adUnitId,
 
-            @Parameter(description = "커스텀 데이터: 확인할 주간 보고서 ID")
+            @Parameter(description = "커스텀 데이터: 확인할 주간 보고서 ID", required = false, example = "")
             @RequestParam(value = "custom_data", required = false) String weeklyCounselId
     );
 
