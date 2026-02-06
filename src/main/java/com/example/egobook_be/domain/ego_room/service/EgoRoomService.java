@@ -229,7 +229,7 @@ public class EgoRoomService {
             return;
         }
 
-        String lastSummary = weeklyCounselRepository.findTopByUserOrderByEndDateDesc(user)
+        String lastSummary = weeklyCounselRepository.findTopByUserAndStartDateLessThanOrderByStartDateDesc(user,startDate)
                 .map(WeeklyCounsel::getSummary)
                 .orElse("첫 주 분석입니다. 이전 데이터가 없습니다.");
 
@@ -244,14 +244,22 @@ public class EgoRoomService {
                 .collect(Collectors.groupingBy(
                         diary -> diary.getCreatedAt().toLocalDate(), // 날짜별로 그룹핑
                         TreeMap::new, // 날짜 순서대로 정렬
-                        Collectors.mapping(Diary::getContent, Collectors.joining("\n- ")) // 내용은 리스트 형태로
+                        Collectors.mapping(diary -> {
+                            String scoreInfo = (diary.getEmotionLevel() != null)
+                            ? String.format("[%d점/5점]", diary.getEmotionLevel())
+                            : "[점수 미기록]";
+
+                        // 2. [점수] 내용 형식으로 반환
+                        return String.format("%s %s", scoreInfo, diary.getContent());
+                 }, Collectors.joining("\n- "))
+
                 ))
                 .entrySet().stream()
                 .map(entry -> String.format("[%s]\n- %s", entry.getKey(), entry.getValue()))
                 .collect(Collectors.joining("\n\n")); // 날짜별로 두 칸 띄우기
 
 
-        WeeklyCounselResDto aiResponse = weeklyAnalysisAiService.getAnalysis(formattedDiaries,lastSummary, userTone);
+        WeeklyCounselResDto aiResponse = weeklyAnalysisAiService.getAnalysis(user.getNickname(),formattedDiaries,lastSummary, userTone);
 
         WeeklyCounsel counsel = WeeklyCounsel.builder()
                 .user(user)

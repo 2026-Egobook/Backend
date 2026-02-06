@@ -1,6 +1,7 @@
 package com.example.egobook_be.domain.ego_room.dto;
 
 public record WeeklyCounselResDto(
+        String nickname,
         String summary,
         String praisePoints,
         String improvementPoints,
