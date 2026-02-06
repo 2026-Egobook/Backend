@@ -1,7 +1,5 @@
 package com.example.egobook_be.domain.letters.service;
 
-import com.example.egobook_be.domain.diary.dto.DiaryCreateResDto;
-import com.example.egobook_be.domain.diary.enums.RewardType;
 import com.example.egobook_be.domain.home.entity.Mission;
 import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.letters.entity.*;
@@ -13,6 +11,8 @@ import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterThreadRepository;
+import com.example.egobook_be.domain.notification.enums.NotificationType;
+import com.example.egobook_be.domain.notification.service.NotificationService;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.InkLog;
 import com.example.egobook_be.domain.user.entity.InkLogType;
@@ -54,8 +54,9 @@ public class PlazaLetterService {
     private final WordClientService wordClient;
     private final InkLogUtil inkLogUtil;
 
-
     private final PlazaLetterMapper plazaLetterMapper;
+
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public InboxNextResponse getNextArrivedLetter(Long userId) {
@@ -147,6 +148,22 @@ public class PlazaLetterService {
         inkLogRepository.saveAll(inkLogs);
 
         PlazaLetter saved = plazaLetterRepository.save(letter);
+
+        // 작성 편지 수신자 알림 생성
+        if (request.getMode() == PlazaLetterMode.FRIEND) {
+            notificationService.createNotification(
+                    receiverId,
+                    NotificationType.LETTER_NEW_FRIEND,
+                    saved.getLetterId(),
+                    user.getNickname()
+            );
+        } else {
+            notificationService.createNotification(
+                    receiverId,
+                    NotificationType.LETTER_NEW,
+                    saved.getLetterId()
+            );
+        }
 
         return CreateLetterResponse.builder()
                 .letterId(saved.getLetterId())
@@ -270,7 +287,7 @@ public class PlazaLetterService {
         OffsetDateTime endOfDay = today.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
         boolean isFirstReplyToday = !plazaLetterReplyRepository.existsByReplierIdAndCreatedAtBetween(userId, startOfDay, endOfDay);
 
-        plazaLetterReplyRepository.save(PlazaLetterReply.builder()
+        PlazaLetterReply reply = plazaLetterReplyRepository.save(PlazaLetterReply.builder()
                 .threadId(letter.getThreadId())
                 .letter(letter)
                 .replierId(userId)
@@ -280,6 +297,22 @@ public class PlazaLetterService {
                 .build());
 
         letter.markReplied(now);
+
+        // 답장 편지 수신자 알림 생성
+        if (letter.getMode() == PlazaLetterMode.FRIEND) {
+            notificationService.createNotification(
+                    letter.getSenderId(),
+                    NotificationType.LETTER_REPLY_FRIEND,
+                    reply.getReplyId(),
+                    user.getNickname()
+            );
+        } else {
+            notificationService.createNotification(
+                    letter.getSenderId(),
+                    NotificationType.LETTER_REPLY,
+                    reply.getReplyId()
+            );
+        }
 
         // =============================================
         // [ 보상 로직 ]
@@ -442,7 +475,5 @@ public class PlazaLetterService {
                 .createdAt(reply.getCreatedAt())
                 .build();
     }
-
-
 
 }

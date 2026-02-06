@@ -87,4 +87,10 @@ public class DiaryMapper {
                 .range(new DiaryExportResDto.DateRange(startDate, endDate))
                 .build();
     }
+
+    public static DiaryDeleteResDto toDiaryDeleteDto(boolean deleted) {
+        return DiaryDeleteResDto.builder()
+                .deleted(deleted)
+                .build();
+    }
 }

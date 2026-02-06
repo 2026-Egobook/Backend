@@ -1,7 +1,9 @@
 package com.example.egobook_be.domain.notification.service;
 
 import com.example.egobook_be.domain.letters.entity.PlazaLetter;
+import com.example.egobook_be.domain.letters.entity.PlazaLetterReply;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
+import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.notification.dto.NotificationReadResDto;
 import com.example.egobook_be.domain.notification.dto.NotificationResDto;
@@ -31,6 +33,7 @@ public class NotificationService {
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
     private final PlazaLetterRepository plazaLetterRepository;
+    private final PlazaLetterReplyRepository plazaLetterReplyRepository;
 
     /** 알림 생성 */
     @Transactional
@@ -38,9 +41,18 @@ public class NotificationService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(NotificationErrorCode.USER_NOT_FOUND));
 
+        // 알림 설정 확인
+        if (!user.isNotificationEnabled()) {
+            return;
+        }
+
         String title = type.format(args);
         String content = switch (type) {
-            case LETTER_REQUEST, FRIEND_LETTER -> getLetterPreview(targetId);
+            case LETTER_REPLY,
+                 LETTER_REPLY_FRIEND,
+                 LETTER_NEW,
+                 LETTER_NEW_FRIEND
+                    -> getLetterPreview(type, targetId);
             default -> null;
         };
 
@@ -121,15 +133,25 @@ public class NotificationService {
     }
 
     /** 편지 내용 미리보기 */
-    private String getLetterPreview(Long letterId) {
-        PlazaLetter letter = plazaLetterRepository.findById(letterId)
-                .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+    private String getLetterPreview(NotificationType type, Long letterId) {
 
-        String content = letter.getContent();
-        if (content == null) {
-            return "";
+        String content;
+
+        // Reply 타입인지 Letter 타입인지 구분
+        if (type == NotificationType.LETTER_REPLY ||
+                type == NotificationType.LETTER_REPLY_FRIEND) {
+            PlazaLetterReply reply = plazaLetterReplyRepository.findById(letterId)
+                    .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+            content = reply.getText();
+        } else {
+            PlazaLetter letter = plazaLetterRepository.findById(letterId)
+                    .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+            content = letter.getContent();
         }
 
+        if (content == null || content.isEmpty()) {
+            return "";
+        }
         return content.length() > 17
                 ? content.substring(0, 17)
                 : content;

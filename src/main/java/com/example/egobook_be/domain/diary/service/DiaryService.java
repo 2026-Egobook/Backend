@@ -9,9 +9,6 @@ import com.example.egobook_be.domain.diary.exception.DiaryErrorCode;
 import com.example.egobook_be.domain.diary.mapper.DiaryMapper;
 import com.example.egobook_be.domain.diary.repository.DiaryRepository;
 import com.example.egobook_be.domain.home.entity.Mission;
-import com.example.egobook_be.domain.home.repository.MissionRepository;
-import com.example.egobook_be.domain.notification.entity.Notification;
-import com.example.egobook_be.domain.notification.mapper.NotificationMapper;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.InkLog;
 import com.example.egobook_be.domain.user.entity.InkLogType;
@@ -258,11 +255,13 @@ public class DiaryService {
 
     /** 감정 일기 삭제 */
     @Transactional
-    public void deleteDiary(Long userId, Long diaryId) {
+    public DiaryDeleteResDto deleteDiary(Long userId, Long diaryId) {
 
         Diary diary = diaryQueryService.getDiaryWithAuth(userId, diaryId);
 
         diaryRepository.delete(diary);
+
+        return DiaryMapper.toDiaryDeleteDto(true);
     }
 
     /** 날짜별 감정 일기 목록 조회 (type 필터링) */
