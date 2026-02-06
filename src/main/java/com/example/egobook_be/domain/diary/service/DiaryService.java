@@ -255,11 +255,13 @@ public class DiaryService {
 
     /** 감정 일기 삭제 */
     @Transactional
-    public void deleteDiary(Long userId, Long diaryId) {
+    public DiaryDeleteResDto deleteDiary(Long userId, Long diaryId) {
 
         Diary diary = diaryQueryService.getDiaryWithAuth(userId, diaryId);
 
         diaryRepository.delete(diary);
+
+        return DiaryMapper.toDiaryDeleteDto(true);
     }
 
     /** 날짜별 감정 일기 목록 조회 (type 필터링) */
