@@ -25,7 +25,11 @@ public enum FriendErrorCode implements BaseErrorCode {
     /**
      * 400 BAD_REQUEST
      */
-    SELF_REQUEST_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "자기 자신에게 친구 신청을 보낼 수 없습니다.");
+    SELF_REQUEST_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "자기 자신에게 친구 신청을 보낼 수 없습니다."),
+    INVALID_FRIEND_REQUEST_STATE(
+            HttpStatus.BAD_REQUEST,
+            "이미 처리된 친구 신청입니다."
+    );
 
     private final HttpStatus status;
     private final String message;

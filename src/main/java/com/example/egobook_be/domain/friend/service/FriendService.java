@@ -120,6 +120,18 @@ public class FriendService {
                 .findByIdAndReceiver(requestId, receiver)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.FRIEND_REQUEST_NOT_FOUND));
 
+        User sender = request.getSender();
+
+        // 이미 친구인 경우 → 거절 불가
+        if (friendRepository.existsByUserAndFriend(receiver, sender)) {
+            throw new CustomException(FriendErrorCode.ALREADY_FRIEND);
+        }
+
+        // 이미 처리된 요청이면 거절 불가
+        if (request.getStatus() != FriendRequestStatus.PENDING) {
+            throw new CustomException(FriendErrorCode.INVALID_FRIEND_REQUEST_STATE);
+        }
+
         request.reject();
     }
 
