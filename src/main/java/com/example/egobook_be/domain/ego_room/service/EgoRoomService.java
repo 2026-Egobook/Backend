@@ -7,10 +7,15 @@ import com.example.egobook_be.domain.ego_room.dto.*;
 import com.example.egobook_be.domain.ego_room.entity.DailyPraise;
 import com.example.egobook_be.domain.ego_room.entity.WeeklyCounsel;
 import com.example.egobook_be.domain.ego_room.enums.CounselTone;
+import com.example.egobook_be.domain.ego_room.enums.UnlockType;
+import com.example.egobook_be.domain.ego_room.exception.EgoRoomErrorCode;
 import com.example.egobook_be.domain.ego_room.repository.DailyPraiseRepository;
 import com.example.egobook_be.domain.ego_room.repository.WeeklyCounselRepository;
+import com.example.egobook_be.domain.user.entity.InkLog;
+import com.example.egobook_be.domain.user.entity.InkLogType;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.exception.UserErrorCode;
+import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.exception.GlobalErrorCode;
@@ -18,6 +23,7 @@ import com.example.egobook_be.global.response.SliceResponse;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.antlr.v4.runtime.misc.LogManager;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +43,7 @@ public class EgoRoomService {
     private final DailyPraiseAiService dailyPraiseAiService;
     private final WeeklyAnalysisAiService weeklyAnalysisAiService;
     private final DiaryRepository diaryRepository;
+    private final InkLogRepository inkLogRepository;
 
     @Transactional(readOnly = true)
     public Map<String, Boolean> getSettings(Long userId) {
@@ -139,7 +146,8 @@ public class EgoRoomService {
                 counsel.getId(),
                 counsel.getStartDate().toString(),
                 counsel.getEndDate().toString(),
-                counsel.isRead()
+                counsel.isRead(),
+                counsel.isLocked()
         ));
     }
 
@@ -147,8 +155,17 @@ public class EgoRoomService {
     public WeeklyCounselDetailResDto getWeeklyCounselDetail(Long userId, LocalDate startDate) {
         WeeklyCounsel counsel = weeklyCounselRepository.findByUserIdAndStartDate(userId, startDate)
                 .orElseThrow(() -> new CustomException(DiaryErrorCode.COUNSEL_NOT_FOUND));
+
+        if (counsel.isLocked()) {
+            return WeeklyCounselDetailResDto.builder()
+                    .startDate(String.valueOf(counsel.getStartDate()))
+                    .isLocked(true)
+                    .build();
+        }
+
+        // 잠금이 풀려있으면 읽음 처리 후 전체 데이터 반환
         counsel.markAsRead();
-        return WeeklyCounselDetailResDto.from(counsel);
+        return WeeklyCounselDetailResDto.from(counsel, false);
     }
 
 
@@ -248,9 +265,25 @@ public class EgoRoomService {
                 .build();
 
         weeklyCounselRepository.save(counsel);
-//        log.info("[AI 저장 완료] 유저 {}의 주간 분석이 성공적으로 저장되었습니다.", userId);
 
     }
 
 
+    @Transactional
+    public void unlockWeeklyCounsel(Long userId, LocalDate startDate, UnlockType type) {
+        WeeklyCounsel counsel = weeklyCounselRepository.findByUserIdAndStartDate(userId, startDate)
+                .orElseThrow(() -> new CustomException(EgoRoomErrorCode.COUNSEL_NOT_FOUND));
+
+        // 잉크 사용 시 처리
+        if (type == UnlockType.INK) {
+            User user = counsel.getUser();
+            if (user.getInk() < 10) throw new CustomException(EgoRoomErrorCode.INSUFFICIENT_INK);
+
+            user.useInk(10);
+            // 잉크 로그 작성
+            inkLogRepository.save(new InkLog(user, -10, InkLogType.WEEKLY_UNLOCK));
+        }
+
+        counsel.unlock(); // counsel.isLocked = false;
+    }
 }
