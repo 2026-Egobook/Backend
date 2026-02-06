@@ -85,13 +85,20 @@ public class AdsService {
             return;
         }
         switch (type) {
-            case AdRewardType.INK -> rewardInk(transactionId, userIdStr, adUnitId);
+            case AdRewardType.INK -> {
+                if (isDailyInkLimitReached(Long.parseLong(userIdStr))) {
+                    log.warn("User {} reached daily INK limit. Transaction {} skipped.", userIdStr, transactionId);
+                    return; // 잉크 안 주고 종료
+                }
+                rewardInk(transactionId, userIdStr, adUnitId);
+            }
             case AdRewardType.WEEK_COUNSEL -> rewardWeekCounsel(transactionId, userIdStr, weeklyCounselIdStr, adUnitId);
         }
     }
 
     /**
      * 광고 시청 시 Ink 보상을 주는 과정을 담은 함수
+     * - 사용자가 하루 광고 횟수를 넘었는지 확인
      * - 사용자에에 잉크 지급
      * - 잉크 보상 Log 기록
      * - AdRewardHistory에 해당 기록 추가
@@ -137,7 +144,19 @@ public class AdsService {
         log.info("Unlocked Weekly Counsel {} via AdMob for User {}", weeklyCounselId, userId);
     }
 
+    /**
+     * [Helper] 잉크 광고 일일 제한 도달 여부 확인 (INK 타입만 카운트)
+     */
+    private boolean isDailyInkLimitReached(Long userId) {
+        LocalDateTime nowKst = LocalDateTime.now(ZoneId.of(KST_ZONE));
+        LocalDateTime startOfDay = nowKst.toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = nowKst.toLocalDate().atTime(LocalTime.MAX);
 
+        // Repository 메서드 이름 변경 및 파라미터 추가 (AdRewardType.INK)
+        int currentCount = historyRepository.countDailyInkAds(userId, AdRewardType.INK, startOfDay, endOfDay);
+
+        return currentCount >= DAILY_AD_LIMIT;
+    }
 
 
 
@@ -152,8 +171,8 @@ public class AdsService {
         LocalDateTime startOfDay = nowKst.toLocalDate().atStartOfDay(); // 00:00:00
         LocalDateTime endOfDay = nowKst.toLocalDate().atTime(LocalTime.MAX); // 23:59:59.999
 
-        // 2. DB에서 오늘 시청 횟수 조회 (COUNT 쿼리, 인덱스 처리를 해두어서 빠름)
-        int currentCount = historyRepository.countDailyAds(userId, startOfDay, endOfDay);
+        // 2. DB에서 오늘 잉크용 광고 시청 횟수 조회 (COUNT 쿼리, 인덱스 처리를 해두어서 빠름)
+        int currentCount = historyRepository.countDailyInkAds(userId, AdRewardType.INK, startOfDay, endOfDay);
 
         // 3. 응답 생성
         boolean isAvailable = currentCount < DAILY_AD_LIMIT;

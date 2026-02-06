@@ -78,8 +78,6 @@ public interface AdsControllerDocs {
             @RequestParam(value = "custom_data", required = false) String weeklyCounselId
     );
 
-
-
     @Operation(summary = "오늘의 광고 현황 및 기대 보상 조회",
             description = "사용자가 오늘 시청 가능한 남은 광고 수와 획득 가능한 재화 정보를 반환합니다.")
     @ApiResponses(value = {
