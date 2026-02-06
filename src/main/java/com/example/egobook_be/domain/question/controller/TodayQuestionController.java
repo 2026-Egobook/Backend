@@ -1,6 +1,7 @@
 package com.example.egobook_be.domain.question.controller;
 
 import com.example.egobook_be.domain.question.dto.*;
+import com.example.egobook_be.domain.question.service.AnswerReportService;
 import com.example.egobook_be.domain.question.service.TodayQuestionService;
 import com.example.egobook_be.global.response.GlobalResponse;
 import com.example.egobook_be.global.response.SliceResponse;
@@ -12,15 +13,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
-@Tag(name = "Question API", description = "오늘의 질문 관련 API")
+@Tag(name = "Question Controller", description = "오늘의 질문 관련 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/questions")
 public class TodayQuestionController {
 
     private final TodayQuestionService todayQuestionService;
+    private final AnswerReportService answerReportService;
+
 
     @Operation(
             summary = "오늘의 질문 조회",
@@ -161,6 +162,24 @@ public class TodayQuestionController {
         todayQuestionService.deleteAnswer(userId, answerId);
         return ResponseEntity.ok(
                 GlobalResponse.success("답변 삭제 성공", null)
+        );
+    }
+
+    @Operation(
+            summary = "답변 신고",
+            description = "오늘의 질문에 대한 특정 답변을 신고합니다."
+    )
+    @PostMapping("/answers/{answerId}/report")
+    public ResponseEntity<GlobalResponse<AnswerReportResDto>> reportAnswer(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @PathVariable Long answerId,
+            @RequestBody @Valid AnswerReportReqDto reqDto
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success(
+                        "답변 신고 완료",
+                        answerReportService.reportAnswer(userId, answerId, reqDto)
+                )
         );
     }
 }
