@@ -47,7 +47,7 @@ public class AuthController implements AuthControllerDocs{
      */
     @Override
     public ResponseEntity<GlobalResponse<JwtTokenResDto>> refreshAccessToken(@RequestBody @Valid RefreshReqDto reqDto) {
-        JwtTokenResDto jwtTokenResDto = authService.refreshGuestToken(reqDto);
+        JwtTokenResDto jwtTokenResDto = authService.refreshToken(reqDto);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(GlobalResponse.success("Access Token이 정상적으로 재발급되었습니다.", jwtTokenResDto));

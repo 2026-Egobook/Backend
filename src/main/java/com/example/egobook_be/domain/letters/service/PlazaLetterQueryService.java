@@ -68,7 +68,7 @@ public class PlazaLetterQueryService {
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
 
-
+        // 1. 답장 목록 조회
         Slice<PlazaLetterReply> slice =
                 plazaLetterReplyRepository.findRepliesForMyLetters(userId, pageable);
 
@@ -76,19 +76,7 @@ public class PlazaLetterQueryService {
             return SliceResponse.of(slice, r -> null);
         }
 
-        List<Long> letterIds = slice.getContent().stream()
-                .map(PlazaLetterReply::getLetterId)
-                .distinct()
-                .toList();
-
-        List<PlazaLetter> letters = plazaLetterRepository.findByLetterIdIn(letterIds);
-
-        java.util.Map<Long, PlazaLetter> letterMap = letters.stream()
-                .collect(java.util.stream.Collectors.toMap(
-                        PlazaLetter::getLetterId,
-                        l -> l
-                ));
-
+        // 2. 신고 상태 확인 (내가 신고한 답장 ID 목록 가져옴)
         List<Long> replyIds = slice.getContent().stream()
                 .map(PlazaLetterReply::getReplyId)
                 .toList();
@@ -97,8 +85,9 @@ public class PlazaLetterQueryService {
                 ? java.util.Collections.emptySet()
                 : new java.util.HashSet<>(replyReportRepository.findReportedReplyIds(userId, replyIds));
 
+        // 3. DTO 변환
         return SliceResponse.of(slice, reply -> {
-            PlazaLetter letter = letterMap.get(reply.getLetterId());
+            PlazaLetter letter = reply.getLetter();
             if (letter == null) {
                 throw new CustomException(LettersErrorCode.LETTER_NOT_FOUND);
             }
@@ -122,7 +111,7 @@ public class PlazaLetterQueryService {
 
         // 답장은 없을 수도 있음
         PlazaLetterReply reply =
-                plazaLetterReplyRepository.findByLetterId(letterId).orElse(null);
+                plazaLetterReplyRepository.findByLetter(letter).orElse(null);
 
         boolean reported = false;
         if (reply != null) {
