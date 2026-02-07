@@ -3,8 +3,11 @@ package com.example.egobook_be.domain.letters.service.ai;
 import com.example.egobook_be.domain.letters.entity.*;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
+import com.example.egobook_be.domain.notification.enums.NotificationType;
+import com.example.egobook_be.domain.notification.service.NotificationService;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -15,6 +18,7 @@ import java.util.List;
 
 import static com.example.egobook_be.domain.letters.entity.QPlazaLetter.plazaLetter;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlazaLetterAiReplyService {
@@ -25,6 +29,7 @@ public class PlazaLetterAiReplyService {
     private final PlazaLetterReplyRepository plazaLetterReplyRepository;
     private final UserRepository userRepository;
     private final GeminiClient geminiClient;
+    private final NotificationService notificationService;
 
     @Transactional
     public int generateAiReplies(int batchSize) {
@@ -99,6 +104,24 @@ public class PlazaLetterAiReplyService {
         plazaLetterRepository.save(letter);
 
         letter.markAiReplied(now);
+
+        // AI 편지 도착 알림 생성
+        notificationService.createNotification(
+                letter.getSenderId(),
+                NotificationType.LETTER_REPLY,
+                aiReply.getReplyId()
+        );
+
+        try {
+            notificationService.createNotification(
+                    letter.getSenderId(),
+                    NotificationType.LETTER_REPLY,
+                    aiReply.getReplyId()
+            );
+        } catch (Exception e) {
+            log.error("Ai 답장 편지 도착 알림 생성 실패, UserId: {}, ReplyId: {}",
+                    letter.getSenderId(), aiReply.getReplyId(), e);
+        }
 
         return true;
     }

@@ -30,6 +30,7 @@ import com.example.egobook_be.domain.letters.mapper.PlazaLetterMapper;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import com.example.egobook_be.global.util.InkLogUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlazaLetterService {
@@ -194,19 +196,24 @@ public class PlazaLetterService {
         PlazaLetter saved = plazaLetterRepository.save(letter);
 
         // 작성 편지 수신자 알림 생성
-        if (request.getMode() == PlazaLetterMode.FRIEND) {
-            notificationService.createNotification(
-                    receiverId,
-                    NotificationType.LETTER_NEW_FRIEND,
-                    saved.getLetterId(),
-                    user.getNickname()
-            );
-        } else {
-            notificationService.createNotification(
-                    receiverId,
-                    NotificationType.LETTER_NEW,
-                    saved.getLetterId()
-            );
+        try {
+            if (request.getMode() == PlazaLetterMode.FRIEND) {
+                notificationService.createNotification(
+                        receiverId,
+                        NotificationType.LETTER_NEW_FRIEND,
+                        saved.getLetterId(),
+                        user.getNickname()
+                );
+            } else {
+                notificationService.createNotification(
+                        receiverId,
+                        NotificationType.LETTER_NEW,
+                        saved.getLetterId()
+                );
+            }
+        } catch (Exception e) {
+            log.error("새로운 편지 도착 알림 생성 실패. SenderId: {}, LetterId: {}",
+                    letter.getSenderId(), saved.getLetterId(), e);
         }
 
         return CreateLetterResponse.builder()
@@ -350,19 +357,24 @@ public class PlazaLetterService {
         letter.markReplied(now);
 
         // 답장 편지 수신자 알림 생성
-        if (letter.getMode() == PlazaLetterMode.FRIEND) {
-            notificationService.createNotification(
-                    letter.getSenderId(),
-                    NotificationType.LETTER_REPLY_FRIEND,
-                    reply.getReplyId(),
-                    user.getNickname()
-            );
-        } else {
-            notificationService.createNotification(
-                    letter.getSenderId(),
-                    NotificationType.LETTER_REPLY,
-                    reply.getReplyId()
-            );
+        try {
+            if (letter.getMode() == PlazaLetterMode.FRIEND) {
+                notificationService.createNotification(
+                        letter.getSenderId(),
+                        NotificationType.LETTER_REPLY_FRIEND,
+                        reply.getReplyId(),
+                        user.getNickname()
+                );
+            } else {
+                notificationService.createNotification(
+                        letter.getSenderId(),
+                        NotificationType.LETTER_REPLY,
+                        reply.getReplyId()
+                );
+            }
+        } catch (Exception e) {
+            log.error("답장 편지 도착 알림 생성 실패. SenderId: {}, ReplyId: {}",
+                    letter.getSenderId(), reply.getReplyId(), e);
         }
 
         // =============================================

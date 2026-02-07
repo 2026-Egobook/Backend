@@ -204,12 +204,18 @@ public class EgoRoomService {
 
         dailyPraiseRepository.save(dailyPraise);
 
-        notificationService.createNotification(
-                userId,
-                NotificationType.PRAISE,
-                dailyPraise.getId(),
-                dailyPraise.getPraiseDate().format(DateTimeFormatter.ofPattern("M.d"))
-        );
+        // 일간 칭찬서 알림 생성
+        try {
+            notificationService.createNotification(
+                    userId,
+                    NotificationType.PRAISE,
+                    dailyPraise.getId(),
+                    dailyPraise.getPraiseDate().format(DateTimeFormatter.ofPattern("M.d"))
+            );
+        } catch (Exception e) {
+            log.error("일간 칭찬서 도착 알림 생성 실패. UserId: {}, dailyPraiseId: {}",
+                    userId, dailyPraise.getId(), e);
+        }
     }
 
     // 주간 분석서 생성 로직
@@ -261,11 +267,16 @@ public class EgoRoomService {
         weeklyCounselRepository.save(counsel);
 //        log.info("[AI 저장 완료] 유저 {}의 주간 분석이 성공적으로 저장되었습니다.", userId);
 
-        notificationService.createNotification(
-                userId,
-                NotificationType.REPORT,
-                counsel.getId()
-        );
+        try {
+            notificationService.createNotification(
+                    userId,
+                    NotificationType.REPORT,
+                    counsel.getId()
+            );
+        } catch (Exception e) {
+            log.error("주간 리포트 도착 알림 생성 실패. UserId: {}, CounselId: {}",
+                    userId, counsel.getId(), e);
+        }
 
     }
 }
