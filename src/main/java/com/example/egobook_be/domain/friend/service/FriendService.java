@@ -11,6 +11,7 @@ import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -76,63 +77,79 @@ public class FriendService {
     /** 친구 신청 수락 **/
     @Transactional
     public void acceptRequest(Long receiverId, Long requestId) {
+        try {
+            User receiver = userRepository.findById(receiverId)
+                    .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
-        User receiver = userRepository.findById(receiverId)
-                .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
+            FriendRequest request = friendRequestRepository
+                    .findByIdAndReceiver(requestId, receiver)
+                    .orElseThrow(() -> new CustomException(FriendErrorCode.FRIEND_REQUEST_NOT_FOUND));
 
-        FriendRequest request = friendRequestRepository
-                .findByIdAndReceiver(requestId, receiver)
-                .orElseThrow(() -> new CustomException(FriendErrorCode.FRIEND_REQUEST_NOT_FOUND));
+            User sender = request.getSender();
 
-        User sender = request.getSender();
+            // 이미 친구인 경우 → 수락 불가
+            if (friendRepository.existsByUserAndFriend(receiver, sender)) {
+                throw new CustomException(FriendErrorCode.ALREADY_FRIEND);
+            }
 
-        // 친구 수 제한 체크 (양쪽 모두)
-        if (friendRepository.countByUser(receiver) >= 10
-                || friendRepository.countByUser(sender) >= 10) {
-            throw new CustomException(FriendErrorCode.FRIEND_LIMIT_EXCEEDED);
+            // 친구 수 제한 체크 (양쪽 모두)
+            if (friendRepository.countByUser(receiver) >= 10
+                    || friendRepository.countByUser(sender) >= 10) {
+                throw new CustomException(FriendErrorCode.FRIEND_LIMIT_EXCEEDED);
+            }
+
+            // 상태 변경 (여기서 @Version 증가)
+            request.accept();
+
+            // 양방향 친구 관계 생성
+            friendRepository.save(
+                    Friend.builder()
+                            .user(receiver)
+                            .friend(sender)
+                            .build()
+            );
+            friendRepository.save(
+                    Friend.builder()
+                            .user(sender)
+                            .friend(receiver)
+                            .build()
+            );
+
+        } catch (ObjectOptimisticLockingFailureException e) {
+            // 동시에 거절 / 취소 / 다른 수락이 발생한 경우
+            throw new CustomException(FriendErrorCode.FRIEND_REQUEST_CONFLICT);
         }
-
-        request.accept();
-
-        // 양방향 친구 관계 생성
-        friendRepository.save(
-                Friend.builder()
-                        .user(receiver)
-                        .friend(request.getSender())
-                        .build()
-        );
-        friendRepository.save(
-                Friend.builder()
-                        .user(request.getSender())
-                        .friend(receiver)
-                        .build()
-        );
     }
 
     /** 친구 신청 거절 **/
     @Transactional
     public void rejectRequest(Long receiverId, Long requestId) {
+        try {
+            User receiver = userRepository.findById(receiverId)
+                    .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
-        User receiver = userRepository.findById(receiverId)
-                .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
+            FriendRequest request = friendRequestRepository
+                    .findByIdAndReceiver(requestId, receiver)
+                    .orElseThrow(() -> new CustomException(FriendErrorCode.FRIEND_REQUEST_NOT_FOUND));
 
-        FriendRequest request = friendRequestRepository
-                .findByIdAndReceiver(requestId, receiver)
-                .orElseThrow(() -> new CustomException(FriendErrorCode.FRIEND_REQUEST_NOT_FOUND));
+            User sender = request.getSender();
 
-        User sender = request.getSender();
+            // 이미 친구면 거절 불가
+            if (friendRepository.existsByUserAndFriend(receiver, sender)) {
+                throw new CustomException(FriendErrorCode.ALREADY_FRIEND);
+            }
 
-        // 이미 친구인 경우 → 거절 불가
-        if (friendRepository.existsByUserAndFriend(receiver, sender)) {
-            throw new CustomException(FriendErrorCode.ALREADY_FRIEND);
+            // 이미 처리된 요청
+            if (request.getStatus() != FriendRequestStatus.PENDING) {
+                throw new CustomException(FriendErrorCode.INVALID_FRIEND_REQUEST_STATE);
+            }
+
+            request.reject();
+
+        } catch (ObjectOptimisticLockingFailureException e) {
+            // 동시에 accept / cancel 된 경우
+            throw new CustomException(FriendErrorCode.FRIEND_REQUEST_CONFLICT);
         }
-
-        // 이미 처리된 요청이면 거절 불가
-        if (request.getStatus() != FriendRequestStatus.PENDING) {
-            throw new CustomException(FriendErrorCode.INVALID_FRIEND_REQUEST_STATE);
-        }
-
-        request.reject();
     }
 
     /** 친구 신청 취소 **/
