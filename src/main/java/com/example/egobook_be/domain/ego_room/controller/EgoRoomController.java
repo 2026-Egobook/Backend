@@ -2,6 +2,7 @@ package com.example.egobook_be.domain.ego_room.controller;
 
 
 import com.example.egobook_be.domain.ego_room.dto.*;
+import com.example.egobook_be.domain.ego_room.enums.UnlockType;
 import com.example.egobook_be.domain.ego_room.service.EgoRoomService;
 import com.example.egobook_be.domain.ego_room.service.EgoStatsService;
 import com.example.egobook_be.domain.user.entity.User;
@@ -101,7 +102,7 @@ public class EgoRoomController {
         return GlobalResponse.success(egoRoomService.getWeeklyCounselList(userId, page, size));
     }
 
-    @Operation(summary = "주간 상담서 상세 조회", description = "특정 주의 시작 날짜(월요일)로 상담서 상세 내용을 조회합니다.")
+    @Operation(summary = "주간 상담서 상세 조회", description = "특정 주의 시작 날짜(월요일)로 상담서 상세 내용을 조회합니다. 잠금 상태인 경우 데이터가 제한될 수 있습니다.")
     @GetMapping("/counsel/weekly/{startDate}")
     public ResponseEntity<WeeklyCounselDetailResDto> getWeeklyCounselDetail(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
@@ -110,6 +111,18 @@ public class EgoRoomController {
     ) {
         return ResponseEntity.ok(egoRoomService.getWeeklyCounselDetail(userId, startDate));
     }
+
+    @Operation(summary = "주간 상담서 잠금 해제", description = "잉크 10개 소모 또는 광고 시청을 통해 상담서를 해제합니다.")
+    @PostMapping("/counsel/weekly/{startDate}/unlock")
+    public GlobalResponse<String> unlockWeeklyCounsel(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam UnlockType unlockType // INK 또는 AD
+    ) {
+        egoRoomService.unlockWeeklyCounsel(userId, startDate, unlockType);
+        return GlobalResponse.success("잠금이 해제되었습니다.");
+    }
+
     @Operation(summary = "다음 주 상담 분위기 변경", description = "다음 주에 생성될 AI 상담서의 말투나 스타일을 미리 설정합니다. SHARP OBJECTIVE SOFT")
     @PatchMapping("/counsel/weekly/next-tone")
     public ResponseEntity<CounselToneResDto> updateNextWeekTone(

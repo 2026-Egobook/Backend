@@ -7,6 +7,7 @@ public record WeeklyCounselSimpleItemDto(
         Long id,
         String startDate,
         String endDate,
-        boolean isRead
+        boolean isRead,
+        boolean isLocked  // 잠금 여부 (잉크/광고 결제 필요 여부)
 ) {
 }

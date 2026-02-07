@@ -67,4 +67,8 @@ public class WeeklyCounsel {
         this.isRead = true;
     }
     public void updateLocked(boolean isLocked) { this.isLocked = isLocked; }
+
+    public void unlock() {
+        this.isLocked=false;
+    }
 }

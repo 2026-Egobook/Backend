@@ -167,6 +167,10 @@ public class User extends BaseTimeEntity {
         this.ink -= price;
     }
 
+    public void useInk(int price){
+        this.ink -= price;
+    }
+
     public void updateNotificationEnabled() {
         this.notificationEnabled = !this.notificationEnabled;
     }
