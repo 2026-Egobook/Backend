@@ -16,6 +16,8 @@ import java.util.Optional;
 public interface PlazaLetterReplyRepository extends JpaRepository<PlazaLetterReply, Long> {
     boolean existsByLetter(PlazaLetter letter);
 
+    boolean existsByLetter_LetterId(Long letterId);
+
     @Query("SELECT r FROM PlazaLetterReply r JOIN FETCH r.letter WHERE r.replyId = :replyId")
     Optional<PlazaLetterReply> findByIdWithLetter(@Param("replyId") Long replyId);
 
@@ -43,4 +45,17 @@ public interface PlazaLetterReplyRepository extends JpaRepository<PlazaLetterRep
     @Modifying(clearAutomatically = true)
     @Query("UPDATE PlazaLetterReply r SET r.replierId = NULL, r.isAiGenerated = false WHERE r.replierId IN :replierIds")
     void bulkNullifyReplierId(@Param("replierIds") List<Long> replierIds);
+
+    @Query("""
+    select r
+    from PlazaLetterReply r
+    join fetch r.letter l
+    where r.replierId = :replierId
+    order by r.replyId desc
+""")
+    Slice<PlazaLetterReply> findMyRepliesWithLetter(
+            @Param("replierId") Long replierId,
+            Pageable pageable
+    );
+
 }
