@@ -43,3 +43,6 @@ application-local.yml
 .env
 
 .DS_Store
+
+### firebase access key ###
+src/main/resources/firebase-service-account.json

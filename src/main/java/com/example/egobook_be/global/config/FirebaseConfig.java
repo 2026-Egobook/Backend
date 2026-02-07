@@ -5,6 +5,7 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import jakarta.annotation.PostConstruct;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
 
@@ -14,24 +15,18 @@ public class FirebaseConfig {
     @PostConstruct
     public void initialize() {
         try {
-            System.out.println("GOOGLE_APPLICATION_CREDENTIALS = "
-                    + System.getenv("GOOGLE_APPLICATION_CREDENTIALS"));
-
-            // Firebase 초기화
-            FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.getApplicationDefault())
-                    .build();
-
             if (FirebaseApp.getApps().isEmpty()) {
+                ClassPathResource resource = new ClassPathResource("firebase-service-account.json");
+
+                FirebaseOptions options = FirebaseOptions.builder()
+                        .setCredentials(GoogleCredentials.fromStream(resource.getInputStream()))
+                        .build();
+
                 FirebaseApp.initializeApp(options);
                 System.out.println("Firebase initialized successfully");
             }
-
         } catch (IOException e) {
-            throw new IllegalStateException(
-                    "Firebase 초기화 실패 - GOOGLE_APPLICATION_CREDENTIALS 환경변수를 확인하세요.",
-                    e
-            );
+            throw new IllegalStateException("Firebase 초기화 실패 - firebase-service-account.json 파일을 확인하세요.", e);
         }
     }
 }
