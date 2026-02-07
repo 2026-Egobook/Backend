@@ -17,6 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 # jobs: 작업 환경 설정
+jobs:
   # 1. build: Job들 중 한개의 작업을 정의한 것 (build라는 작업 정의)
   build:
     runs-on: ubuntu-latest # 실행 환경(OS 환경) 설정. 해당 작업을 실행할 컴퓨터의 운영체제를 지정함
