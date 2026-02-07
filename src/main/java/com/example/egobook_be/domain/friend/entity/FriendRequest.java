@@ -40,6 +40,9 @@ public class FriendRequest extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private FriendRequestStatus status;
 
+    @Version
+    private Long version;
+
     public void accept() {
         this.status = FriendRequestStatus.ACCEPTED;
     }
