@@ -2,16 +2,15 @@ package com.example.egobook_be.domain.ego_room.entity;
 
 import com.example.egobook_be.domain.user.entity.User;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
 @Getter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name="weekly_counsel")
 public class WeeklyCounsel {
@@ -44,6 +43,10 @@ public class WeeklyCounsel {
 
     private boolean isRead;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean isLocked = true;
+
     private LocalDateTime createdAt;
 
     @Builder
@@ -62,5 +65,10 @@ public class WeeklyCounsel {
 
     public void markAsRead() {
         this.isRead = true;
+    }
+    public void updateLocked(boolean isLocked) { this.isLocked = isLocked; }
+
+    public void unlock() {
+        this.isLocked=false;
     }
 }

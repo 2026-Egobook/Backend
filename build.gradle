@@ -101,8 +101,15 @@ dependencies {
     // KOMORAN 형태소 분석기
     implementation 'com.github.shin285:KOMORAN:3.3.4'
 
+    // firebase
+    implementation 'com.google.firebase:firebase-admin:9.7.1'
+
+    // WebClient
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
     implementation 'com.google.crypto.tink:tink:1.7.0'
     implementation 'org.json:json:20230227'
+
 }
 
 tasks.named('test') {

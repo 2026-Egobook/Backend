@@ -10,6 +10,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -85,7 +86,10 @@ public class User extends BaseTimeEntity {
 
     @Column(nullable = false)
     @Builder.Default
-    private boolean isFirstAttendanceToday = true; // 오늘 첫 접속 상태인지 여부  
+    private boolean isFirstAttendanceToday = true; // 오늘 첫 접속 상태인지 여부
+
+    @Column(length = 500)
+    private String fcmToken;
 
     // ========= 연관관계 매핑 ========= //
 
@@ -111,6 +115,11 @@ public class User extends BaseTimeEntity {
     private List<UserItem> userItems = new ArrayList<>();
 
     // ========= Entity 비즈니스 메서드 ========= //
+
+    public void updateFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
+    }
+
     /**
      * 사용자가 login했을 때 User Entity 스스로가 자신의 상태를 최신으로 갱신하는 함수
      * - 함수 동작
@@ -158,6 +167,10 @@ public class User extends BaseTimeEntity {
         this.ink -= price;
     }
 
+    public void useInk(int price){
+        this.ink -= price;
+    }
+
     public void updateNotificationEnabled() {
         this.notificationEnabled = !this.notificationEnabled;
     }
@@ -172,4 +185,29 @@ public class User extends BaseTimeEntity {
     public void updateWeeklyAnalysisEnabled(boolean enabled) {
         this.weeklyAnalysisEnabled = enabled;
     }
+
+
+    // 편지 전송 조건 저장
+    @Column(name = "letter_receive_blocked_until")
+    private OffsetDateTime letterReceiveBlockedUntil;
+
+    public void blockLetterReceiveUntil(OffsetDateTime until) {
+        this.letterReceiveBlockedUntil = until;
+    }
+
+    public boolean canReceiveLetterAt(OffsetDateTime now) {
+        return letterReceiveBlockedUntil == null || !now.isBefore(letterReceiveBlockedUntil);
+    }
+
+
+    // 해당 시간까지 수신 차단된 상태인지 확인하는 메서드도 필요할 수 있음.
+    public boolean canReceiveLetters() {
+        return letterReceiveBlockedUntil == null || OffsetDateTime.now().isAfter(letterReceiveBlockedUntil);
+    }
+
+    // getter, setter
+    public OffsetDateTime getLetterReceiveBlockedUntil() {
+        return letterReceiveBlockedUntil;
+    }
+
 }
