@@ -24,6 +24,8 @@ public class PlazaLetterDetailResDto {
     private OffsetDateTime createdAt;
     private OffsetDateTime arrivedAt;
 
+    private String fromLabel;
+
     // ===== 답장 =====
     private ReplyDto reply;   // 답장 없으면 null
 

@@ -11,6 +11,8 @@ import com.example.egobook_be.domain.ego_room.enums.UnlockType;
 import com.example.egobook_be.domain.ego_room.exception.EgoRoomErrorCode;
 import com.example.egobook_be.domain.ego_room.repository.DailyPraiseRepository;
 import com.example.egobook_be.domain.ego_room.repository.WeeklyCounselRepository;
+import com.example.egobook_be.domain.notification.enums.NotificationType;
+import com.example.egobook_be.domain.notification.service.NotificationService;
 import com.example.egobook_be.domain.user.entity.InkLog;
 import com.example.egobook_be.domain.user.entity.InkLogType;
 import com.example.egobook_be.domain.user.entity.User;
@@ -29,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -44,6 +47,8 @@ public class EgoRoomService {
     private final WeeklyAnalysisAiService weeklyAnalysisAiService;
     private final DiaryRepository diaryRepository;
     private final InkLogRepository inkLogRepository;
+
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public Map<String, Boolean> getSettings(Long userId) {
@@ -214,8 +219,20 @@ public class EgoRoomService {
                 .content(praiseContent)
                 .build();
 
-
         dailyPraiseRepository.save(dailyPraise);
+
+        // 일간 칭찬서 알림 생성
+        try {
+            notificationService.createNotification(
+                    userId,
+                    NotificationType.PRAISE,
+                    dailyPraise.getId(),
+                    dailyPraise.getPraiseDate().format(DateTimeFormatter.ofPattern("M.d"))
+            );
+        } catch (Exception e) {
+            log.error("일간 칭찬서 도착 알림 생성 실패. UserId: {}, dailyPraiseId: {}",
+                    userId, dailyPraise.getId(), e);
+        }
     }
 
     // 주간 분석서 생성 로직
@@ -274,7 +291,16 @@ public class EgoRoomService {
 
         weeklyCounselRepository.save(counsel);
 
-    }
+        try {
+            notificationService.createNotification(
+                    userId,
+                    NotificationType.REPORT,
+                    counsel.getId()
+            );
+        } catch (Exception e) {
+            log.error("주간 리포트 도착 알림 생성 실패. UserId: {}, CounselId: {}",
+                    userId, counsel.getId(), e);
+        }
 
 
     @Transactional
@@ -293,5 +319,6 @@ public class EgoRoomService {
         }
 
         counsel.unlock(); // counsel.isLocked = false;
+    }
     }
 }

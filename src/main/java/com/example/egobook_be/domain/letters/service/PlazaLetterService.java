@@ -1,7 +1,9 @@
 package com.example.egobook_be.domain.letters.service;
 
+
 import com.example.egobook_be.domain.diary.dto.DiaryCreateResDto;
 import com.example.egobook_be.domain.diary.enums.RewardType;
+import com.example.egobook_be.domain.friend.repository.FriendRepository;
 import com.example.egobook_be.domain.home.entity.Mission;
 import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.letters.entity.*;
@@ -10,9 +12,12 @@ import com.example.egobook_be.domain.letters.dto.request.CreateLetterRequest;
 import com.example.egobook_be.domain.letters.dto.response.WordDetectResponse;
 import com.example.egobook_be.domain.letters.dto.response.*;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
+import com.example.egobook_be.domain.letters.enums.PlazaLetterColor;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterThreadRepository;
+import com.example.egobook_be.domain.notification.enums.NotificationType;
+import com.example.egobook_be.domain.notification.service.NotificationService;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.InkLog;
 import com.example.egobook_be.domain.user.entity.InkLogType;
@@ -25,6 +30,7 @@ import com.example.egobook_be.domain.letters.mapper.PlazaLetterMapper;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import com.example.egobook_be.global.util.InkLogUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlazaLetterService {
@@ -47,6 +54,7 @@ public class PlazaLetterService {
     private final PlazaLetterRepository plazaLetterRepository;
     private final PlazaLetterReplyRepository plazaLetterReplyRepository;
     private final PlazaLetterThreadRepository plazaLetterThreadRepository;
+    private final FriendRepository friendRepository;
     private final InkLogRepository inkLogRepository;
     private final UserRepository userRepository;
     private final MissionRepository missionRepository;
@@ -54,8 +62,9 @@ public class PlazaLetterService {
     private final WordClientService wordClient;
     private final InkLogUtil inkLogUtil;
 
-
     private final PlazaLetterMapper plazaLetterMapper;
+
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public InboxNextResponse getNextArrivedLetter(Long userId) {
@@ -81,6 +90,7 @@ public class PlazaLetterService {
         }
     }
 
+
     @Transactional
     public CreateLetterResponse createLetter(Long userId, CreateLetterRequest request) {
         // 1. User, Mission 객체 가져오기
@@ -96,9 +106,20 @@ public class PlazaLetterService {
 
         enforceWordAiOrThrow(request.getText());
 
+        // 친구 관계 검증 추가
+        if (request.getMode() == PlazaLetterMode.FRIEND) {
+            // 친구 관계가 없으면 예외 처리
+            User receiver = userRepository.findById(request.getToFriendId())
+                    .orElseThrow(() -> new CustomException(LettersErrorCode.USER_NOT_FOUND));
+
+            // 친구 관계가 아닌 경우 예외 발생
+            if (!friendRepository.existsByUserAndFriend(user, receiver)) {
+                throw new CustomException(LettersErrorCode.NOT_FRIEND);
+            }
+        }
+
         PlazaLetterThread thread = plazaLetterThreadRepository.save(PlazaLetterThread.createNow());
-        Long receiverId = resolveReceiverId(userId, request);
-        String bg = resolveBackgroundColor(request.getBackgroundColor());
+        String bg = request.getBackgroundColor() == null ? "WHITE" : request.getBackgroundColor().name();
 
         String fromLabel = "익명";
         if (request.getMode() == PlazaLetterMode.FRIEND) {
@@ -108,18 +129,44 @@ public class PlazaLetterService {
             fromLabel = (nickname == null || nickname.isBlank()) ? "친구" : nickname;
         }
 
+        // ===== 핵심: receiverId/status/도착시간은 모드에 따라 다르게 =====
+        Long receiverId = null;
+        PlazaLetterStatus status;
+        OffsetDateTime arrivedAt = null;
+        OffsetDateTime replyDeadlineAt = null;
+
+        if (request.getMode() == PlazaLetterMode.FRIEND) {
+            // FRIEND 모드일 때 친구 관계 검증 후 진행
+            receiverId = request.getToFriendId();
+            status = PlazaLetterStatus.ARRIVED;
+            arrivedAt = now;
+            replyDeadlineAt = now.plusHours(24);
+        } else {
+            // RANDOM 모드: 후보가 없으면 WAITING으로 적재
+            List<Long> candidates = userRepository.findHighReplyRateCandidates(userId, 50);
+            if (candidates.isEmpty()) {
+                status = PlazaLetterStatus.WAITING;
+                // receiverId/arrivedAt/replyDeadlineAt = null 유지
+            } else {
+                receiverId = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
+                status = PlazaLetterStatus.ARRIVED;
+                arrivedAt = now;
+                replyDeadlineAt = now.plusHours(24);
+            }
+        }
+
         PlazaLetter letter = PlazaLetter.builder()
                 .threadId(thread.getThreadId())
                 .senderId(userId)
-                .receiverId(receiverId)
+                .receiverId(receiverId)            // WAITING이면 null
                 .mode(request.getMode())
                 .fromLabel(fromLabel)
                 .content(request.getText())
-                .backgroundColor(bg)
-                .status(PlazaLetterStatus.ARRIVED)
+                .backgroundColor(PlazaLetterColor.valueOf(bg))
+                .status(status)                    // ARRIVED or WAITING
                 .createdAt(now)
-                .arrivedAt(now)
-                .replyDeadlineAt(now.plusHours(24))
+                .arrivedAt(arrivedAt)              // WAITING이면 null
+                .replyDeadlineAt(replyDeadlineAt)  // WAITING이면 null
                 .build();
 
         // =================================================
@@ -127,35 +174,59 @@ public class PlazaLetterService {
         // =================================================
         List<InkLog> inkLogs = new ArrayList<>();
         // 1. 잉크 제공 & 일일 미션 상태 업데이트
-        inkLogUtil.addInkLog(inkLogs, user, 1, InkLogType.FIRST_LETTER_WRITE);
+        inkLogUtil.addInkLogToList(inkLogs, user, 1, InkLogType.FIRST_LETTER_WRITE);
         /*
          * 1-1. 만약 이번이 처음 일일 미션을 수행한 경우일 때 (updateDailyLetterMissionStatus 함수가 true를 반환)
          * - 잉크 +1
          * - 잉크 로그 추가
          */
         if(userMission.updateDailyLetterMissionStatus(true)){
-            inkLogUtil.addInkLog(inkLogs, user, 1, InkLogType.DAILY_MISSION_REWARD);
+            inkLogUtil.addInkLogToList(inkLogs, user, 1, InkLogType.DAILY_MISSION_REWARD);
             /*
              * 1-2. 만약 오늘이 일일 미션을 7일째 완료한 날인 경우
              * - 잉크 +2
              * - 잉크 로그 추가
              */
             if(userMission.isWeeklyMissionCompleted()){
-                inkLogUtil.addInkLog(inkLogs, user, 2, InkLogType.WEEKLY_MISSION_REWARD);
+                inkLogUtil.addInkLogToList(inkLogs, user, 2, InkLogType.WEEKLY_MISSION_REWARD);
             }
         }
         inkLogRepository.saveAll(inkLogs);
 
         PlazaLetter saved = plazaLetterRepository.save(letter);
 
+        // 작성 편지 수신자 알림 생성
+        try {
+            if (request.getMode() == PlazaLetterMode.FRIEND) {
+                notificationService.createNotification(
+                        receiverId,
+                        NotificationType.LETTER_NEW_FRIEND,
+                        saved.getLetterId(),
+                        user.getNickname()
+                );
+            } else {
+                notificationService.createNotification(
+                        receiverId,
+                        NotificationType.LETTER_NEW,
+                        saved.getLetterId()
+                );
+            }
+        } catch (Exception e) {
+            log.error("새로운 편지 도착 알림 생성 실패. SenderId: {}, LetterId: {}",
+                    letter.getSenderId(), saved.getLetterId(), e);
+        }
+
         return CreateLetterResponse.builder()
                 .letterId(saved.getLetterId())
                 .threadId(saved.getThreadId())
                 .status(saved.getStatus())
                 .mode(saved.getMode())
+                .fromLabel(saved.getFromLabel())
+                .backgroundColor(saved.getBackgroundColor().name())
                 .createdAt(saved.getCreatedAt())
                 .build();
     }
+
 
     private void enforceDailyLimit(Long userId, OffsetDateTime now) {
         ZoneId zoneId = ZoneId.of("Asia/Seoul");
@@ -186,11 +257,15 @@ public class PlazaLetterService {
     }
 
 
-    private String resolveBackgroundColor(String requested) {
+    private PlazaLetterColor resolveBackgroundColor(String requested) {
         if (requested == null || requested.isBlank()) {
-            return "WHITE";
+            return PlazaLetterColor.WHITE; // 기본 값: WHITE
         }
-        return requested.trim().toUpperCase();
+        try {
+            return PlazaLetterColor.valueOf(requested.trim().toUpperCase()); // Enum으로 변환
+        } catch (IllegalArgumentException e) {
+            return PlazaLetterColor.WHITE; // 잘못된 값은 기본 WHITE로 처리
+        }
     }
 
 
@@ -270,7 +345,7 @@ public class PlazaLetterService {
         OffsetDateTime endOfDay = today.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
         boolean isFirstReplyToday = !plazaLetterReplyRepository.existsByReplierIdAndCreatedAtBetween(userId, startOfDay, endOfDay);
 
-        plazaLetterReplyRepository.save(PlazaLetterReply.builder()
+        PlazaLetterReply reply = plazaLetterReplyRepository.save(PlazaLetterReply.builder()
                 .threadId(letter.getThreadId())
                 .letter(letter)
                 .replierId(userId)
@@ -280,6 +355,27 @@ public class PlazaLetterService {
                 .build());
 
         letter.markReplied(now);
+
+        // 답장 편지 수신자 알림 생성
+        try {
+            if (letter.getMode() == PlazaLetterMode.FRIEND) {
+                notificationService.createNotification(
+                        letter.getSenderId(),
+                        NotificationType.LETTER_REPLY_FRIEND,
+                        reply.getReplyId(),
+                        user.getNickname()
+                );
+            } else {
+                notificationService.createNotification(
+                        letter.getSenderId(),
+                        NotificationType.LETTER_REPLY,
+                        reply.getReplyId()
+                );
+            }
+        } catch (Exception e) {
+            log.error("답장 편지 도착 알림 생성 실패. SenderId: {}, ReplyId: {}",
+                    letter.getSenderId(), reply.getReplyId(), e);
+        }
 
         // =============================================
         // [ 보상 로직 ]
@@ -294,7 +390,7 @@ public class PlazaLetterService {
         List<ReplyResponse.RewardDto> rewards = new ArrayList<>();
         List<InkLog> inkLogs = new ArrayList<>();
         if(isFirstReplyToday){
-            inkLogUtil.addInkLog(inkLogs, user, 1, InkLogType.FIRST_LETTER_REPLY); // 잉크 +1
+            inkLogUtil.addInkLogToList(inkLogs, user, 1, InkLogType.FIRST_LETTER_REPLY); // 잉크 +1
             rewards.add(ReplyResponse.RewardDto.builder()
                     .kind(ReplyResponse.RewardKind.INK)
                     .amount(1)
@@ -309,7 +405,7 @@ public class PlazaLetterService {
                     .build());
             // 1-1. 레벨업했는지 여부 확인
             if(earnedInk == 1){
-                inkLogUtil.addInkLog(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
+                inkLogUtil.addInkLogToList(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
                 rewards.add(ReplyResponse.RewardDto.builder()
                         .kind(ReplyResponse.RewardKind.EMPATHY) // [수정] SINCERITY -> EMPATHY
                         .amount(1)
@@ -353,7 +449,15 @@ public class PlazaLetterService {
         OffsetDateTime now = OffsetDateTime.now();
         validateGiveUpable(letter, now);
 
+        // 유저 가져오기
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+
+        // 포기 처리
         letter.markGaveUp(now);
+
+        // 4시간 수신 제한
+        user.blockLetterReceiveUntil(now.plusHours(4));
 
         return GiveUpResponse.builder()
                 .letterId(letter.getLetterId())
@@ -429,20 +533,23 @@ public class PlazaLetterService {
         );
 
         return SliceResponse.of(
-                plazaLetterReplyRepository.findByReplierIdOrderByReplyIdDesc(userId, pageable),
+                plazaLetterReplyRepository.findMyRepliesWithLetter(userId, pageable),
                 this::toReplyItemDto
         );
     }
 
     private ReplyItemDto toReplyItemDto(PlazaLetterReply reply) {
+        PlazaLetter letter = reply.getLetter();
+
         return ReplyItemDto.builder()
                 .replyId(reply.getReplyId())
-                .letterId(reply.getLetter().getLetterId())
+                .letterId(letter.getLetterId())
+                .threadId(reply.getThreadId())
+                .mode(letter.getMode())
+                .backgroundColor(letter.getBackgroundColor().name())
                 .replyText(reply.getText())
                 .createdAt(reply.getCreatedAt())
                 .build();
     }
-
-
 
 }

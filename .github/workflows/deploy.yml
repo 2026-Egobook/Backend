@@ -74,6 +74,7 @@ jobs:
           sed -i "s|\${DEV_ANDROID_CLIENT_IDS}|${{ secrets.DEV_ANDROID_CLIENT_IDS }}|g" $FILE
           sed -i "s|\${WORD_AI_BASE_URL}|${{ secrets.WORD_AI_BASE_URL }}|g" $FILE
           sed -i "s|\${OPENAI_API_KEY}|${{ secrets.OPENAI_API_KEY }}|g" $FILE
+          sed -i "s|\${GEMINI_API_KEY}|${{ secrets.GEMINI_API_KEY }}|g" $FILE
         # 같은 값이 중복되면, 최근에 설정된 env값이 사용된다.
         shell: bash
 
@@ -92,9 +93,17 @@ jobs:
           sed -i "s|\${PROD_REDIS_PW}|${{ secrets.PROD_REDIS_PW }}|g" $FILE
           sed -i "s|\${PROD_ANDROID_CLIENT_IDS}|${{ secrets.PROD_ANDROID_CLIENT_IDS }}|g" $FILE
           sed -i "s|\${OPENAI_API_KEY}|${{ secrets.OPENAI_API_KEY }}|g" $FILE
+          sed -i "s|\${WORD_AI_BASE_URL}|${{ secrets.WORD_AI_BASE_URL }}|g" $FILE
+          sed -i "s|\${GEMINI_API_KEY}|${{ secrets.GEMINI_API_KEY }}|g" $FILE
         shell: bash
 
-      # (5) gradlew 파일에 실행 권한 부여
+      # Firebase Service Account Key
+      - name: Create Firebase Service Account Key
+        run: |
+          echo "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}" > ./src/main/resources/firebase-service-account.json
+
+
+        # (5) gradlew 파일에 실행 권한 부여
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
           # "gradlew 파일에 실행(eXecute) 권한을 더해줘(+)"라는 리눅스 명령어
@@ -142,6 +151,8 @@ jobs:
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          WORD_AI_BASE_URL: ${{ secrets.WORD_AI_BASE_URL }}
           # => github secrets에 설정해놓은 값들 env로 가져오기
 
         run: |

@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.letters.entity;
 
+import com.example.egobook_be.domain.letters.enums.PlazaLetterColor;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,8 +31,10 @@ public class PlazaLetter {
     @Column(nullable = false)
     private OffsetDateTime createdAt;
 
-    @Column(length = 20)
-    private String backgroundColor;
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    @Column(nullable = false, length = 20)
+    private PlazaLetterColor backgroundColor = PlazaLetterColor.WHITE;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -47,10 +50,10 @@ public class PlazaLetter {
     @Column(nullable = false, length = 400)
     private String content;
 
-    @Column(nullable = false)
+    @Column
     private OffsetDateTime arrivedAt;
 
-    @Column(nullable = false)
+    @Column
     private OffsetDateTime replyDeadlineAt;
 
     private OffsetDateTime repliedAt;
@@ -70,6 +73,42 @@ public class PlazaLetter {
     public void markGaveUp(OffsetDateTime gaveUpAt) {
         this.status = PlazaLetterStatus.GAVE_UP;
         this.gaveUpAt = gaveUpAt;
+    }
+
+    public void markAiReplied(OffsetDateTime repliedAt) {
+        this.status = PlazaLetterStatus.AI_REPLIED;
+        this.repliedAt = repliedAt; // repliedAt 필드를 그대로 사용 (AI 답장)
+    }
+
+    public void assignToReceiver(Long receiverId, OffsetDateTime arrivedAt, OffsetDateTime replyDeadlineAt) {
+        this.receiverId = receiverId;
+        this.arrivedAt = arrivedAt;
+        this.replyDeadlineAt = replyDeadlineAt;
+        this.status = PlazaLetterStatus.ARRIVED;
+    }
+
+    public void assignReceiver(
+            Long receiverId,
+            OffsetDateTime arrivedAt,
+            OffsetDateTime replyDeadlineAt
+    ) {
+        this.receiverId = receiverId;
+        this.arrivedAt = arrivedAt;
+        this.replyDeadlineAt = replyDeadlineAt;
+        this.status = PlazaLetterStatus.ARRIVED;
+    }
+
+
+    // status에 대한 setter 메서드 추가
+    public void setStatus(PlazaLetterStatus status) {
+        this.status = status;
+    }
+
+
+
+    // arrivedAt에 대한 setter 메서드 추가
+    public void setArrivedAt(OffsetDateTime arrivedAt) {
+        this.arrivedAt = arrivedAt;
     }
 
 }

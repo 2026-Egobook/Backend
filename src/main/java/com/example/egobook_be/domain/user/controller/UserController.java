@@ -3,9 +3,9 @@ package com.example.egobook_be.domain.user.controller;
 import com.example.egobook_be.domain.auth.dto.req.GoogleJoinReqDto;
 import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
 import com.example.egobook_be.domain.auth.sevice.AuthService;
+import com.example.egobook_be.domain.user.dto.FcmTokenReqDto;
 import com.example.egobook_be.domain.user.dto.UserNicknameResDto;
 import com.example.egobook_be.domain.user.dto.UserNicknameUpdateReqDto;
-import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.domain.user.service.UserService;
 import com.example.egobook_be.global.response.GlobalResponse;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,7 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
@@ -58,4 +58,14 @@ public class UserController implements UserControllerDocs{
                 .body(GlobalResponse.success("회원 탈퇴 성공", null));
     }
 
+    @Override
+    public ResponseEntity<GlobalResponse<Void>> updateFcmToken(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestBody FcmTokenReqDto dto
+    ) {
+        userService.updateFcmToken(userId, dto);
+        return ResponseEntity.ok(
+                GlobalResponse.success(null)
+        );
+    }
 }

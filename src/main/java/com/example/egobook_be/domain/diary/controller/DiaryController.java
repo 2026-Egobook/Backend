@@ -88,14 +88,12 @@ public class DiaryController implements DiaryControllerDocs{
      * DELETE /diaries/{diaryId}
      */
     @Override
-    public ResponseEntity<GlobalResponse<Map<String,Boolean>>> deleteDiary(
+    public ResponseEntity<GlobalResponse<DiaryDeleteResDto>> deleteDiary(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @PathVariable Long diaryId
     ) {
-        diaryService.deleteDiary(userId, diaryId);
         return ResponseEntity.ok(
-                GlobalResponse.success(Map.of("deleted", true))
-        );
+                GlobalResponse.success(diaryService.deleteDiary(userId, diaryId)));
     }
 
     /**

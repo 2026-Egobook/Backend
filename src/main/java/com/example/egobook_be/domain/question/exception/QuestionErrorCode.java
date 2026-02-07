@@ -30,6 +30,8 @@ public enum QuestionErrorCode implements BaseErrorCode {
             "오늘의 질문에는 이미 답변을 작성했습니다."
     ),
 
+    ALREADY_REPORTED(HttpStatus.CONFLICT, "이미 신고한 질문입니다."),
+
     /**
      * 400 BAD_REQUEST
      */

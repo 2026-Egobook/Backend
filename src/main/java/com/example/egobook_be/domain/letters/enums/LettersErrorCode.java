@@ -19,7 +19,7 @@ public enum LettersErrorCode implements BaseErrorCode {
     FRIEND_ID_REQUIRED(HttpStatus.BAD_REQUEST, "PLAZA400_FRIEND_ID_REQUIRED", "FRIEND 모드에서는 toFriendId가 필요해요"),
     INVALID_REPORT_REASON(HttpStatus.BAD_REQUEST, "PLAZA400_INVALID_REPORT_REASON", "잘못된 신고 사유입니다."),
     ALREADY_REPORTED(HttpStatus.BAD_REQUEST, "PLAZA400_ALREADY_REPORTED", "이미 신고한 답장입니다."),
-
+    NOT_FRIEND(HttpStatus.BAD_REQUEST, "PLAZA400_NOT_FRIEND", "친구 관계가 아닙니다."),
 
 
 
