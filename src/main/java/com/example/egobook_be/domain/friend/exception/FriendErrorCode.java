@@ -21,11 +21,13 @@ public enum FriendErrorCode implements BaseErrorCode {
     ALREADY_FRIEND(HttpStatus.CONFLICT, "이미 친구 관계입니다."),
     ALREADY_REQUESTED(HttpStatus.CONFLICT, "이미 친구 신청을 보낸 상태입니다."),
     FRIEND_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "친구는 최대 10명까지만 추가할 수 있습니다."),
+    FRIEND_REQUEST_CONFLICT(HttpStatus.CONFLICT, "이미 처리된 친구 요청입니다."),
 
     /**
      * 400 BAD_REQUEST
      */
-    SELF_REQUEST_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "자기 자신에게 친구 신청을 보낼 수 없습니다.");
+    SELF_REQUEST_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "자기 자신에게 친구 신청을 보낼 수 없습니다."),
+    INVALID_FRIEND_REQUEST_STATE(HttpStatus.BAD_REQUEST, "이미 처리된 친구 신청입니다.");
 
     private final HttpStatus status;
     private final String message;
