@@ -5,7 +5,6 @@ import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 
@@ -38,10 +37,6 @@ public class Notification extends BaseTimeEntity {
     @Column(nullable = false)
     @Builder.Default
     private boolean isRead = false;
-
-    @Column(nullable = false)
-    @Builder.Default
-    private boolean enabled = true;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
