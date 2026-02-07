@@ -5,6 +5,7 @@ import com.example.egobook_be.domain.auth.entity.RefreshTokenBackup;
 import com.example.egobook_be.domain.auth.enums.AuthErrorCode;
 import com.example.egobook_be.domain.auth.repository.AuthAccountRepository;
 import com.example.egobook_be.domain.auth.repository.RefreshTokenBackupRepository;
+import com.example.egobook_be.domain.user.dto.FcmTokenReqDto;
 import com.example.egobook_be.domain.user.dto.UserNicknameResDto;
 import com.example.egobook_be.domain.user.dto.UserNicknameUpdateReqDto;
 import com.example.egobook_be.domain.user.entity.User;
@@ -97,5 +98,14 @@ public class UserService {
         return token;
     }
 
+    /** FCM 토큰 업데이트 */
+    @Transactional
+    public void updateFcmToken(Long userId, FcmTokenReqDto dto) {
 
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new CustomException(UserErrorCode.USER_NOT_FOUND)
+        );
+
+        user.updateFcmToken(dto.fcmToken());
+    }
 }
