@@ -320,5 +320,4 @@ public class EgoRoomService {
 
         counsel.unlock(); // counsel.isLocked = false;
     }
-
 }
