@@ -246,7 +246,7 @@ public class EgoRoomService {
             return;
         }
 
-        String lastSummary = weeklyCounselRepository.findTopByUserAndStartDateLessThanOrderByStartDateDesc(user,startDate)
+        String lastSummary = weeklyCounselRepository.findTopByUserAndStartDateLessThanOrderByStartDateDesc(user, startDate)
                 .map(WeeklyCounsel::getSummary)
                 .orElse("첫 주 분석입니다. 이전 데이터가 없습니다.");
 
@@ -263,12 +263,12 @@ public class EgoRoomService {
                         TreeMap::new, // 날짜 순서대로 정렬
                         Collectors.mapping(diary -> {
                             String scoreInfo = (diary.getEmotionLevel() != null)
-                            ? String.format("[%d점/5점]", diary.getEmotionLevel())
-                            : "[점수 미기록]";
+                                    ? String.format("[%d점/5점]", diary.getEmotionLevel())
+                                    : "[점수 미기록]";
 
-                        // 2. [점수] 내용 형식으로 반환
-                        return String.format("%s %s", scoreInfo, diary.getContent());
-                 }, Collectors.joining("\n- "))
+                            // 2. [점수] 내용 형식으로 반환
+                            return String.format("%s %s", scoreInfo, diary.getContent());
+                        }, Collectors.joining("\n- "))
 
                 ))
                 .entrySet().stream()
@@ -276,7 +276,7 @@ public class EgoRoomService {
                 .collect(Collectors.joining("\n\n")); // 날짜별로 두 칸 띄우기
 
 
-        WeeklyCounselResDto aiResponse = weeklyAnalysisAiService.getAnalysis(user.getNickname(),formattedDiaries,lastSummary, userTone);
+        WeeklyCounselResDto aiResponse = weeklyAnalysisAiService.getAnalysis(user.getNickname(), formattedDiaries, lastSummary, userTone);
 
         WeeklyCounsel counsel = WeeklyCounsel.builder()
                 .user(user)
@@ -301,7 +301,7 @@ public class EgoRoomService {
             log.error("주간 리포트 도착 알림 생성 실패. UserId: {}, CounselId: {}",
                     userId, counsel.getId(), e);
         }
-
+    }
 
     @Transactional
     public void unlockWeeklyCounsel(Long userId, LocalDate startDate, UnlockType type) {
@@ -320,5 +320,5 @@ public class EgoRoomService {
 
         counsel.unlock(); // counsel.isLocked = false;
     }
-    }
+
 }
