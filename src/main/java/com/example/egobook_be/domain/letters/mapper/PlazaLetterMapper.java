@@ -31,6 +31,7 @@ public class PlazaLetterMapper {
                 .aiReplaceAt(aiReplaceAt)
                 .lastMessagePreview(preview)
                 .createdAt(createdAt)
+                .backgroundColor(letter.getBackgroundColor().name())
                 .build();
     }
 
@@ -73,6 +74,8 @@ public class PlazaLetterMapper {
 
                 .mode(letter.getMode())
                 .fromLabel(letter.getFromLabel())
+                .backgroundColor(letter.getBackgroundColor().name())
+
                 .build();
     }
 
@@ -101,10 +104,12 @@ public class PlazaLetterMapper {
                 .mode(letter.getMode())
 
                 .content(letter.getContent())
-                .backgroundColor(letter.getBackgroundColor())
+                .backgroundColor(letter.getBackgroundColor().name())
 
                 .createdAt(letter.getCreatedAt())
                 .arrivedAt(letter.getArrivedAt())
+
+                .fromLabel(letter.getFromLabel())
 
                 .reply(replyDto)
                 .build();

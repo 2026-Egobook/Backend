@@ -73,5 +73,66 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
     @Query("DELETE FROM PlazaLetter l WHERE l.senderId IS NULL AND l.receiverId IS NULL")
     void bulkDeleteOrphanedLetters();
 
+
+    @Query("""
+        select l
+        from PlazaLetter l
+        where l.createdAt <= :cutoff
+          and l.status not in (:replied, :aiReplied)
+          and not exists (
+              select 1
+              from PlazaLetterReply r
+              where r.letter = l
+          )
+        order by l.createdAt asc
+    """)
+    List<PlazaLetter> findAiReplyTargets(
+            @Param("cutoff") OffsetDateTime cutoff,
+            @Param("replied") PlazaLetterStatus replied,
+            @Param("aiReplied") PlazaLetterStatus aiReplied,
+            Pageable pageable
+    );
+
+    @Query("SELECT l FROM PlazaLetter l " +
+            "WHERE l.replyDeadlineAt <= :now " +
+            "AND l.status IN (:arrived, :deferred) " +
+            "AND NOT EXISTS (" +
+            "   SELECT 1 FROM PlazaLetterReply r " +
+            "   WHERE r.letter.letterId = l.letterId" +
+            ") " +
+            "ORDER BY l.replyDeadlineAt ASC")
+    List<PlazaLetter> findGiveUpTargets(
+            @Param("now") OffsetDateTime now,
+            @Param("arrived") PlazaLetterStatus arrived,
+            @Param("deferred") PlazaLetterStatus deferred,
+            Pageable pageable
+    );
+
+
+
+    @Query("""
+    select l
+    from PlazaLetter l
+    where l.status = :waiting
+      and l.receiverId is null
+      and l.senderId <> :receiverId
+    order by l.createdAt asc
+""")
+    List<PlazaLetter> findWaitingLettersForReceiver(
+            @Param("receiverId") Long receiverId,
+            @Param("waiting") PlazaLetterStatus waiting,
+            Pageable pageable
+    );
+
+
+    @Query("""
+        select l
+        from PlazaLetter l
+        where l.status = com.example.egobook_be.domain.letters.entity.PlazaLetterStatus.WAITING
+        order by l.createdAt asc
+    """)
+    List<PlazaLetter> findWaitingLetters(Pageable pageable);
+
+
 }
 

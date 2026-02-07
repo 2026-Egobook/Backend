@@ -12,5 +12,7 @@ public record CreateLetterResponse(
         Long threadId,
         PlazaLetterStatus status,
         PlazaLetterMode mode,
+        String fromLabel,
+        String backgroundColor,
         OffsetDateTime createdAt
 ) {}

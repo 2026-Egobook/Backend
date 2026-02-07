@@ -24,6 +24,8 @@ import org.springframework.web.bind.annotation.*;
 import com.example.egobook_be.domain.letters.service.ReplyReportService;
 import org.springframework.web.bind.annotation.*;
 
+import com.example.egobook_be.domain.letters.service.ai.GeminiClient;
+import com.example.egobook_be.domain.letters.service.LetterService;
 
 @Tag(name = "Plaza Letter Controller", description = "광장 편지 관련 API")
 @RestController
@@ -34,6 +36,9 @@ public class PlazaLetterController {
     private final PlazaLetterService plazaLetterService;
     private final PlazaLetterQueryService plazaLetterQueryService;
     private final ReplyReportService replyReportService;
+
+    private final GeminiClient geminiClient;
+    private final LetterService letterService;
 
     @Operation(
             summary = "내가 답장해야 할 '도착 편지' 1건 가져오기",
@@ -303,5 +308,28 @@ public class PlazaLetterController {
         );
     }
 
+    // AI 답장 확인용 테스트 API
+    @Operation(
+            summary = "AI 답장 확인용 테스트 API",
+            description = """
+  단순test api입니다. 답장 조회하는 로직에서도 확인가능합니다.
+        """
+    )
+    @GetMapping("/ai/reply/{letterId}")
+    public String getAIReply(@PathVariable Long letterId) {
+        // 편지 가져오기
+        String letterContent = letterService.getLetterContentById(letterId);
 
+        // 편지 도달 시간이 48시간 이상 지났고 답장이 없을 경우에만 AI 요청
+        boolean isEligibleForReply = letterService.isEligibleForAIReply(letterId);
+
+        if (!isEligibleForReply) {
+            return "AI 답장 조건을 충족하지 않습니다.";
+        }
+
+        // AI 답장 생성
+        String aiReply = geminiClient.generateReply("AI", letterContent);
+
+        return aiReply;
+    }
 }

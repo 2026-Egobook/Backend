@@ -23,4 +23,5 @@ public class PlazaReceivedReplyResDto {
     // 편지 정보
     private PlazaLetterMode mode;
     private String fromLabel;
+    private String backgroundColor;
 }

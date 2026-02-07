@@ -69,3 +69,8 @@ app:
 word:
   ai:
     base-url: ${WORD_AI_BASE_URL}
+
+gemini:
+  base-url: "https://generativelanguage.googleapis.com"
+  api-key: "${GEMINI_API_KEY}"
+  model: "gemini-2.0-flash"
