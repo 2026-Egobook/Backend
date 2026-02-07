@@ -9,6 +9,12 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum NotificationErrorCode implements BaseErrorCode {
 
+    NOTIFICATION_ARGS_REQUIRED(
+            "NOTE_400_001",
+            "알림 타입에 필요한 인자가 전달되지 않았습니다.",
+            HttpStatus.BAD_REQUEST
+    ),
+
     NOTIFICATION_ACCESS_DENIED(
             "NOTE_403_001",
             "해당 알림에 접근할 권한이 없습니다.",

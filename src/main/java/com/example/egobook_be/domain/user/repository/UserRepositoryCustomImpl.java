@@ -44,6 +44,7 @@ public class UserRepositoryCustomImpl implements UserRepositoryCustom {
                 GROUP BY replier_id
             ) p ON p.uid = u.id
             WHERE u.id <> :excludeUserId
+                AND (u.letter_receive_blocked_until IS NULL OR u.letter_receive_blocked_until <= NOW())
         """ + statusWhere + """
             ORDER BY (COALESCE(p.reply_cnt,0) / NULLIF(COALESCE(r.received_cnt,0),0)) DESC,
                      COALESCE(p.reply_cnt,0) DESC,

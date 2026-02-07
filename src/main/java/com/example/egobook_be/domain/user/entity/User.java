@@ -10,6 +10,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -172,4 +173,29 @@ public class User extends BaseTimeEntity {
     public void updateWeeklyAnalysisEnabled(boolean enabled) {
         this.weeklyAnalysisEnabled = enabled;
     }
+
+
+    // 편지 전송 조건 저장
+    @Column(name = "letter_receive_blocked_until")
+    private OffsetDateTime letterReceiveBlockedUntil;
+
+    public void blockLetterReceiveUntil(OffsetDateTime until) {
+        this.letterReceiveBlockedUntil = until;
+    }
+
+    public boolean canReceiveLetterAt(OffsetDateTime now) {
+        return letterReceiveBlockedUntil == null || !now.isBefore(letterReceiveBlockedUntil);
+    }
+
+
+    // 해당 시간까지 수신 차단된 상태인지 확인하는 메서드도 필요할 수 있음.
+    public boolean canReceiveLetters() {
+        return letterReceiveBlockedUntil == null || OffsetDateTime.now().isAfter(letterReceiveBlockedUntil);
+    }
+
+    // getter, setter
+    public OffsetDateTime getLetterReceiveBlockedUntil() {
+        return letterReceiveBlockedUntil;
+    }
+
 }

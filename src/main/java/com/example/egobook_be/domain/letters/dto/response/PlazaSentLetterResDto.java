@@ -23,4 +23,5 @@ public class PlazaSentLetterResDto {
     private String lastMessagePreview;
 
     private OffsetDateTime createdAt;
+    private String backgroundColor;
 }

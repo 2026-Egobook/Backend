@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.letters.repository;
 
+import com.example.egobook_be.domain.letters.entity.PlazaLetterReply;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReplyReport;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -30,4 +31,13 @@ public interface PlazaLetterReplyReportRepository extends JpaRepository<PlazaLet
     @Modifying(clearAutomatically = true)
     @Query("UPDATE PlazaLetterReplyReport r SET r.replierId = NULL WHERE r.replierId IN :replierIds")
     void bulkNullifyReplierId(@Param("replierIds") List<Long> replierIds);
+
+    // 3회 이상 신고된 답장 삭제하고 신고 DB로 이동
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE PlazaLetterReply r SET r.status = :status WHERE r.replyId = :replyId")
+    void moveReplyToReportDbAndDelete(@Param("replyId") Long replyId, @Param("status") PlazaLetterReply.ReplyStatus status);
+
+    // 신고된 답장에 대한 신고 횟수를 셈
+    @Query("SELECT COUNT(r) FROM PlazaLetterReplyReport r WHERE r.reply.replyId = :replyId")
+    long countByReply_ReplyId(@Param("replyId") Long replyId);
 }
