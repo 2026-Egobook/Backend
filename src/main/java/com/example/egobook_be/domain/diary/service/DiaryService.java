@@ -51,14 +51,12 @@ public class DiaryService {
         // DiaryCreateReqDto 검증
         verifyDiaryCreateReqDto(dto);
 
-        // 일기 저장 날짜 설정
-        LocalDateTime writtenAt = (dto.dateTime() != null) ?
-                dto.dateTime() : LocalDateTime.now();
-
-        LocalDate diaryDate = writtenAt.toLocalDate();
+        if (dto.date().isAfter(LocalDate.now().plusDays(1))) {
+            throw new CustomException(DiaryErrorCode.INVALID_DIARY_DATE);
+        }
 
         // 일기 작성 가능 여부
-        if (diaryRepository.countByUserAndDate(user, diaryDate) >= 48) {
+        if (diaryRepository.countByUserAndDate(user, dto.date()) >= 48) {
             throw new CustomException(DiaryErrorCode.DIARY_DAILY_LIMIT_EXCEEDED);
         }
 
@@ -83,16 +81,17 @@ public class DiaryService {
                                 startOfToday, endOfToday
                         );
 
+        LocalDateTime writtenAt = LocalDateTime.now();
+
         Diary diary = diaryRepository.save(Diary.builder()
                 .user(user)
-                .date(diaryDate)
+                .date(dto.date())
                 .type(dto.type())
                 .content(dto.content())
                 .emotionLevel(dto.emotionLevel())
                 .writtenAt(writtenAt)
                 .build());
 
-       
         // Reward 객체들 생성 후 DiaryCreateResDto 반환
         return DiaryMapper.toDiaryCreateDto(diary, getRewards(user, ability, userMission, isFirstDiaryToday, isFirstConcernToday, isFirstPositiveToday, dto.type()));
     }
