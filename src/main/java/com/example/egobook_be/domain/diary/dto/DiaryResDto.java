@@ -3,6 +3,7 @@ package com.example.egobook_be.domain.diary.dto;
 import com.example.egobook_be.domain.diary.enums.DiaryType;
 import lombok.Builder;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -11,7 +12,7 @@ import java.util.Set;
 public record DiaryResDto(
         Long diaryId,
         LocalDate date,
-        LocalDateTime writtenAt,
+        Instant writtenAt,
         Set<DiaryType> type,
         Integer emotionLevel,
         String content,

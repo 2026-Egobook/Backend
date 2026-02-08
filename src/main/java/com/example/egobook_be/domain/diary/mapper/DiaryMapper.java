@@ -9,6 +9,7 @@ import com.example.egobook_be.global.response.SliceResponse;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +20,10 @@ public class DiaryMapper {
         return DiaryResDto.builder()
                 .diaryId(diary.getId())
                 .date(diary.getDate())
-                .writtenAt(diary.getWrittenAt())
+                .writtenAt(diary
+                        .getWrittenAt()
+                        .atZone(ZoneId.of("Asia/Seoul"))
+                        .toInstant())
                 .type(diary.getType())
                 .emotionLevel(diary.getEmotionLevel())
                 .content(diary.getContent())
@@ -33,7 +37,10 @@ public class DiaryMapper {
                 .entry(DiaryCreateResDto.DiaryEntryResDto.builder()
                         .diaryId(diary.getId())
                         .date(diary.getDate())
-                        .writtenAt(diary.getWrittenAt())
+                        .writtenAt(diary
+                                .getWrittenAt()
+                                .atZone(ZoneId.of("Asia/Seoul"))
+                                .toInstant())
                         .type(diary.getType())
                         .emotionLevel(diary.getEmotionLevel())
                         .content(diary.getContent())
