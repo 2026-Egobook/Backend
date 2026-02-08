@@ -1,12 +1,10 @@
 package com.example.egobook_be.domain.diary.dto;
 
 import com.example.egobook_be.domain.diary.enums.DiaryType;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.*;
 import lombok.Builder;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -19,5 +17,6 @@ public record DiaryCreateReqDto(
         Integer emotionLevel,
         @NotBlank
         String content,
-        LocalDateTime dateTime
+        @NotNull
+        LocalDate date
 ) {}

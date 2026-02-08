@@ -32,7 +32,7 @@ public class DiaryMapper {
         return DiaryCreateResDto.builder()
                 .entry(DiaryCreateResDto.DiaryEntryResDto.builder()
                         .diaryId(diary.getId())
-                        .date(diary.getWrittenAt().toLocalDate())
+                        .date(diary.getDate())
                         .writtenAt(diary.getWrittenAt())
                         .type(diary.getType())
                         .emotionLevel(diary.getEmotionLevel())

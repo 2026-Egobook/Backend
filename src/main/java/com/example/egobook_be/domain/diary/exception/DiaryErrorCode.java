@@ -45,6 +45,12 @@ public enum DiaryErrorCode implements BaseErrorCode {
             HttpStatus.BAD_REQUEST
     ),
 
+    INVALID_DIARY_DATE(
+            "DIARY_400_007",
+            "유효하지 않은 일기 날짜입니다.",
+            HttpStatus.BAD_REQUEST
+    ),
+
     DIARY_ACCESS_DENIED(
             "DIARY_403_001",
             "해당 일기에 접근할 권한이 없습니다.",
