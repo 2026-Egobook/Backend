@@ -97,6 +97,7 @@ dependencies {
     implementation 'dev.langchain4j:langchain4j-spring-boot-starter'
     implementation 'dev.langchain4j:langchain4j-open-ai'
 
+
     // firebase
     implementation 'com.google.firebase:firebase-admin:9.7.1'
 
