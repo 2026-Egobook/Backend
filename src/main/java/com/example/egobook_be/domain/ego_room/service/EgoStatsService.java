@@ -31,6 +31,7 @@ public class EgoStatsService {
     private final UserStatsRepository userStatsRepository;
     private final DiaryRepository diaryRepository;
     private final UserRepository userRepository;
+    private final WordCloudService wordCloudAiService;
 
     @Transactional
     public EgoStatsResDto getStats(Long userId) {
@@ -112,7 +113,8 @@ public class EgoStatsService {
         List<MonthlyAvgDto> sixMonthAvgs = calculateSixMonthAvgs(userId, year, month);
 
         // 6개월 워드 클라우드
-        List<WordCloudDto> wordCloud = calculateWordCloud(sixMonthDiaries);
+
+        List<WordCloudDto> wordCloud = wordCloudAiService.calculateWordCloud(sixMonthDiaries);
 
         // 전체 카운트 계산
         TotalStatsDto totalCounts = calculateTotalCounts(yearlyDiaries);
@@ -210,25 +212,5 @@ public class EgoStatsService {
                 .toList();
     }
 
-    private List<WordCloudDto> calculateWordCloud(List<Diary> diaries) {
-        // 모든 일기의 본문을 하나로 합치고 특수문자 제거
-        // 한글, 영어, 숫자만 남기고 나머지는 공백으로 치환
-        String allContent = diaries.stream()
-                .map(Diary::getContent)
-                .filter(Objects::nonNull)
-                .collect(Collectors.joining(" "))
-                .replaceAll("[^가-힣a-zA-Z0-9\\s]", " ");
 
-        // 공백 기준으로 단어 분리 후 빈도수 계산
-        Map<String, Long> wordCounts = Arrays.stream(allContent.split("\\s+"))
-                .filter(word -> word.length() >= 2) // 한 글자 단어(은, 는, 이, 가 등)는 제외
-                .collect(Collectors.groupingBy(word -> word, Collectors.counting()));
-
-        // 가장 많이 나온 순서대로 상위 30개 추출
-        return wordCounts.entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                .limit(30)
-                .map(entry -> new WordCloudDto(entry.getKey(), entry.getValue().intValue()))
-                .toList();
-    }
 }
