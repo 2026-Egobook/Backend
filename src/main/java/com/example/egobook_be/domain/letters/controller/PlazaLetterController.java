@@ -6,8 +6,7 @@ import com.example.egobook_be.domain.letters.dto.request.ReplyReportRequest;
 import com.example.egobook_be.domain.letters.dto.request.ReplyRequest;
 import com.example.egobook_be.domain.letters.dto.response.*;
 import com.example.egobook_be.domain.letters.entity.ReplyReportReason;
-import com.example.egobook_be.domain.letters.service.PlazaLetterQueryService;
-import com.example.egobook_be.domain.letters.service.PlazaLetterService;
+import com.example.egobook_be.domain.letters.service.*;
 import com.example.egobook_be.global.response.GlobalResponse;
 import com.example.egobook_be.global.response.SliceResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,11 +20,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import com.example.egobook_be.domain.letters.service.ReplyReportService;
 import org.springframework.web.bind.annotation.*;
+import com.example.egobook_be.domain.letters.dto.request.LetterReportRequest;
+import com.example.egobook_be.domain.letters.service.LetterReportService;
+
 
 import com.example.egobook_be.domain.letters.service.ai.GeminiClient;
-import com.example.egobook_be.domain.letters.service.LetterService;
 
 @Tag(name = "Plaza Letter Controller", description = "광장 편지 관련 API")
 @RestController
@@ -36,6 +36,8 @@ public class PlazaLetterController {
     private final PlazaLetterService plazaLetterService;
     private final PlazaLetterQueryService plazaLetterQueryService;
     private final ReplyReportService replyReportService;
+    private final LetterReportService letterReportService;
+
 
     private final GeminiClient geminiClient;
     private final LetterService letterService;
@@ -240,6 +242,43 @@ public class PlazaLetterController {
         return GlobalResponse.success(result);
     }
 
+
+    @Operation(
+            summary = "편지 신고",
+            description = """
+            사용자가 받은 편지에 대해 신고하는 기능입니다.
+            - 신고 사유는 선택지 또는 자유 작성으로 입력할 수 있습니다.
+            - '기타(OTHER)' 사유 선택 시 description을 입력해야 합니다.
+            - 동일 사용자는 동일 편지를 중복 신고할 수 없습니다.
+            - 신고 후 상태는 PENDING으로 저장됩니다.
+            - 신고 누적 3회 이상이면 편지가 삭제될 수 있습니다(정책).
+        """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 신고 사유(OTHER인데 description 없음 등)"),
+            @ApiResponse(responseCode = "403", description = "권한 없음(내가 받은 편지가 아님)"),
+            @ApiResponse(responseCode = "404", description = "편지 없음"),
+            @ApiResponse(responseCode = "409", description = "이미 신고한 편지")
+    })
+    @PostMapping("/{letterId}/report")
+    public GlobalResponse<String> reportLetter(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @PathVariable Long letterId,
+            @RequestBody LetterReportRequest request
+    ) {
+        letterReportService.reportLetter(
+                userId,
+                letterId,
+                request.getReason(),
+                request.getDescription()
+        );
+        return GlobalResponse.success("신고가 완료되었습니다.");
+    }
+
+
+
     @Operation(
             summary = "답장 신고",
             description = """
@@ -257,7 +296,7 @@ public class PlazaLetterController {
             @ApiResponse(responseCode = "404", description = "답장 없음"),
             @ApiResponse(responseCode = "409", description = "이미 신고한 답장")
     })
-    @PostMapping("/{replyId}/report")
+    @PostMapping("replies/{replyId}/report")
     public GlobalResponse<String> reportReply(
             @Parameter(hidden = true)
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
