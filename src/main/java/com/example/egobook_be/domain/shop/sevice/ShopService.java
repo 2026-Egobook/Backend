@@ -1,9 +1,6 @@
 package com.example.egobook_be.domain.shop.sevice;
 
-import com.example.egobook_be.domain.shop.dto.EquipItemReqDto;
-import com.example.egobook_be.domain.shop.dto.ItemInfoResDto;
-import com.example.egobook_be.domain.shop.dto.PurchaseItemReqDto;
-import com.example.egobook_be.domain.shop.dto.UserItemStatusDto;
+import com.example.egobook_be.domain.shop.dto.*;
 import com.example.egobook_be.domain.shop.entity.Item;
 import com.example.egobook_be.domain.shop.entity.UserItem;
 import com.example.egobook_be.domain.shop.enums.ItemCategory;
@@ -56,7 +53,7 @@ public class ShopService {
      * @return
      */
     @Transactional(readOnly = true)
-    public SliceResponse<ItemInfoResDto> getItemSlice(Long userId, ItemCategory category, Integer page, Integer size){
+    public SliceResponse<ShopItemInfoResDto> getItemSlice(Long userId, ItemCategory category, Integer page, Integer size){
         /*
          * 1. Slicing을 위한 Pageable 객체 생성 (아이템 가격 기준으로 오름차순 정렬)
          * - 프론트로부터는 Slice값이 1 ~ N으로 오기 때문에, 해당 값을 -1
@@ -92,7 +89,7 @@ public class ShopService {
          */
         return SliceResponse.of(sliceEntity, item -> {
             Boolean isPurchased = userItemMap.containsKey(item.getId());
-            return itemMapper.toItemInfoResDto(item, getShopCloudFrontDomain(), isPurchased, userItemMap.getOrDefault(item.getId(), false));
+            return itemMapper.toShopItemInfoResDto(item, getShopCloudFrontDomain(), getMyCloudFrontDomain(), isPurchased, userItemMap.getOrDefault(item.getId(), false));
         });
     }
 

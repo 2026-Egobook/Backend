@@ -3,6 +3,7 @@ package com.example.egobook_be.domain.shop.controller;
 import com.example.egobook_be.domain.shop.dto.EquipItemReqDto;
 import com.example.egobook_be.domain.shop.dto.ItemInfoResDto;
 import com.example.egobook_be.domain.shop.dto.PurchaseItemReqDto;
+import com.example.egobook_be.domain.shop.dto.ShopItemInfoResDto;
 import com.example.egobook_be.domain.shop.enums.ItemCategory;
 import com.example.egobook_be.global.response.GlobalResponse;
 import com.example.egobook_be.global.response.SliceResponse;
@@ -26,7 +27,7 @@ import java.util.List;
 public interface ShopControllerDocs {
     @Operation(summary = "상점 아이템 조회", description = """
             특정 카테고리의 아이템들을 조회하는 API입니다.
-            **상점용 아이템 이미지들의 url을 반환합니다**
+            **상점용 아이템, 사용자용 아이템 이미지들의 url을 둘다 반환합니다**
             
             [**Query Parameter**]
             - category: **BACK** | **SKIN** | **DECOR_ONE** | **DECOR_TWO** | **BACKGROUND**
@@ -50,7 +51,7 @@ public interface ShopControllerDocs {
                     content = @Content)
     })
     @GetMapping("/items")
-    ResponseEntity<GlobalResponse<SliceResponse<ItemInfoResDto>>> getItemSlice(
+    ResponseEntity<GlobalResponse<SliceResponse<ShopItemInfoResDto>>> getItemSlice(
             @Parameter(hidden = true)
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
 
@@ -67,7 +68,7 @@ public interface ShopControllerDocs {
 
     @Operation(summary = "아이템 구매 API", description = """
             특정 아이템을 구매하는 API입니다.
-            **상점용 아이템 이미지들의 url을 반환합니다**
+            **사용자용 아이템 이미지들의 url만 반환합니다**
             
             [**Request Body**]
             - itemId : Item의 PK
@@ -95,7 +96,7 @@ public interface ShopControllerDocs {
 
     @Operation(summary = "아이템 착용/해제 API", description = """
             보유 중인 아이템을 착용하는 API입니다.
-            **사용자용 아이템 이미지들의 url을 반환합니다**
+            **사용자용 아이템 이미지들의 url만 반환합니다**
             
             [**Request Body**]
             - itemId : 착용할 Item의 PK
@@ -124,7 +125,7 @@ public interface ShopControllerDocs {
 
     @Operation(summary = "착용 중인 아이템 목록 조회", description = """
             현재 사용자가 착용(Equipped)하고 있는 모든 아이템 정보를 조회하는 API입니다.
-            **사용자용 아이템 이미지들의 url을 반환합니다**
+            **사용자용 아이템 이미지들의 url만 반환합니다**
             
             [**기능**]
             - 사용자의 인벤토리에서 `isEquipped` 상태가 `true`인 아이템들을 카테고리에 상관없이 모두 반환합니다.

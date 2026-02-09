@@ -3,6 +3,7 @@ package com.example.egobook_be.domain.shop.controller;
 import com.example.egobook_be.domain.shop.dto.EquipItemReqDto;
 import com.example.egobook_be.domain.shop.dto.ItemInfoResDto;
 import com.example.egobook_be.domain.shop.dto.PurchaseItemReqDto;
+import com.example.egobook_be.domain.shop.dto.ShopItemInfoResDto;
 import com.example.egobook_be.domain.shop.enums.ItemCategory;
 import com.example.egobook_be.domain.shop.sevice.ShopService;
 import com.example.egobook_be.global.response.GlobalResponse;
@@ -31,7 +32,7 @@ public class ShopController implements ShopControllerDocs{
      * GET /shop/items?category=???&slice=1
      */
     @Override
-    public ResponseEntity<GlobalResponse<SliceResponse<ItemInfoResDto>>> getItemSlice(
+    public ResponseEntity<GlobalResponse<SliceResponse<ShopItemInfoResDto>>> getItemSlice(
             @Parameter(hidden = true)
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
 
@@ -44,7 +45,7 @@ public class ShopController implements ShopControllerDocs{
             @Parameter(description = "Page 크기")
             @RequestParam(value = "size", defaultValue = "6") Integer size
     ){
-        SliceResponse<ItemInfoResDto> sliceResponse = shopService.getItemSlice(userId, category, page, size);
+        SliceResponse<ShopItemInfoResDto> sliceResponse = shopService.getItemSlice(userId, category, page, size);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(GlobalResponse.success(sliceResponse));
