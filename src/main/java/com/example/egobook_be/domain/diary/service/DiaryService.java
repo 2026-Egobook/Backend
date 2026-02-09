@@ -49,7 +49,7 @@ public class DiaryService {
         Mission userMission = diaryQueryService.getMissionByUser(user);
 
         // DiaryCreateReqDto 검증
-        verifyDiaryCreateReqDto(dto);
+        verifyDiaryReqDto(dto.type(), dto.emotionLevel(), dto.content());
 
         if (dto.date().isAfter(LocalDate.now().plusDays(1))) {
             throw new CustomException(DiaryErrorCode.INVALID_DIARY_DATE);
@@ -189,32 +189,6 @@ public class DiaryService {
         return rewards;
     }
 
-    private void verifyDiaryCreateReqDto(DiaryCreateReqDto dto){
-        // 일기 타입 선택 검증
-        if (dto.type() == null || dto.type().isEmpty()) {
-            throw new CustomException(DiaryErrorCode.DIARY_TYPE_REQUIRED);
-        }
-
-        // '감정(EMOTION)' 일기 감정 레벨 검증
-        if (dto.type().contains(DiaryType.EMOTION)) {
-            if (dto.emotionLevel() == null) {
-                throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_REQUIRED);
-            }
-
-            if (dto.emotionLevel() < 1 || dto.emotionLevel() > 5) {
-                throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_INVALID);
-            }
-        } else if (dto.emotionLevel() != null) {
-            throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_NOT_ALLOWED);
-        }
-
-        // 일기 400자 이하 검증
-        if (dto.content() != null && dto.content().length() > 400) {
-            throw new CustomException(DiaryErrorCode.DIARY_TEXT_LIMIT_EXCEEDED);
-        }
-    }
-
-
     /** 감정 일기 상세 조회 */
     public DiaryResDto getDiary(Long userId, Long diaryId) {
 
@@ -229,22 +203,7 @@ public class DiaryService {
 
         Diary diary = diaryQueryService.getDiaryWithAuth(userId, diaryId);
 
-        // 일기 타입 선택 검증
-        if (dto.type() == null || dto.type().isEmpty()) {
-            throw new CustomException(DiaryErrorCode.DIARY_TYPE_REQUIRED);
-        }
-
-        // '감정(EMOTION)' 일기 감정 레벨 검증
-        if (diary.getType().contains(DiaryType.EMOTION)) {
-            if (dto.emotionLevel() == null) {
-                throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_REQUIRED);
-            }
-            if (dto.emotionLevel() < 1 || dto.emotionLevel() > 5) {
-                throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_INVALID);
-            }
-        } else if (dto.emotionLevel() != null) {
-            throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_NOT_ALLOWED);
-        }
+        verifyDiaryReqDto(dto.type(), dto.emotionLevel(), dto.content());
 
         diary.update(dto.content(), dto.type(), dto.emotionLevel());
         diaryRepository.save(diary);
@@ -348,5 +307,30 @@ public class DiaryService {
         return DiaryMapper.toDiaryExportDto(
                 fileUrl, expiresAt, dto.format(), dto.startDate(), dto.endDate()
         );
+    }
+
+    private void verifyDiaryReqDto(Set<DiaryType> type, Integer emotionLevel, String content){
+        // 일기 타입 선택 검증
+        if (type == null || type.isEmpty()) {
+            throw new CustomException(DiaryErrorCode.DIARY_TYPE_REQUIRED);
+        }
+
+        // '감정(EMOTION)' 일기 감정 레벨 검증
+        if (type.contains(DiaryType.EMOTION)) {
+            if (emotionLevel == null) {
+                throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_REQUIRED);
+            }
+
+            if (emotionLevel < 1 || emotionLevel > 5) {
+                throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_INVALID);
+            }
+        } else if (emotionLevel != null) {
+            throw new CustomException(DiaryErrorCode.DIARY_EMOTION_LEVEL_NOT_ALLOWED);
+        }
+
+        // 일기 400자 이하 검증
+        if (content != null && content.length() > 400) {
+            throw new CustomException(DiaryErrorCode.DIARY_TEXT_LIMIT_EXCEEDED);
+        }
     }
 }
