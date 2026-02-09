@@ -38,13 +38,13 @@ public class ShopController implements ShopControllerDocs{
             @Parameter(description = "아이템 카테고리", required = true)
             @RequestParam("category") ItemCategory category,
 
-            @Parameter(description = "Slice 번호 (1 ~ N)")
-            @RequestParam(value = "slice", defaultValue = "1") Integer slice,
+            @Parameter(description = "Page 번호 (1 ~ N)")
+            @RequestParam(value = "page", defaultValue = "1") Integer page,
 
-            @Parameter(description = "Slice 크기")
+            @Parameter(description = "Page 크기")
             @RequestParam(value = "size", defaultValue = "6") Integer size
     ){
-        SliceResponse<ItemInfoResDto> sliceResponse = shopService.getItemSlice(userId, category, slice, size);
+        SliceResponse<ItemInfoResDto> sliceResponse = shopService.getItemSlice(userId, category, page, size);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(GlobalResponse.success(sliceResponse));
