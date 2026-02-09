@@ -1,6 +1,7 @@
 package com.example.egobook_be.domain.shop.mapper;
 
 import com.example.egobook_be.domain.shop.dto.ItemInfoResDto;
+import com.example.egobook_be.domain.shop.dto.ShopItemInfoResDto;
 import com.example.egobook_be.domain.shop.entity.Item;
 import com.example.egobook_be.domain.shop.entity.UserItem;
 import org.springframework.stereotype.Component;
