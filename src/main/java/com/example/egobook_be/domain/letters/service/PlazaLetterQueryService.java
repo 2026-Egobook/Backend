@@ -1,10 +1,8 @@
 package com.example.egobook_be.domain.letters.service;
 
-import com.example.egobook_be.domain.letters.dto.response.PlazaReceivedReplyResDto;
+import com.example.egobook_be.domain.letters.dto.response.*;
 import com.example.egobook_be.domain.letters.entity.PlazaLetter;
-import com.example.egobook_be.domain.letters.dto.response.PlazaSentLetterResDto;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReply;
-import com.example.egobook_be.domain.letters.dto.response.PlazaLetterDetailResDto;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.mapper.PlazaLetterMapper;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReportRepository;
@@ -122,6 +120,33 @@ public class PlazaLetterQueryService {
         return plazaLetterMapper.toDetailDto(letter, reply, reported);
     }
 
+    @Transactional(readOnly = true)
+    public SliceResponse<DeferredInboxItemDto> getMyDeferredInbox(Long userId, Integer page, Integer size) {
+
+        int safePage = (page == null || page < 1) ? 1 : page;
+        int safeSize = (size == null || size <= 0) ? DEFAULT_SIZE : Math.min(size, MAX_SIZE);
+
+        Pageable pageable = PageRequest.of(
+                safePage - 1,
+                safeSize,
+                Sort.by(Sort.Order.desc("arrivedAt"), Sort.Order.desc("letterId"))
+        );
+
+        Slice<PlazaLetter> slice = plazaLetterRepository.findMyDeferredInboxSlice(userId, pageable);
+
+        return SliceResponse.of(slice, plazaLetterMapper::toDeferredInboxItemDto);
+    }
+
+
+    @Transactional(readOnly = true)
+    public InboxNextResponse getInboxLetterDetail(Long userId, Long letterId) {
+
+        PlazaLetter letter = plazaLetterRepository
+                .findInboxLetterForReply(letterId, userId)
+                .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+
+        return plazaLetterMapper.toResponse(letter);
+    }
 
 }
 

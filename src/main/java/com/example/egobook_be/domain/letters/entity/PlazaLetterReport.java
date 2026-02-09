@@ -16,6 +16,7 @@ public class PlazaLetterReport {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long reportId;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -23,7 +24,8 @@ public class PlazaLetterReport {
     @OnDelete(action = OnDeleteAction.CASCADE) // 편지가 삭제되면 신고 내역도 자동 삭제
     private PlazaLetter letter;
 
-    @Column(nullable = false)
+
+    @Column(name = "reporter_id", nullable = false)
     private Long reporterId; // 신고한 사람(= 편지 받은 사람)
 
     private Long senderId;   // 신고당한 편지 작성자(익명 처리/정책에 따라 null 가능)

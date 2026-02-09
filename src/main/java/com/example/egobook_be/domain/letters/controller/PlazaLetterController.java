@@ -371,4 +371,48 @@ public class PlazaLetterController {
 
         return aiReply;
     }
+
+
+    @Operation(
+            summary = "답장을 미루고 있는(DEFERRED) 편지 목록 조회",
+            description = """
+            메인 화면에서 '답장을 기다리는(미뤄둔)' 편지 목록을 Slice로 조회합니다.
+            - receiverId = 로그인 사용자
+            - status = DEFERRED
+            - page는 1부터 시작
+            """
+    )
+    @GetMapping("/inbox/deferred")
+    public GlobalResponse<SliceResponse<DeferredInboxItemDto>> getDeferredInbox(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return GlobalResponse.success(
+                plazaLetterQueryService.getMyDeferredInbox(userId, page, size)
+        );
+    }
+
+
+    @Operation(
+            summary = "내가 답장해야 할 편지 상세 조회",
+            description = """
+            미뤄둔(DEFERRED) 또는 방금 도착한(ARRIVED) 편지 1건을 조회합니다.
+            - receiverId가 본인인 경우만 가능
+            - 이미 답장한 편지는 조회 불가
+        """
+    )
+    @GetMapping("/inbox/{letterId}")
+    public GlobalResponse<InboxNextResponse> getInboxLetterDetail(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @PathVariable Long letterId
+    ) {
+        return GlobalResponse.success(
+                plazaLetterQueryService.getInboxLetterDetail(userId, letterId)
+        );
+    }
+
+
 }

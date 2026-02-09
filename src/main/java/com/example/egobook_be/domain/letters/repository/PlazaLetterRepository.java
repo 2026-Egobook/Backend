@@ -133,6 +133,33 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
     """)
     List<PlazaLetter> findWaitingLetters(Pageable pageable);
 
+    @Query("""
+        select l
+        from PlazaLetter l
+        where l.receiverId = :userId
+          and l.status = com.example.egobook_be.domain.letters.entity.PlazaLetterStatus.DEFERRED
+        order by l.arrivedAt desc, l.letterId desc
+    """)
+    Slice<PlazaLetter> findMyDeferredInboxSlice(
+            @Param("userId") Long userId,
+            Pageable pageable
+    );
+
+
+    @Query("""
+    select l
+    from PlazaLetter l
+    where l.letterId = :letterId
+      and l.receiverId = :userId
+      and l.status in (
+        com.example.egobook_be.domain.letters.entity.PlazaLetterStatus.ARRIVED,
+        com.example.egobook_be.domain.letters.entity.PlazaLetterStatus.DEFERRED
+      )
+""")
+    Optional<PlazaLetter> findInboxLetterForReply(
+            @Param("letterId") Long letterId,
+            @Param("userId") Long userId
+    );
 
 }
 

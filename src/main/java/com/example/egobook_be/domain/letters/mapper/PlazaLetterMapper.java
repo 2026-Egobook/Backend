@@ -1,10 +1,7 @@
 package com.example.egobook_be.domain.letters.mapper;
 
-import com.example.egobook_be.domain.letters.dto.response.InboxNextResponse;
-import com.example.egobook_be.domain.letters.dto.response.PlazaLetterDetailResDto;
-import com.example.egobook_be.domain.letters.dto.response.PlazaReceivedReplyResDto;
+import com.example.egobook_be.domain.letters.dto.response.*;
 import com.example.egobook_be.domain.letters.entity.PlazaLetter;
-import com.example.egobook_be.domain.letters.dto.response.PlazaSentLetterResDto;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReply;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
 import org.springframework.stereotype.Component;
@@ -114,5 +111,19 @@ public class PlazaLetterMapper {
                 .reply(replyDto)
                 .build();
     }
+
+    public DeferredInboxItemDto toDeferredInboxItemDto(PlazaLetter letter) {
+        return DeferredInboxItemDto.builder()
+                .letterId(letter.getLetterId())
+                .status(letter.getStatus())
+                .mode(letter.getMode())
+                .fromLabel(letter.getFromLabel())
+                .backgroundColor(letter.getBackgroundColor().name())
+                .contentPreview(truncate(letter.getContent(), 30))
+                .arrivedAt(letter.getArrivedAt())
+                .replyDeadlineAt(letter.getReplyDeadlineAt())
+                .build();
+    }
+
 
 }
