@@ -65,4 +65,13 @@ public interface UserRepository extends JpaRepository<User, Long>,UserRepository
       and u.letterReceiveBlockedUntil <= :now
 """)
     List<Long> findReceivableUsers(OffsetDateTime now, PageRequest pageable);
+
+
+    @Query("""
+    select u.id
+    from User u
+    where (u.letterReceiveBlockedUntil is null or u.letterReceiveBlockedUntil <= :now)
+""")
+    List<Long> findAvailableReceivers(@Param("now") OffsetDateTime now, Pageable pageable);
+
 }
