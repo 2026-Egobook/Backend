@@ -26,16 +26,17 @@ import java.util.List;
 public interface ShopControllerDocs {
     @Operation(summary = "상점 아이템 조회", description = """
             특정 카테고리의 아이템들을 조회하는 API입니다.
+            **상점용 아이템 이미지들의 url을 반환합니다**
             
             [**Query Parameter**]
             - category: **BACK** | **SKIN** | **DECOR_ONE** | **DECOR_TWO** | **BACKGROUND**
-            - slice: 1 ~ n (slice값은 1부터 시작합니다.)
+            - slice: 1 ~ n (page값은 1부터 시작합니다.)
             
             [**기능**:]
             - 각 카테고리의 n slice의 데이터를 반환합니다.
             
             [**주의**]
-             1. Slice 값을 0을 넣지 않도록 주의하세요.
+             1. Page 값을 0을 넣지 않도록 주의하세요.
              2. category 값은 필수입니다.
             """)
     @ApiResponses(value = {
@@ -56,16 +57,17 @@ public interface ShopControllerDocs {
             @Parameter(description = "아이템 카테고리", required = true)
             @RequestParam("category") ItemCategory category,
 
-            @Parameter(description = "Slice 번호 (1 ~ N)")
-            @RequestParam(value = "slice", defaultValue = "1") Integer slice,
+            @Parameter(description = "Page 번호 (1 ~ N)")
+            @RequestParam(value = "page", defaultValue = "1") Integer page,
 
-            @Parameter(description = "Slice 크기")
+            @Parameter(description = "Page 크기")
             @RequestParam(value = "size", defaultValue = "6") Integer size
     );
 
 
     @Operation(summary = "아이템 구매 API", description = """
             특정 아이템을 구매하는 API입니다.
+            **상점용 아이템 이미지들의 url을 반환합니다**
             
             [**Request Body**]
             - itemId : Item의 PK
@@ -93,6 +95,7 @@ public interface ShopControllerDocs {
 
     @Operation(summary = "아이템 착용/해제 API", description = """
             보유 중인 아이템을 착용하는 API입니다.
+            **사용자용 아이템 이미지들의 url을 반환합니다**
             
             [**Request Body**]
             - itemId : 착용할 Item의 PK
@@ -121,6 +124,7 @@ public interface ShopControllerDocs {
 
     @Operation(summary = "착용 중인 아이템 목록 조회", description = """
             현재 사용자가 착용(Equipped)하고 있는 모든 아이템 정보를 조회하는 API입니다.
+            **사용자용 아이템 이미지들의 url을 반환합니다**
             
             [**기능**]
             - 사용자의 인벤토리에서 `isEquipped` 상태가 `true`인 아이템들을 카테고리에 상관없이 모두 반환합니다.

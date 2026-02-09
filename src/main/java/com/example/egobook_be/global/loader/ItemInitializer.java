@@ -29,11 +29,11 @@ public class ItemInitializer implements ApplicationRunner {
     // ==================================================
     // 파일 생성을 위한 변수들 선언
     // ==================================================
-    String PATH_BACK = "shop/back";
-    String PATH_SKIN = "shop/skin";
-    String PATH_DECOR_ONE = "shop/decor1";
-    String PATH_DECOR_TWO = "shop/decor2";
-    String PATH_BACKGROUND = "shop/background";
+    String PATH_BACK = "back";
+    String PATH_SKIN = "skin";
+    String PATH_DECOR_ONE = "decor1";
+    String PATH_DECOR_TWO = "decor2";
+    String PATH_BACKGROUND = "background";
 
 
     @Override

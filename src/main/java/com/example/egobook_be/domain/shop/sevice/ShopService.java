@@ -48,14 +48,15 @@ public class ShopService {
     
     /**
      * 특정 카테고리의 아이템을 무한 스크롤이 가능하도록 Slice로 가져와서 반환하는 api
+     * [ 아이템의 s3 url은 shop용 url을 반환한다 ]
      * @param userId 요청을 한 user의 PK
      * @param category 가져올 아이템의 카테고리
-     * @param slice 반환할 Slice 번호
+     * @param page 반환할 Slice 번호
      * @param size 한개의 Slice에 들어있는 요소의 개수
      * @return
      */
     @Transactional(readOnly = true)
-    public SliceResponse<ItemInfoResDto> getItemSlice(Long userId, ItemCategory category, Integer slice, Integer size){
+    public SliceResponse<ItemInfoResDto> getItemSlice(Long userId, ItemCategory category, Integer page, Integer size){
         /*
          * 1. Slicing을 위한 Pageable 객체 생성 (아이템 가격 기준으로 오름차순 정렬)
          * - 프론트로부터는 Slice값이 1 ~ N으로 오기 때문에, 해당 값을 -1
@@ -63,9 +64,9 @@ public class ShopService {
          * (1) 입력된 Slice값이 0보다 작은 경우나 null인 경우
          * (2) Size값이 너무 큰 경우, 최대 크기 100으로 제한 두기
          */
-        if(slice == null || slice < 0) throw new CustomException(GlobalErrorCode.INVALID_SLICE_VALUE);
+        if(page == null || page < 0) throw new CustomException(GlobalErrorCode.INVALID_SLICE_VALUE);
         int validSize = (size == null || size < 1) ? 6 : Math.min(size, 100);
-        int pageIndex = (slice >= 1) ? slice - 1 : 0;
+        int pageIndex = (page >= 1) ? page - 1 : 0;
         Pageable pageable = PageRequest.of(pageIndex, validSize, Sort.by(Sort.Direction.ASC, "price"));
 
         // 2. 해당 카테고리에 해당하는 Item들 slice로 조회
@@ -91,12 +92,13 @@ public class ShopService {
          */
         return SliceResponse.of(sliceEntity, item -> {
             Boolean isPurchased = userItemMap.containsKey(item.getId());
-            return itemMapper.toItemInfoResDto(item, cloudfrontDomain, isPurchased, userItemMap.getOrDefault(item.getId(), false));
+            return itemMapper.toItemInfoResDto(item, getShopCloudFrontDomain(), isPurchased, userItemMap.getOrDefault(item.getId(), false));
         });
     }
 
     /**
      * 특정 아이템을 구매(UserItem 테이블에 추가)하고, 해당 아이템의 정보를 반환해주는 함수
+     * [ 상점용 아이템 이미지 url을 반환한다 ]
      * @param userId User PK
      * @param reqDto PurchaseItemReqDto
      * @return ItemInfoResDto
@@ -128,11 +130,12 @@ public class ShopService {
         user.purchaseItem(item.getPrice());
 
         // 4. 아이템 구매 후, 해당 아이템에 대한 정보를 반환한다.
-        return userItemMapper.toItemInfoResDto(userItem, item, cloudfrontDomain);
+        return userItemMapper.toItemInfoResDto(userItem, item, getShopCloudFrontDomain());
     }
 
     /**
      * 아이템 착용/해제 상태를 변경하는 함수 (멱등성 보장)
+     * [ 사용자용 아이템 이미지 url을 반환한다 ]
      * @param userId User PK
      * @param reqDto EquipItemReqDto (itemId, isEquipped)
      * @return ItemInfoResDto
@@ -181,18 +184,27 @@ public class ShopService {
         }
 
         // 4. 변경된 정보 반환
-        return userItemMapper.toItemInfoResDto(targetUserItem, targetUserItem.getItem(), cloudfrontDomain);
+        return userItemMapper.toItemInfoResDto(targetUserItem, targetUserItem.getItem(), getMyCloudFrontDomain());
     }
 
-    /** 사용자가 장착하고 있는 아이템들의 정보 리스트를 반환하는 함수 */
+    /**
+     * 사용자가 장착하고 있는 아이템들의 정보 리스트를 반환하는 함수
+     * [ 사용자용 아이템 이미지 url을 반환한다 ]
+     */
     @Transactional(readOnly = true)
     public List<ItemInfoResDto> getEquippedItems(Long userId){
         // 1. 해당 사용자가 보유하고 있는 아이템들 조회
         List<UserItem> equippedItems = userItemRepository.findEquippedItems(userId);
         // 2. 조회해온 각 아이템을 dto로 변환 (Fetch Join 썼으므로 N+1 발생 안함)
         return equippedItems.stream()
-                .map(userItem -> userItemMapper.toItemInfoResDto(userItem, userItem.getItem(), cloudfrontDomain))
+                .map(userItem -> userItemMapper.toItemInfoResDto(userItem, userItem.getItem(), getMyCloudFrontDomain()))
                 .toList();
     }
 
+    private String getShopCloudFrontDomain(){
+        return cloudfrontDomain+"/shop";
+    }
+    private String getMyCloudFrontDomain(){
+        return cloudfrontDomain+"/my";
+    }
 }
