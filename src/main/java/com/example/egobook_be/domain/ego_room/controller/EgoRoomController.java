@@ -123,6 +123,15 @@ public class EgoRoomController {
         return GlobalResponse.success("잠금이 해제되었습니다.");
     }
 
+    @Operation(summary = "상담서 분위기 조회", description = "현재 유저가 설정한 AI 상담 말투를 조회합니다.")
+    @GetMapping("/counseling-tone")
+    public GlobalResponse<String> getCounselTone(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    ) {
+        String counselTone = egoRoomService.getUserCounselTone(userId);
+        return GlobalResponse.success(counselTone);
+    }
+
     @Operation(summary = "다음 주 상담 분위기 변경", description = "다음 주에 생성될 AI 상담서의 말투나 스타일을 미리 설정합니다. SHARP OBJECTIVE SOFT")
     @PatchMapping("/counsel/weekly/next-tone")
     public ResponseEntity<CounselToneResDto> updateNextWeekTone(

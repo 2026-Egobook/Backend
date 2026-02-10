@@ -4,7 +4,6 @@ import com.example.egobook_be.domain.ego_room.enums.CounselTone;
 import com.example.egobook_be.domain.shop.entity.UserItem;
 import com.example.egobook_be.domain.user.enums.RoleType;
 import com.example.egobook_be.domain.user.enums.UserStatus;
-import com.example.egobook_be.domain.user.enums.WeeklyReportStyle;
 import com.example.egobook_be.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
