@@ -90,7 +90,6 @@ public class EgoStatsService {
         // 1년치 일기 데이터 조회 및 필터링
         List<Diary> yearlyDiaries = diaryRepository.findAllByUserIdAndWrittenAtAfter(userId, startOfOneYear)
                 .stream()
-                .filter(d -> d.getEmotionLevel() > 0)
                 .filter(d -> !d.getWrittenAt().isAfter(endOfPeriod))
                 .toList();
 
