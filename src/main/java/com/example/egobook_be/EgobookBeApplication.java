@@ -1,9 +1,12 @@
 package com.example.egobook_be;
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.scheduling.annotation.EnableScheduling;
+
+import java.util.TimeZone;
 
 @SpringBootApplication
 /**
@@ -13,6 +16,13 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableJpaAuditing
 @EnableScheduling // @Scheduled를 사용하기 위한 어노테이션
 public class EgobookBeApplication {
+
+    @PostConstruct
+    public void started() {
+        // 애플리케이션의 기본 타임존을 서울(KST)로 강제 설정
+        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Seoul"));
+    }
+
     public static void main(String[] args) {
         SpringApplication.run(EgobookBeApplication.class, args);
     }
