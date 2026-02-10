@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "심리 지식 API")
+@Tag(name = "Psychology Controller")
 @RestController
 @RequestMapping("/psychology")
 @RequiredArgsConstructor

@@ -320,4 +320,14 @@ public class EgoRoomService {
 
         counsel.unlock(); // counsel.isLocked = false;
     }
+
+    @Transactional(readOnly = true)
+    public String getUserCounselTone(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+        CounselTone tone = user.getCounselingTone();
+        return (tone != null) ? tone.getDescription() : CounselTone.SOFT.getDescription();
+    }
+
 }
+
