@@ -326,7 +326,7 @@ public class EgoRoomService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
         CounselTone tone = user.getCounselingTone();
-        return (tone != null) ? tone.getDescription() : CounselTone.SOFT.getDescription();
+        return (tone != null) ? tone.name() : CounselTone.SOFT.name();
     }
 
 }
