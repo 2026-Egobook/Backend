@@ -51,7 +51,7 @@ public class User extends BaseTimeEntity {
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
-    @Column(name = "symbol_level", nullable = false)
+    @Column(name = "level", nullable = false)
     @Builder.Default
     private Integer level = 1; // 사용자 레벨 기본값 1
 
@@ -70,11 +70,6 @@ public class User extends BaseTimeEntity {
     @Column(name = "weekly_analysis_enabled", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
     @Builder.Default
     private Boolean weeklyAnalysisEnabled = true;
-
-    @Column(name = "weekly_report_style")
-    @Enumerated(EnumType.STRING)
-    @Builder.Default
-    private WeeklyReportStyle weeklyReportStyle = WeeklyReportStyle.SOFT; // 주간 AI 상담서 스타일 (다음주 상담 스타일. 기본은 "부드러움")
 
     @Column(name = "ink")
     @Builder.Default
