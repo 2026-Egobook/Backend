@@ -108,7 +108,7 @@ public class ShopService {
          * - 2) 해당 사용자가 이미 구매한 Item인가?
          */
         Long itemId = reqDto.itemId();
-        User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+        User user = userRepository.findByIdWithLock(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
         Item item = itemRepository.findById(itemId).orElseThrow(() -> new CustomException(ShopErrorCode.ITEM_NOT_FOUND));
         if (userItemRepository.existsByUserIdAndItemId(userId, itemId)){
             throw new CustomException(ShopErrorCode.ALREADY_PURCHASED_ITEM);
