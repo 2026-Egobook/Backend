@@ -167,8 +167,8 @@ public class ItemInitializer implements ApplicationRunner {
          *  5-3) Beach.png
          */
         items.add(buildBackgroundItem("Default.png", 0));
-        items.add(buildBackgroundItem("Blossom.png", 0));
-        items.add(buildBackgroundItem("Beach.png", 0));
+        items.add(buildBackgroundItem("Blossom.png", 750));
+        items.add(buildBackgroundItem("Beach.png", 1000));
 
         return items;
     }

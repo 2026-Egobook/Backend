@@ -30,6 +30,7 @@ public enum AuthErrorCode implements BaseErrorCode {
      */
     RECERTIFICATION_FAIL_USER_WITHDRAW_PENDING(HttpStatus.FORBIDDEN, "사용자가 탈퇴 대기중이기 때문에, 해당 토큰으로 재인증할 수 없습니다."),
     RECERTIFICATION_FAIL_USER_WITHDRAWN(HttpStatus.FORBIDDEN, "사용자가 탈퇴했기 때문에, 해당 토큰으로 재인증할 수 없습니다."),
+    GOOGLE_JOIN_FAIL_USER_WITHDRAWN(HttpStatus.FORBIDDEN, "사용자가 탈퇴했기 때문에, 구글로 회원가입 할 수 없습니다."),
 
     /**
      * 401 UNAUTHORIZED: 인증되지 않음

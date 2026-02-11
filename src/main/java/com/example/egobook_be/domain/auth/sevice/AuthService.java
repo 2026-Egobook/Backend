@@ -16,6 +16,7 @@ import com.example.egobook_be.domain.terms.repository.TermRepository;
 import com.example.egobook_be.domain.terms.repository.UserTermRepository;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.enums.RoleType;
+import com.example.egobook_be.domain.user.enums.UserErrorCode;
 import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.global.util.*;
@@ -99,8 +100,22 @@ public class AuthService {
          * - Provider.GOOGLE과 조합하여 체크한다.
          */
         String hashedGoogleSub = hashingUtil.hashingValue(googleSub);
-        if(authAccountRepository.existsByHashedDeviceUidAndProvider(hashedGoogleSub, Provider.GOOGLE)){
-            throw new CustomException(AuthErrorCode.ALREADY_REGISTERED_USER);
+        AuthAccount authAccount = authAccountRepository.findByHashedDeviceUidAndProvider(hashedGoogleSub, Provider.GOOGLE).orElse(null);
+        if(authAccount != null){
+            // (1) 기존에 가입된 계정이라면, User를 찾아서 삭제 대기중인지 확인한다
+            User user = authAccount.getUser();
+
+            // (2) 만약 삭제 대기 중인 경우라면 해당 계정의 상태를 ACTIVE로 변경하고, 토큰을 새로 발급한 뒤 Refresh Token Backup 테이블 & Redis 갱신 후 결과 반환
+            if(user.getStatus().equals(UserStatus.WITHDRAW_PENDING)){
+                log.info("[Google Join] 탈퇴 대기 중인 구글 사용자가 재 회원가입을 시도하였습니다.");
+                user.cancelWithDrawUser(); // 사용자 상태 복구
+                return processIssueTokens(user, authAccount, email);
+            }
+            // (3) 만약 사용자가 삭제 상태면 예외 throw
+            if(user.getStatus().equals(UserStatus.WITHDRAW)){
+                log.info("[Google Join] 탈퇴된 구글 사용자가 재 회원가입을 시도하였습니다.");
+                throw new CustomException(AuthErrorCode.GOOGLE_JOIN_FAIL_USER_WITHDRAWN);
+            }
         }
 
         /*
@@ -116,24 +131,29 @@ public class AuthService {
          * - hashedDeviceUid 자리에 hashedGoogleSub를 저장한다.
          * - recoverToken은 createAuthAccount 내부에서 초기값(null)으로 설정된다.
          */
-        AuthAccount authAccount = createAuthAccount(user, Provider.GOOGLE, hashedGoogleSub);
+        authAccount = createAuthAccount(user, Provider.GOOGLE, hashedGoogleSub);
 
+        // 5. Token을 발급 및 환경 세팅 수행
+        return processIssueTokens(user, authAccount, email);
+    }
 
-        // 5. 토큰 발급을 위한 UserDetails 생성
+    /** Token들을 발급하는 과정을 담은 함수 */
+    private JwtTokenResDto processIssueTokens(User user, AuthAccount authAccount, String email){
+        // 1. 토큰 발급을 위한 UserDetails 생성
         CustomUserDetails userDetails = buildCustomUserDetails(user, authAccount);
 
         /*
-         * 6. Access, Refresh Token 생성
+         * 2. Access, Refresh Token 생성
          * - **주의**: Google은 Recover Token을 생성하지 않는다.
          */
         TokenInfo accessTokenInfo = jwtUtil.createAccessToken(userDetails);
         TokenInfo refreshTokenInfo = jwtUtil.createRefreshToken(userDetails);
 
-        // 7. Refresh Token을 Table, Redis에 저장하는 Process 수행
+        // 3. Refresh Token을 Table, Redis에 저장하는 Process 수행
         processRefreshTokenSaving(user, authAccount, refreshTokenInfo);
 
         /*
-         * 8. 클라이언트에게 토큰 반환
+         * 4. 클라이언트에게 토큰 반환
          * - Google 로그인이므로 recoverToken은 null을 반환한다.
          */
         return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), null, email);
