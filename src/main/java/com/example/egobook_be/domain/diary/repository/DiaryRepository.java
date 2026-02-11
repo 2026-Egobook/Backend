@@ -43,10 +43,11 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
     List<DailyEmotionCount> findDailyEmotions(User user, LocalDate start, LocalDate end);
 
     @Query("""
-    SELECT d
-    FROM Diary d
-    WHERE d.user = :user
-      AND d.date = :date
+    SELECT d 
+    FROM Diary d 
+    JOIN d.type t 
+    WHERE d.user = :user 
+      AND d.date = :date 
       AND (:type IS NULL OR :type MEMBER OF d.type)
     ORDER BY d.writtenAt DESC
 """)
