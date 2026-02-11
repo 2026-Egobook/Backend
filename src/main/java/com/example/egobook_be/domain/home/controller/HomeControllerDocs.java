@@ -82,7 +82,10 @@ public interface HomeControllerDocs {
 
     @Operation(summary = "사용자 설정/계정 페이지 정보 조회", description = """
             홈 화면의 '설정(계정)' 탭에 필요한 데이터를 조회합니다.
-            현재는 사용자 계정 ID(Account Code)를 반환합니다.
+            
+            [ 반환 데이터 ]
+            1. 사용자 계정 ID(Account Code)
+            2. 사용자 이메일 (Google 연동 했을 시에만 반환됩니다)
             """)
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = HomeSettingResDto.class)))

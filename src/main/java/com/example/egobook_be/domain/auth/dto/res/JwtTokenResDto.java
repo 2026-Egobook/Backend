@@ -11,6 +11,7 @@ import lombok.Builder;
 public record JwtTokenResDto(
         String accessToken,
         String refreshToken,
-        String recoverToken // 회원가입 시에만 값 존재하며, 로그인 시에는 null
+        String recoverToken, // 회원가입 시에만 값 존재하며, 로그인 시에는 null
+        String email
 ) {
 }

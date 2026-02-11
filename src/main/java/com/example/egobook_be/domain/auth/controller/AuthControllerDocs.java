@@ -23,7 +23,7 @@ public interface AuthControllerDocs {
             사용자가 앱을 처음 설치하고 실행했을 때 호출되는 API입니다.
             
             - **기능**: 기기 고유 ID(UUID)를 등록하고, **초기 토큰 3종(Access, Refresh, Recover)**을 발급합니다.
-            - **주의**: 
+            - **주의**:
               1. 이미 등록된 기기라면 에러가 발생합니다. (로그인 API 사용 권장)
               2. 등록된 기기임을 클라이언트에서 확인할 때, recoverToken의 여부를 확인하세요. (recoverToken이 없다면 처음 로그인 한 것임)
             """)
@@ -105,11 +105,11 @@ public interface AuthControllerDocs {
     @Operation(summary = "Google 회원가입 (소셜 계정 연동)", description = """
             안드로이드 앱에서 Google 로그인을 수행한 후, 발급받은 **ID Token**을 전송하여 회원가입을 수행합니다.
             
-            - **기능**: 
+            - **기능**:
               1. Google ID Token의 서명 및 Audience(Client ID)를 검증합니다.
               2. 검증된 정보로 신규 가입을 진행하고 **Access, Refresh Token**을 발급합니다.
             
-            - **주의사항**: 
+            - **주의사항**:
               1. **Google 로그인은 Recover Token을 발급하지 않습니다.** (Response의 recoverToken 값은 null입니다.)
                  - 이유: 계정 복구 및 신원 증명은 Google이 담당하기 때문입니다.
               2. 이미 가입된 Google 계정이라면 409 Conflict 에러가 발생합니다.

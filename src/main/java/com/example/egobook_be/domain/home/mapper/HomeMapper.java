@@ -92,6 +92,7 @@ public class HomeMapper {
 
     public HomeSettingResDto toHomeSettingResDto(User user) {
         return HomeSettingResDto.builder()
+                .userEmail(user.getEmail())
                 .accountCode(user.getAccountCode())
                 .build();
     }

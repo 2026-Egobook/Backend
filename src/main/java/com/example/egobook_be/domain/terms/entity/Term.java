@@ -30,9 +30,7 @@ public class Term extends BaseTimeEntity {
     @Builder.Default
     private TermVersion termVersion = TermVersion.V1;
 
-    // 대용량 텍스트 저장을 위해 Lob 사용
-    @Lob
-    @Column(name = "context", nullable = false, columnDefinition = "LONGTEXT")
+    @Column(name = "context", nullable = false)
     private String context;
 
     @Column(name = "required", nullable = false)
