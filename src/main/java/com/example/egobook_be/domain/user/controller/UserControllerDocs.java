@@ -60,11 +60,10 @@ public interface UserControllerDocs {
             
             - **기능**:
               1. 입력된 닉네임의 형식(길이, 특수문자 등)을 검증합니다.
-              2. 데이터베이스 내 **닉네임 중복 여부**를 확인합니다.
-              3. 유효할 경우 영속성 컨텍스트를 업데이트하고 성공을 반환합니다.
+              2. 유효할 경우 영속성 컨텍스트를 업데이트하고 성공을 반환합니다.
             
             - **제약 사항**:
-              1. 중복된 닉네임은 사용할 수 없습니다.
+              1. 중복된 닉네임을 사용할 수 있습니다.
               2. 닉네임 정책(예: 2~8자 한글/영문/숫자)을 준수해야 합니다.
             """)
     @ApiResponses(value = {
@@ -74,8 +73,6 @@ public interface UserControllerDocs {
                     content = @Content),
             @ApiResponse(responseCode = "401", description = "인증 실패 (토큰 누락 또는 만료)",
                     content = @Content),
-            @ApiResponse(responseCode = "409", description = "이미 사용 중인 닉네임 (중복)",
-                    content = @Content)
     })
     @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/nickname")
