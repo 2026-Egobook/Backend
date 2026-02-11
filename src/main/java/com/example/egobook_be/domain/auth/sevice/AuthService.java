@@ -33,7 +33,6 @@ import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.security.CustomUserDetails;
 import com.example.egobook_be.global.util.module.RedisValue;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -81,8 +80,6 @@ public class AuthService {
      * **주의사항**
      *  1. Google 계정은 Recover Token을 발급하지 않는다.
      *  2. Google Sub값을 해싱하여, AuthAccount Table의 HashedDeviceUid 컬럼에 저장한다.
-     * @param reqDto
-     * @return
      */
     @Transactional
     public JwtTokenResDto registerGoogle(GoogleJoinReqDto reqDto){
@@ -139,7 +136,7 @@ public class AuthService {
          * 8. 클라이언트에게 토큰 반환
          * - Google 로그인이므로 recoverToken은 null을 반환한다.
          */
-        return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), null);
+        return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), null, email);
     }
 
 
@@ -202,7 +199,7 @@ public class AuthService {
          * 10. 클라이언트에게 토큰을 반환
          * recoverToken은 회원가입, refreshToken 재발급 시에만 발급된다.
          */
-        return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), recoverTokenInfo.token());
+        return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), recoverTokenInfo.token(), null);
     }
 
 
@@ -230,7 +227,7 @@ public class AuthService {
             // 기존 AccessToken Redis 블랙리스트에 추가
             addAccessTokenInRedisBlackList(reqDto.accessToken());
             TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(redisValue.userId(), redisValue.authAccountId(), redisValue.subject(), redisValue.role());
-            return buildJwtTokenResDto(newAccessTokenInfo.token(), reqDto.refreshToken(), null);
+            return buildJwtTokenResDto(newAccessTokenInfo.token(), reqDto.refreshToken(), null, null);
         }
 
         /*
@@ -275,7 +272,7 @@ public class AuthService {
 
         // 7. Access Token 재생성 후 Access, Refresh Token 반환
         TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(user.getId(), authAccount.getId(), subject, user.getRole());
-        return buildJwtTokenResDto(newAccessTokenInfo.token(), reqDto.refreshToken(), null);
+        return buildJwtTokenResDto(newAccessTokenInfo.token(), reqDto.refreshToken(), null, null);
     }
 
     /** HttpServletRequest에 들어있는 AccessToken 추출 및 블랙리스트 등록 */
@@ -371,7 +368,7 @@ public class AuthService {
         registerToRedis(newHashedRefreshToken, newRedisValue, newRefreshTokenInfo.expiresAt());
 
         // 9. 결과 반환
-        return buildJwtTokenResDto(newAccessTokenInfo.token(), newRefreshTokenInfo.token(), newRecoverTokenInfo.token());
+        return buildJwtTokenResDto(newAccessTokenInfo.token(), newRefreshTokenInfo.token(), newRecoverTokenInfo.token(), null);
     }
 
     /**
@@ -421,7 +418,7 @@ public class AuthService {
         processRefreshTokenSaving(user, authAccount, refreshTokenInfo);
 
         // 6. 반환
-        return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), null);
+        return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), null, user.getEmail());
     }
 
     /**
@@ -489,7 +486,7 @@ public class AuthService {
         processRefreshTokenSaving(user, googleAuthAccount, refreshTokenInfo);
 
         // 9. 반환 (Google이므로 Recover Token은 비워놓고 반환한다)
-        return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), null);
+        return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), null, user.getEmail());
     }
 
 
@@ -503,7 +500,6 @@ public class AuthService {
      * - email은 선택적으로 넣을 수 있다.
      * - User 생성 후, userRepository에 save()까지 수행한 결과물을 반환한다.
      * @param email : Guest-null, Google-Token에 있는 Google Email 설정
-     * @return
      */
     private User createUser(String email){
         /*
@@ -540,7 +536,6 @@ public class AuthService {
      * @param user 연동할 user
      * @param provider 해당 회원가입 주체
      * @param hashedDeviceUid Guest->hashedDeviceUid, Google->hashedGoogleId
-     * @return
      */
     private AuthAccount createAuthAccount(User user, Provider provider, String hashedDeviceUid){
         AuthAccount authAccount = AuthAccount.builder()
@@ -559,7 +554,6 @@ public class AuthService {
      *  (1) authAccount.deviceUid -> refreshTokenBackup.deviceUid (authAccount 테이블이 deviceUid를 관리하는 책임자이다.)
      *  (2) TokenInfo.token -> refreshTokenBackup.tokenValue
      *  (3) TokenInfo.expiresAt -> refreshTokenBackup.expiresAt
-     *
      * [ 신규 추가 로직 ]
      *  (1) RefreshTokenBackup 새로 생성하여 authAccount.updateRefreshTokenBackup(...)으로 연결
      *  -> 영속성 컨텍스트의 Dirty Checking으로 트랜잭션 종료 시 Update됨
@@ -594,9 +588,6 @@ public class AuthService {
 
     /**
      * key, value, expiresAt(절대시간)을 입력받아 redis에 등록해주는 함수
-     * @param key
-     * @param value
-     * @param expiresAt
      */
     private void registerToRedis(String key, RedisValue value, LocalDateTime expiresAt){
         long ttlInMillis = getDurationInMillis(expiresAt); // 현재 ~ refreshToken의 만료시간까지 남은 밀리초 계산
@@ -611,7 +602,6 @@ public class AuthService {
     /**
      * LocalDateTime (절대시간)까지 남은 시간을 millis로 반환해주는 함수
      * @param at : 목표 절대 시간
-     * @return
      */
     private long getDurationInMillis(LocalDateTime at){
         return Duration.between(LocalDateTime.now(), at).toMillis(); // 밀리초로 변환
@@ -619,13 +609,13 @@ public class AuthService {
 
     /**
      * JwtTokenResDto를 빌드하는 함수
-     * @return
      */
-    private JwtTokenResDto buildJwtTokenResDto(String accessToken, String refreshToken, String recoverToken){
+    private JwtTokenResDto buildJwtTokenResDto(String accessToken, String refreshToken, String recoverToken, String email){
         return JwtTokenResDto.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .recoverToken(recoverToken)
+                .email(email)
                 .build();
     }
 
@@ -676,9 +666,6 @@ public class AuthService {
 
     /**
      * 모든 토큰들을 발급한 뒤, Refresh Token을 Table, Redis에 저장하는 Process를 수행해주는 함수
-     * @param user
-     * @param authAccount
-     * @param refreshTokenInfo
      */
     private void processRefreshTokenSaving(User user, AuthAccount authAccount, TokenInfo refreshTokenInfo){
         // 1. Refresh Token을 RefreshTokenBackup Table에 추가(Update)
@@ -705,7 +692,6 @@ public class AuthService {
      *  (1) 기본 UserItem 인스턴스 생성
      *  (2) 기본 Ability 인스턴스 생성
      *  (3) UserTerm 인스턴스 생성
-     * @param user
      */
     private void allocateUser(User user){
         // 1. 사용자 UserItems 생성
@@ -747,7 +733,6 @@ public class AuthService {
     /**
      * user 생성 시 ability 생성 로직 (능력치)
      * @param user 연동할 user
-     * @return
      */
     private Ability createDefaultAbility(User user) {
         Ability ability = Ability.builder()
