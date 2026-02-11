@@ -24,6 +24,7 @@ public class Ability {
     private AbilityStat empathy = new AbilityStat();
 
     // 2. 자존감 (SelfEsteem)
+    @Setter
     @Embedded
     @AttributeOverrides({
             @AttributeOverride(name = "level", column = @Column(name = "self_esteem_level")),
@@ -83,6 +84,6 @@ public class Ability {
         return this.diligence.addScore(amount);
     }
 
-
+    public Integer addSelfEsteem(int amount) { return this.selfEsteem.addScore(amount); }
 
 }

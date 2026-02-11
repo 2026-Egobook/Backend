@@ -13,9 +13,7 @@ import com.example.egobook_be.domain.ego_room.repository.DailyPraiseRepository;
 import com.example.egobook_be.domain.ego_room.repository.WeeklyCounselRepository;
 import com.example.egobook_be.domain.notification.enums.NotificationType;
 import com.example.egobook_be.domain.notification.service.NotificationService;
-import com.example.egobook_be.domain.user.entity.InkLog;
-import com.example.egobook_be.domain.user.entity.InkLogType;
-import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.entity.*;
 import com.example.egobook_be.domain.user.exception.UserErrorCode;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
@@ -112,13 +110,21 @@ public class EgoRoomService {
         if (!praise.isRead()) {
             praise.markAsRead();
 
-          //  ability.addSelfEsteem(1); -> 대체 예정
+            Ability ability = praise.getUser().getAbility();
 
-//            rewards.add(new RewardDto(
-//                    "SELF_ESTEEM",
-//                    1,
-//                    "칭찬서가 도착하여 자존감이 한 칸 상승했어요"
-//            ));
+            if (ability != null) {
+                if (ability.getSelfEsteem() == null) {
+                    ability.setSelfEsteem(new AbilityStat()); 
+                }
+
+                ability.addSelfEsteem(1);
+
+                rewards.add(new RewardDto(
+                        "SELF_ESTEEM",
+                        1,
+                        "칭찬서가 도착하여 자존감이 한 칸 상승했어요"
+                ));
+            }
         }
 
         return new DailyPraiseItemDto(
