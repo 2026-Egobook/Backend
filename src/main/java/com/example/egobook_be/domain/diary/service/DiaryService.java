@@ -51,8 +51,7 @@ public class DiaryService {
         // DiaryCreateReqDto 검증
         verifyDiaryReqDto(dto.type(), dto.emotionLevel(), dto.content());
 
-        // 미래 검증
-        if (dto.date().isAfter(LocalDate.now())) {
+        if (dto.date().isAfter(LocalDate.now().plusDays(1))) {
             throw new CustomException(DiaryErrorCode.INVALID_DIARY_DATE);
         }
 
