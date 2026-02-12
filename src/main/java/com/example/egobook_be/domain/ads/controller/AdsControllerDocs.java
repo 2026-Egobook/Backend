@@ -56,16 +56,16 @@ public interface AdsControllerDocs {
     ResponseEntity<Void> callback(
             @Parameter(hidden = true) HttpServletRequest request, // 원본 쿼리 스트링 추출용 (서명 검증에 필수임)
 
-            @Parameter(description = "AdMob에서 생성한 SSV 콜백 서명 값", required = true, example = "TEST_PASS")
+            @Parameter(description = "AdMob에서 생성한 SSV 콜백 서명 값", required = false, example = "TEST_PASS")
             @RequestParam("signature") String signature,
 
-            @Parameter(description = "서명 검증에 사용할 키 ID", required = true, example = "test_key_123")
+            @Parameter(description = "서명 검증에 사용할 키 ID", required = false, example = "test_key_123")
             @RequestParam("key_id") String keyId,
 
-            @Parameter(description = "광고 시청 고유 트랜잭션 ID (중복 방지 키)", required = true, example = "TX_TEST_001")
+            @Parameter(description = "광고 시청 고유 트랜잭션 ID (중복 방지 키)", required = false, example = "TX_TEST_001")
             @RequestParam("transaction_id") String transactionId,
 
-            @Parameter(description = "사용자 식별자 (앱에서 설정한 값)", required = true, example = "1")
+            @Parameter(description = "사용자 식별자 (앱에서 설정한 값)", required = false, example = "1")
             @RequestParam("user_id") String userId,
 
             @Parameter(description = "지급할 보상 아이템 타입 (INK or WEEK_COUNSEL)", example = "INK")
