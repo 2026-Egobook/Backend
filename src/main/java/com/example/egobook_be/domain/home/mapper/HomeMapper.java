@@ -17,6 +17,7 @@ public class HomeMapper {
 
     public HomeResDto toHomeResDto(User user, Integer unReadNotificationCount, Boolean hasUnopenedPsychology, Integer attendanceRewardInk) {
         return HomeResDto.builder()
+                .userId(user.getId())
                 .nickname(user.getNickname())
                 .level(user.getLevel())
                 .ink(user.getInk())
