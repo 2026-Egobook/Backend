@@ -36,6 +36,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 
 import java.time.*;
@@ -65,6 +66,10 @@ public class PlazaLetterService {
     private final PlazaLetterMapper plazaLetterMapper;
 
     private final NotificationService notificationService;
+
+    @Value("${spring.cloud.aws.cloudfront.domain}")
+    private String cloudfrontDomain;
+
 
     @Transactional(readOnly = true)
     public InboxNextResponse getNextArrivedLetter(Long userId) {
@@ -118,8 +123,35 @@ public class PlazaLetterService {
             }
         }
 
+        // =========================
+        // 편지지 색상/잉크 결제 로직
+        // - null 또는 WHITE => WHITE로 확정, price=0, 차감 없음
+        // - 유료 색상 => 잉크 부족 체크 + 차감 + 로그
+        // =========================
+        // 1. 색상 안전 처리
+        PlazaLetterColor color =
+                (request.getBackgroundColor() == null)
+                        ? PlazaLetterColor.WHITE
+                        : request.getBackgroundColor();
+
+// 2. 가격 조회
+        int price = color.getPrice(); // WHITE면 0
+
+// 3. 잉크 차감 (유료일 때만)
+        if (price > 0) {
+            user.usingInk(price);   // 부족하면 여기서 예외 발생
+
+            InkLog inkLog = InkLog.builder()
+                    .user(user)
+                    .amount(-price)
+                    .reason(InkLogType.LETTER_COLOR_PURCHASE)
+                    .build();
+
+            inkLogRepository.save(inkLog);
+        }
+
+
         PlazaLetterThread thread = plazaLetterThreadRepository.save(PlazaLetterThread.createNow());
-        String bg = request.getBackgroundColor() == null ? "WHITE" : request.getBackgroundColor().name();
 
         String fromLabel = "익명";
         if (request.getMode() == PlazaLetterMode.FRIEND) {
@@ -162,11 +194,11 @@ public class PlazaLetterService {
                 .mode(request.getMode())
                 .fromLabel(fromLabel)
                 .content(request.getText())
-                .backgroundColor(PlazaLetterColor.valueOf(bg))
-                .status(status)                    // ARRIVED or WAITING
+                .backgroundColor(color)
+                .status(status)
                 .createdAt(now)
-                .arrivedAt(arrivedAt)              // WAITING이면 null
-                .replyDeadlineAt(replyDeadlineAt)  // WAITING이면 null
+                .arrivedAt(arrivedAt)
+                .replyDeadlineAt(replyDeadlineAt)
                 .build();
 
         // =================================================
@@ -216,6 +248,14 @@ public class PlazaLetterService {
                     letter.getSenderId(), saved.getLetterId(), e);
         }
 
+
+        String imageUrl = null;
+        if (saved.getBackgroundColor() != PlazaLetterColor.WHITE) {
+            String fileName = saved.getBackgroundColor().name().substring(0, 1)
+                    + saved.getBackgroundColor().name().substring(1).toLowerCase();
+            imageUrl = cloudfrontDomain + "/letter/" + fileName + ".png";
+        }
+
         return CreateLetterResponse.builder()
                 .letterId(saved.getLetterId())
                 .threadId(saved.getThreadId())
@@ -223,6 +263,7 @@ public class PlazaLetterService {
                 .mode(saved.getMode())
                 .fromLabel(saved.getFromLabel())
                 .backgroundColor(saved.getBackgroundColor().name())
+                .backgroundImageUrl(imageUrl)
                 .createdAt(saved.getCreatedAt())
                 .build();
     }
@@ -269,18 +310,29 @@ public class PlazaLetterService {
     }
 
 
+
     private void validateCreateLetterRequest(CreateLetterRequest request) {
-        if (request == null || request.getMode() == null) {
+        if (request == null) {
             throw new CustomException(LettersErrorCode.INVALID_MODE);
         }
+
+        if (request.getMode() == null) {
+            throw new CustomException(LettersErrorCode.INVALID_MODE);
+        }
+
         String text = request.getText();
         if (text == null || text.isBlank() || text.length() > LETTER_TEXT_LIMIT) {
             throw new CustomException(LettersErrorCode.LETTER_TEXT_LIMIT);
         }
+
         if (request.getMode() == PlazaLetterMode.FRIEND && request.getToFriendId() == null) {
             throw new CustomException(LettersErrorCode.FRIEND_ID_REQUIRED);
         }
+
+        // backgroundColor는 null 허용.
+        // null/WHITE면 이후 createLetter에서 WHITE로 보정 + price=0 처리함.
     }
+
 
     @Transactional
     public DeleteThreadResponse deleteThread(Long userId, Long threadId) {
