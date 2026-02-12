@@ -5,6 +5,8 @@ import lombok.Builder;
 
 @Builder
 public record HomeResDto(
+        @Schema(description = "사용자 PK", example = "10")
+        Long userId,
         @Schema(description = "사용자 닉네임", example = "에고북1234")
         String nickname,
         @Schema(description = "사용자 레벨", example = "1")
