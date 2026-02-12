@@ -2,9 +2,11 @@ package com.example.egobook_be.domain.ads.service;
 
 
 
+import com.example.egobook_be.domain.ads.dto.TestAdRewardReqDto;
 import com.example.egobook_be.domain.ads.dto.UserAdStatusResDto;
 
 import com.example.egobook_be.domain.ads.enums.AdRewardType;
+import com.example.egobook_be.domain.ads.enums.AdsErrorCode;
 import com.example.egobook_be.domain.ads.mapper.AdsMapper;
 import com.example.egobook_be.domain.ads.repository.AdRewardHistoryRepository;
 import com.example.egobook_be.domain.ego_room.entity.WeeklyCounsel;
@@ -13,6 +15,7 @@ import com.example.egobook_be.domain.user.entity.InkLogType;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
+import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.util.AdMobVerifier;
 import com.example.egobook_be.global.util.InkLogUtil;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -90,7 +94,7 @@ public class AdsService {
         switch (type) {
             case AdRewardType.INK -> {
                 if (isDailyInkLimitReached(Long.parseLong(userIdStr))) {
-                    log.warn("User {} reached daily INK limit. Transaction {} skipped.", userIdStr, transactionId);
+                    log.warn("User {}는 일일 광고 시청 횟수를 초과했습니다. Transaction {}가 스킵되었습니다.", userIdStr, transactionId);
                     return; // 잉크 안 주고 종료
                 }
                 rewardInk(transactionId, userIdStr, adUnitId);
@@ -160,6 +164,45 @@ public class AdsService {
 
         return currentCount >= DAILY_AD_LIMIT;
     }
+
+    @Transactional
+    public void grantTestAdReward(Long userId, TestAdRewardReqDto reqDto) {
+        // 1. "TEST_" 접두사를 붙여서 랜덤 transactionId를 생성한다.
+        String mockTransactionId = "TEST_" + UUID.randomUUID().toString();
+
+        // 2. 멱등성(중복) 체크 - AdRewardHistory 엔티티에 인덱스 설정을 걸어두었으므로 빠르다
+        if (historyRepository.existsByTransactionId(mockTransactionId)) {
+            throw new CustomException(AdsErrorCode.TRANSACTION_ID_ALREADY_EXIST);
+        }
+
+        /*
+         * 3. 보상이 어느 종류의 보상인지에 따라 수행되는 작업을 분류한다.
+         * (1) rewardType이 AdRewardType.INK인 경우
+         *  - 사용자에게 잉크 지급
+         *  - 잉크 보상 Log 기록
+         *  - AdRewardHistory에 해당 기록 추가
+         * (2) rewardType이 AdRewardType.WEEK_COUNSEL인 경우
+         *  - AdRewardHistory에 해당 기록 추가 (어떤 주간 AI 기록을 위한 광고를 본 것인지 기록)
+         */
+        AdRewardType type;
+        try {
+            type = AdRewardType.valueOf(reqDto.rewardType());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            log.error("[AdMob Callback] 정의되지 않은 보상 타입입니다: {}", reqDto.rewardType());
+            throw new CustomException(AdsErrorCode.UNDEFINED_AD_REWARD_TYPE);
+        }
+        switch (type) {
+            case AdRewardType.INK -> {
+                if (isDailyInkLimitReached(userId)) {
+                    log.warn("User {}는 일일 광고 시청 횟수를 초과했습니다. Transaction {}가 스킵되었습니다.", userId, mockTransactionId);
+                    throw new CustomException(AdsErrorCode.EXCEED_DAILY_ADS_NUM);
+                }
+                rewardInk(mockTransactionId, userId.toString(), reqDto.adUnitId());
+            }
+            case AdRewardType.WEEK_COUNSEL -> rewardWeekCounsel(mockTransactionId, userId.toString(), reqDto.targetId().toString(), reqDto.adUnitId());
+        }
+    }
+
 
 
 
