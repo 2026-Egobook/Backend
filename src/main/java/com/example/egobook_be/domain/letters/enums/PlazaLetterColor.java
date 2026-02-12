@@ -16,5 +16,6 @@ public enum PlazaLetterColor {
     public int getPrice() {
         return price;
     }
+
 }
 

@@ -23,7 +23,8 @@ public class CreateLetterRequest {
     @Schema(description = "편지 내용(360자 이하)", example = "요즘 자꾸 불안해져서... 누가 한마디 해주면 좋겠어.")
     private String text;
 
+
     @Schema(description = "배경 기본은 하얀색", example = "WHITE", nullable = true)
-    @NotNull
     private PlazaLetterColor backgroundColor;
+
 }

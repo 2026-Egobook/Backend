@@ -1,10 +1,12 @@
 package com.example.egobook_be.domain.user.entity;
 
 import com.example.egobook_be.domain.ego_room.enums.CounselTone;
+import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.shop.entity.UserItem;
 import com.example.egobook_be.domain.user.enums.RoleType;
 import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.global.entity.BaseTimeEntity;
+import com.example.egobook_be.global.exception.CustomException;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -170,6 +172,16 @@ public class User extends BaseTimeEntity {
     }
 
     public void useInk(int price){
+        this.ink -= price;
+    }
+
+    public void usingInk(int price){
+        if (price <= 0) return;
+
+        if (this.ink == null || this.ink < price) {
+            throw new CustomException(LettersErrorCode.INSUFFICIENT_INK);
+        }
+
         this.ink -= price;
     }
 

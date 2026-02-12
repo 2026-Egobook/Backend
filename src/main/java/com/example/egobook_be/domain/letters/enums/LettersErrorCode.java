@@ -20,6 +20,9 @@ public enum LettersErrorCode implements BaseErrorCode {
     INVALID_REPORT_REASON(HttpStatus.BAD_REQUEST, "PLAZA400_INVALID_REPORT_REASON", "잘못된 신고 사유입니다."),
     ALREADY_REPORTED(HttpStatus.BAD_REQUEST, "PLAZA400_ALREADY_REPORTED", "이미 신고한 답장입니다."),
     NOT_FRIEND(HttpStatus.BAD_REQUEST, "PLAZA400_NOT_FRIEND", "친구 관계가 아닙니다."),
+    INSUFFICIENT_INK(HttpStatus.BAD_REQUEST, "PLAZA400_INSUFFICIENT_INK", "잉크가 부족합니다."),
+
+
 
 
 
@@ -32,6 +35,7 @@ public enum LettersErrorCode implements BaseErrorCode {
     THREAD_NOT_FOUND(HttpStatus.NOT_FOUND, "PLAZA404_THREAD_NOT_FOUND", "스레드를 찾을 수 없어요"),
     NO_RECEIVER_AVAILABLE(HttpStatus.NOT_FOUND,"PLAZA404_NO_RECEIVER_AVAILABLE", "현재 편지를 받을 수 있는 유저가 없습니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND,"PLAZA404_USER_NOT_FOUND", "유저를 찾을 수 없어요."),
+
 
 
     // 409

@@ -14,5 +14,6 @@ public record CreateLetterResponse(
         PlazaLetterMode mode,
         String fromLabel,
         String backgroundColor,
-        OffsetDateTime createdAt
-) {}
+        OffsetDateTime createdAt,
+        String backgroundImageUrl
+        ) {}
