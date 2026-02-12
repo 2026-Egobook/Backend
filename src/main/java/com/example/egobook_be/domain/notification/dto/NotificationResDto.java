@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 @Builder
 public record NotificationResDto(
+        Long notificationId,
         NotificationType type,
         String title,
         String content,

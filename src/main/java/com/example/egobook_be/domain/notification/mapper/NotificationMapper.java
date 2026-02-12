@@ -9,6 +9,7 @@ import com.example.egobook_be.domain.user.entity.User;
 public class NotificationMapper {
     public static NotificationResDto toNotificationDto(Notification notification) {
         return NotificationResDto.builder()
+                .notificationId(notification.getId())
                 .title(notification.getTitle())
                 .type(notification.getType())
                 .content(notification.getContent())
