@@ -124,6 +124,7 @@ public class PsychologyService {
                         uk.getPsychologyKnowledge().getId(),
                         "오늘의 심리 지식",
                         uk.getPsychologyKnowledge().getContent(),
+                        uk.getPsychologyKnowledge().getSource(),
                         uk.getSavedAt() != null ? uk.getSavedAt().format(DateTimeFormatter.ISO_DATE_TIME) : ""))
                 .toList();
 
