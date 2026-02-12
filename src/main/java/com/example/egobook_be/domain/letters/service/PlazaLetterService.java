@@ -1,8 +1,6 @@
 package com.example.egobook_be.domain.letters.service;
 
 
-import com.example.egobook_be.domain.diary.dto.DiaryCreateResDto;
-import com.example.egobook_be.domain.diary.enums.RewardType;
 import com.example.egobook_be.domain.friend.repository.FriendRepository;
 import com.example.egobook_be.domain.home.entity.Mission;
 import com.example.egobook_be.domain.home.repository.MissionRepository;
@@ -139,7 +137,7 @@ public class PlazaLetterService {
 
 // 3. 잉크 차감 (유료일 때만)
         if (price > 0) {
-            user.usingInk(price);   // 부족하면 여기서 예외 발생
+            user.useInk(price);   // 부족하면 여기서 예외 발생
 
             InkLog inkLog = InkLog.builder()
                     .user(user)

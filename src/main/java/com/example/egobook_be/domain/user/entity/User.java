@@ -167,15 +167,7 @@ public class User extends BaseTimeEntity {
         this.ink += amount;
     }
 
-    public void purchaseItem(int price){
-        this.ink -= price;
-    }
-
     public void useInk(int price){
-        this.ink -= price;
-    }
-
-    public void usingInk(int price){
         if (price <= 0) return;
 
         if (this.ink == null || this.ink < price) {

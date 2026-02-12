@@ -115,19 +115,20 @@ public class ShopService {
         }
 
         // 2. 해당 사용자가 아이템을 살 수 있는지 확인한다.
-        if(user.getInk() < item.getPrice()) throw new CustomException(ShopErrorCode.INSUFFICIENT_INK_TO_BUY_ITEM);
+        if(user.getInk() >= item.getPrice()){
+            // 3. 해당 아이템을 구매한다. (UserItem Table에 새로운 객체를 추가한다.)
+            UserItem userItem = UserItem.builder()
+                    .user(user)
+                    .item(item)
+                    .isEquipped(false)
+                    .build();
+            userItem = userItemRepository.save(userItem);
+            user.useInk(item.getPrice());
 
-        // 3. 해당 아이템을 구매한다. (UserItem Table에 새로운 객체를 추가한다.)
-        UserItem userItem = UserItem.builder()
-                .user(user)
-                .item(item)
-                .isEquipped(false)
-                .build();
-        userItem = userItemRepository.save(userItem);
-        user.purchaseItem(item.getPrice());
-
-        // 4. 아이템 구매 후, 해당 아이템에 대한 정보를 반환한다.
-        return userItemMapper.toItemInfoResDto(userItem, item, getShopCloudFrontDomain());
+            // 4. 아이템 구매 후, 해당 아이템에 대한 정보를 반환한다.
+            return userItemMapper.toItemInfoResDto(userItem, item, getShopCloudFrontDomain());
+        }
+        throw new CustomException(ShopErrorCode.INSUFFICIENT_INK_TO_BUY_ITEM);
     }
 
     /**
