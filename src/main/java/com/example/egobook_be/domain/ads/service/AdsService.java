@@ -54,12 +54,15 @@ public class AdsService {
           * - Swagger Test를 위해, 값이 "TEST_PASS"가 들어오면 검증을 패스하도록 설정한다.
          */
         if ("TEST_PASS".equals(signature)) {
-            log.info("🚧 [Swagger Test] 서명 검증을 건너뜁니다. (Transaction: {})", transactionId);
+            log.info("🚧 [Swagger Test] Pass verification.");
         } else {
-            // [REAL MODE] 실제 운영 로직 (서명 검증 수행)
-            long keyId = Long.parseLong(keyIdStr);
-            if (!adMobVerifier.verify(queryString, signature, keyId)) {
-                throw new SecurityException("AdMob Signature Failed");
+            try {
+                long keyId = Long.parseLong(keyIdStr);
+                if (!adMobVerifier.verify(queryString, signature, keyId)) {
+                    throw new SecurityException("AdMob Signature Failed");
+                }
+            } catch (NumberFormatException e) {
+                throw new SecurityException("Invalid Key ID format");
             }
         }
 
