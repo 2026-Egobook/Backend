@@ -63,14 +63,27 @@ public class FriendController implements FriendControllerDocs {
         return ResponseEntity.ok(GlobalResponse.success("친구 삭제 완료", null));
     }
 
+//    @GetMapping("/requests/incoming")
+//    public ResponseEntity<GlobalResponse<FriendRequestListWithCountResDto>> getIncomingRequests(
+//            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+//    ) {
+//        return ResponseEntity.ok(
+//                GlobalResponse.success("받은 친구 신청 목록 조회 성공", friendService.getIncomingRequests(userId))
+//        );
+//    }
+
     @GetMapping("/requests/incoming")
-    public ResponseEntity<GlobalResponse<FriendRequestListWithCountResDto>> getIncomingRequests(
+    public ResponseEntity<GlobalResponse<List<FriendRequestListResDto>>> getIncomingRequests(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
     ) {
         return ResponseEntity.ok(
-                GlobalResponse.success("받은 친구 신청 목록 조회 성공", friendService.getIncomingRequests(userId))
+                GlobalResponse.success(
+                        "받은 친구 신청 목록 조회 성공",
+                        friendService.getIncomingRequests(userId)
+                )
         );
     }
+
 
     @GetMapping("/requests/outgoing")
     public ResponseEntity<GlobalResponse<List<FriendRequestListResDto>>> getOutgoingRequests(

@@ -182,24 +182,54 @@ public class FriendService {
 
 
     /** 내가 받은 친구 신청 목록 (승인 대기) **/
+//    @Transactional(readOnly = true)
+//    public FriendRequestListWithCountResDto getIncomingRequests(Long userId) {
+//
+//        User receiver = userRepository.findById(userId)
+//                .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
+//
+//        List<FriendRequest> requests =
+//                friendRequestRepository.findByReceiverAndStatus(
+//                        receiver,
+//                        FriendRequestStatus.PENDING
+//                );
+//
+//        int totalCount = (int) friendRequestRepository.countByReceiverAndStatus(
+//                receiver,
+//                FriendRequestStatus.PENDING
+//        );
+//
+//        List<FriendRequestListResDto> list = requests.stream()
+//                .map(req -> {
+//                    User sender = req.getSender();
+//
+//                    return FriendRequestListResDto.builder()
+//                            .requestId(req.getId())
+//                            .userId(sender.getId())
+//                            .nickname(sender.getNickname())
+//                            .level(sender.getLevel())
+//                            .requestedAt(req.getCreatedAt())
+//                            .build();
+//                })
+//                .toList();
+//
+//        return FriendRequestListWithCountResDto.builder()
+//                .totalCount(totalCount)
+//                .requests(list)
+//                .build();
+//    }
+
     @Transactional(readOnly = true)
-    public FriendRequestListWithCountResDto getIncomingRequests(Long userId) {
+    public List<FriendRequestListResDto> getIncomingRequests(Long userId) {
 
         User receiver = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
-        List<FriendRequest> requests =
-                friendRequestRepository.findByReceiverAndStatus(
+        return friendRequestRepository.findByReceiverAndStatus(
                         receiver,
                         FriendRequestStatus.PENDING
-                );
-
-        int totalCount = (int) friendRequestRepository.countByReceiverAndStatus(
-                receiver,
-                FriendRequestStatus.PENDING
-        );
-
-        List<FriendRequestListResDto> list = requests.stream()
+                )
+                .stream()
                 .map(req -> {
                     User sender = req.getSender();
 
@@ -212,12 +242,8 @@ public class FriendService {
                             .build();
                 })
                 .toList();
-
-        return FriendRequestListWithCountResDto.builder()
-                .totalCount(totalCount)
-                .requests(list)
-                .build();
     }
+
 
     /** 내가 보낸 친구 신청 목록 **/
     @Transactional(readOnly = true)

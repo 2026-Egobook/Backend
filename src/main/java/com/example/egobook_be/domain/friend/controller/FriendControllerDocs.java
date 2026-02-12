@@ -94,8 +94,10 @@ public interface FriendControllerDocs {
             summary = "받은 친구 신청 목록 조회",
             description = "내가 받은 친구 신청(PENDING 상태) 목록을 조회합니다."
     )
-    ResponseEntity<GlobalResponse<FriendRequestListWithCountResDto>> getIncomingRequests(
-            @Parameter(hidden = true)
+//    ResponseEntity<GlobalResponse<FriendRequestListWithCountResDto>> getIncomingRequests(
+    ResponseEntity<GlobalResponse<List<FriendRequestListResDto>>> getIncomingRequests(
+
+    @Parameter(hidden = true)
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
     );
 
