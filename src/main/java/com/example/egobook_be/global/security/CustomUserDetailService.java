@@ -64,7 +64,7 @@ public class CustomUserDetailService implements UserDetailsService {
          * - AuthAccountRepository에서 fetch join으로 영속성 컨텍스트에 User 정보까지 같이 가져온 상태이다.
          * throw 해당 UID 기기를 찾을 수 없다는 예외
          */
-        AuthAccount authAccount = authAccountRepository.findByDeviceUidAndProvider(deviceUid, provider)
+        AuthAccount authAccount = authAccountRepository.findByHashedDeviceUidAndProvider(deviceUid, provider)
                 .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
 
         /*

@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.ads.controller;
 
+import com.example.egobook_be.domain.ads.dto.TestAdRewardReqDto;
 import com.example.egobook_be.domain.ads.dto.UserAdStatusResDto;
 import com.example.egobook_be.domain.ads.enums.AdRewardType;
 import com.example.egobook_be.global.response.GlobalResponse;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -76,6 +78,41 @@ public interface AdsControllerDocs {
 
             @Parameter(description = "커스텀 데이터: 확인할 주간 보고서 ID", required = false, example = "")
             @RequestParam(value = "custom_data", required = false) String weeklyCounselId
+    );
+
+
+    @Operation(summary = "광고 보상 수동 지급 (Client Trigger)",
+            description = """
+                    **[ 개요 ]**
+                    AdMob 계정 이슈 또는 테스트 환경을 위해, **클라이언트가 직접 보상을 요청하는 비상용 API**입니다.
+                    구글의 서버 검증(SSV)을 거치지 않으므로, **백엔드에서 엄격한 일일 횟수 제한**을 적용합니다.
+                    
+                    **[ 보안 및 제약 사항 ]**
+                    - **일일 제한:** 하루 최대 10회까지만 호출 가능합니다. (초과 시 429 or 400 에러)
+                    
+                    **[ 프론트 요청 가이드 ]**
+                    1. **잉크 보상 (INK):**
+                        - ```rewardType```: "INK"
+                        - ```targetId```: null (보낼 필요 없음)
+                    2. **주간 AI 리포트 잠금 해제 (WEEK_COUNSEL):**
+                        - ```rewardType```: "WEEK_COUNSEL"
+                        - ```targetId```: **잠금 해제할 WeeklyCounsel의 ID (PK)**
+                    """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "보상 지급 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (지원하지 않는 보상 타입 등)"),
+            @ApiResponse(responseCode = "429", description = "일일 보상 획득 한도 초과 (Too Many Requests)")
+    })
+    @PostMapping("/testReward")
+    ResponseEntity<GlobalResponse<Void>> grantTestAdReward(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "보상 요청 정보", required = true,
+                    content = @Content(schema = @Schema(implementation = TestAdRewardReqDto.class))
+            )
+            @RequestBody @Valid TestAdRewardReqDto reqDto
     );
 
     @Operation(summary = "오늘의 광고 현황 및 기대 보상 조회",

@@ -1,15 +1,20 @@
 package com.example.egobook_be.domain.ads.controller;
 
+import com.example.egobook_be.domain.ads.dto.TestAdRewardReqDto;
 import com.example.egobook_be.domain.ads.dto.UserAdStatusResDto;
 import com.example.egobook_be.domain.ads.service.AdsService;
 import com.example.egobook_be.global.response.GlobalResponse;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -74,6 +79,22 @@ public class AdsController implements AdsControllerDocs{
             log.error("[AdMob Callback] 내부 처리 중 오류 발생: ", e);
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    @Override
+    public ResponseEntity<GlobalResponse<Void>> grantTestAdReward(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "보상 요청 정보", required = true,
+                    content = @Content(schema = @Schema(implementation = TestAdRewardReqDto.class))
+            )
+            @RequestBody @Valid TestAdRewardReqDto reqDto
+    ){
+        adsService.grantTestAdReward(userId, reqDto);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(GlobalResponse.success("광고 보상 수령 완료", null));
     }
 
     @Override

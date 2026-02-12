@@ -74,4 +74,5 @@ public interface UserRepository extends JpaRepository<User, Long>,UserRepository
 """)
     List<Long> findAvailableReceivers(@Param("now") OffsetDateTime now, Pageable pageable);
 
+    Optional<User> findByEmail(String email);
 }

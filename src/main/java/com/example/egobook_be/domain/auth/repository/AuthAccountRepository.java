@@ -9,7 +9,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,20 +23,10 @@ public interface AuthAccountRepository extends JpaRepository<AuthAccount, Long> 
      */
     @Query("SELECT a FROM AuthAccount a JOIN FETCH a.user " +
             "WHERE a.hashedDeviceUid = :hashedDeviceUid AND a.provider = :provider")
-    Optional<AuthAccount> findByDeviceUidAndProvider(
+    Optional<AuthAccount> findByHashedDeviceUidAndProvider(
             @Param("hashedDeviceUid") String hashedDeviceUid,
             @Param("provider") Provider provider
     );
-    /**
-     * HashedDeviceUid & Provider로 AuthAccount 객체를 찾는 함수
-     * @param hashedDeviceUid String
-     * @param provider Provider
-     * @return Optional<AuthAccount></AuthAccount>
-     */
-    @Query("select a from AuthAccount a " +
-            "join fetch a.user u " +
-            "where a.hashedDeviceUid = :hashedDeviceUid and a.provider = :provider")
-    Optional<AuthAccount> findByHashedDeviceUidAndProvider(@Param("hashedDeviceUid") String hashedDeviceUid, @Param("provider") Provider provider);
     /**
      * 특정 유저의 특정 Provider 계정 조회 (Guest 계정 찾기용)
      */
