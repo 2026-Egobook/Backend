@@ -23,7 +23,6 @@ import com.example.egobook_be.global.response.SliceResponse;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.antlr.v4.runtime.misc.LogManager;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -317,8 +316,6 @@ public class EgoRoomService {
         // 잉크 사용 시 처리
         if (type == UnlockType.INK) {
             User user = counsel.getUser();
-            if (user.getInk() < 10) throw new CustomException(EgoRoomErrorCode.INSUFFICIENT_INK);
-
             user.useInk(10);
             // 잉크 로그 작성
             inkLogRepository.save(new InkLog(user, -10, InkLogType.WEEKLY_UNLOCK));
