@@ -26,6 +26,53 @@ public class FriendService {
     private final UserRepository userRepository;
 
     /** 친구 신청 **/
+//    @Transactional
+//    public void requestFriend(Long senderId, FriendRequestCreateReqDto reqDto) {
+//
+//        if (senderId.equals(reqDto.receiverId())) {
+//            throw new CustomException(FriendErrorCode.SELF_REQUEST_NOT_ALLOWED);
+//        }
+//
+//        User sender = userRepository.findById(senderId)
+//                .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
+//
+//        User receiver = userRepository.findById(reqDto.receiverId())
+//                .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
+//
+//        // 이미 친구면 다시 신청 못하도록
+//        if (friendRepository.existsByUserAndFriend(sender, receiver)) {
+//            throw new CustomException(FriendErrorCode.ALREADY_FRIEND);
+//        }
+//
+//        // 기존 신청 이력 확인
+//        friendRequestRepository
+//                .findBySenderAndReceiver(sender, receiver)
+//                .ifPresent(existing -> {
+//                    if (existing.getStatus() == FriendRequestStatus.PENDING) {
+//                        throw new CustomException(FriendErrorCode.ALREADY_REQUESTED);
+//                    }
+//
+//                    if (existing.getStatus() == FriendRequestStatus.ACCEPTED) {
+//                        throw new CustomException(FriendErrorCode.ALREADY_FRIEND);
+//                    }
+//
+//                    if (existing.getStatus() == FriendRequestStatus.REJECTED) {
+//                        // 거절된 경우에는 재신청 가능하도록
+//                        existing.reRequest();
+//                    }
+//                });
+//
+//        // 기존 신청이 없을 때만 새로 생성
+//        if (!friendRequestRepository.findBySenderAndReceiver(sender, receiver).isPresent()) {
+//            friendRequestRepository.save(
+//                    FriendRequest.builder()
+//                            .sender(sender)
+//                            .receiver(receiver)
+//                            .status(FriendRequestStatus.PENDING)
+//                            .build()
+//            );
+//        }
+//    }
     @Transactional
     public void requestFriend(Long senderId, FriendRequestCreateReqDto reqDto) {
 
@@ -39,8 +86,9 @@ public class FriendService {
         User receiver = userRepository.findById(reqDto.receiverId())
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
-        // 이미 친구면 다시 신청 못하도록
-        if (friendRepository.existsByUserAndFriend(sender, receiver)) {
+        // 양방향으로 친구 관계 확인
+        if (friendRepository.existsByUserAndFriend(sender, receiver)
+                || friendRepository.existsByUserAndFriend(receiver, sender)) {
             throw new CustomException(FriendErrorCode.ALREADY_FRIEND);
         }
 
@@ -57,7 +105,6 @@ public class FriendService {
                     }
 
                     if (existing.getStatus() == FriendRequestStatus.REJECTED) {
-                        // 거절된 경우에는 재신청 가능하도록
                         existing.reRequest();
                     }
                 });
