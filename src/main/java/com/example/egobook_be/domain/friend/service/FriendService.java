@@ -39,8 +39,9 @@ public class FriendService {
         User receiver = userRepository.findById(reqDto.receiverId())
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
-        // 이미 친구면 다시 신청 못하도록
-        if (friendRepository.existsByUserAndFriend(sender, receiver)) {
+        // 양방향으로 친구 관계 확인
+        if (friendRepository.existsByUserAndFriend(sender, receiver)
+                || friendRepository.existsByUserAndFriend(receiver, sender)) {
             throw new CustomException(FriendErrorCode.ALREADY_FRIEND);
         }
 
@@ -57,7 +58,6 @@ public class FriendService {
                     }
 
                     if (existing.getStatus() == FriendRequestStatus.REJECTED) {
-                        // 거절된 경우에는 재신청 가능하도록
                         existing.reRequest();
                     }
                 });
