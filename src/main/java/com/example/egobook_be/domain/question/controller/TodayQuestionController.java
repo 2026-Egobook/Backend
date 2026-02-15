@@ -39,7 +39,7 @@ public class TodayQuestionController implements TodayQuestionControllerDocs {
 
     @GetMapping("/answers/all")
     public ResponseEntity<GlobalResponse<SliceResponse<PublicAnswerResDto>>> getPublicAnswers(
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         return ResponseEntity.ok(GlobalResponse.success("오늘의 질문 PUBLIC 답변 조회 성공", todayQuestionService.getPublicAnswers(page, size)));
@@ -57,7 +57,7 @@ public class TodayQuestionController implements TodayQuestionControllerDocs {
     @GetMapping("/answers/friends")
     public ResponseEntity<GlobalResponse<SliceResponse<FriendAnswerResDto>>> getFriendsAnswers(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         return ResponseEntity.ok(GlobalResponse.success("친구 공개 답변 조회 성공", todayQuestionService.getFriendsAnswers(userId, page, size)));
@@ -66,7 +66,7 @@ public class TodayQuestionController implements TodayQuestionControllerDocs {
     @GetMapping("/answers/me/history")
     public ResponseEntity<GlobalResponse<SliceResponse<MyAnswerHistoryResDto>>> getMyAnswerHistory(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         return ResponseEntity.ok(GlobalResponse.success("내 답변 전체 조회 성공", todayQuestionService.getMyAnswerHistory(userId, page, size)));
@@ -92,7 +92,7 @@ public class TodayQuestionController implements TodayQuestionControllerDocs {
 
     @GetMapping
     public ResponseEntity<GlobalResponse<SliceResponse<AnswerReportAdminResDto>>> getReportedAnswers(
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
         return ResponseEntity.ok(GlobalResponse.success("신고된 답변 조회 성공", answerReportAdminService.getReportedAnswers(page, size)));

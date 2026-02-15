@@ -44,7 +44,7 @@ public interface TodayQuestionControllerDocs {
             description = "오늘의 질문에 대한 PUBLIC 답변을 조회합니다."
     )
     ResponseEntity<GlobalResponse<SliceResponse<PublicAnswerResDto>>> getPublicAnswers(
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     );
 
@@ -57,14 +57,14 @@ public interface TodayQuestionControllerDocs {
     @Operation(summary = "친구 답변 조회", description = "오늘의 질문에 대한 친구들의 답변을 조회합니다.")
     ResponseEntity<GlobalResponse<SliceResponse<FriendAnswerResDto>>> getFriendsAnswers(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     );
 
     @Operation(summary = "내가 작성한 모든 질문 답변 조회", description = "로그인한 사용자가 지금까지 작성한 모든 질문 답변을 조회합니다.")
     ResponseEntity<GlobalResponse<SliceResponse<MyAnswerHistoryResDto>>> getMyAnswerHistory(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     );
 
@@ -100,7 +100,7 @@ public interface TodayQuestionControllerDocs {
 
     @Operation(summary = "신고된 답변 목록 조회 (관리자)", description = "신고된 모든 답변을 조회합니다.")
     ResponseEntity<GlobalResponse<SliceResponse<AnswerReportAdminResDto>>> getReportedAnswers(
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size
     );
 }
