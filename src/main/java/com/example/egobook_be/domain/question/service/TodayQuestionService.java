@@ -172,7 +172,7 @@ public class TodayQuestionService {
                 );
 
         PageRequest pageable = PageRequest.of(
-                page,
+                page -1,
                 size,
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
@@ -278,7 +278,7 @@ public class TodayQuestionService {
         List<Long> friendIds = friendRepository.findFriendIdsByUser(me);
 
         Pageable pageable = PageRequest.of(
-                page,
+                page - 1,
                 size,
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
@@ -344,7 +344,7 @@ public class TodayQuestionService {
                 );
 
         Pageable pageable = PageRequest.of(
-                page,
+                page -1 ,
                 size,
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
