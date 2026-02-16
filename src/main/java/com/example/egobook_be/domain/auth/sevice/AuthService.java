@@ -116,6 +116,9 @@ public class AuthService {
                 log.info("[Google Join] 탈퇴된 구글 사용자가 재 회원가입을 시도하였습니다.");
                 throw new CustomException(AuthErrorCode.GOOGLE_JOIN_FAIL_USER_WITHDRAWN);
             }
+
+            // (4) 만약 사용자가 삭제 대기중도, 삭제 상태도 아니라면 이미 존재하는 사용자이므로, 중복 회원가입을 막기 위해 "중복된 사용자입니다" 응답 반환
+            throw new CustomException(AuthErrorCode.ALREADY_REGISTERED_USER);
         }
 
         /*
