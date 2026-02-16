@@ -28,6 +28,7 @@ public class InboxNextResponse {
         private String content;
         private OffsetDateTime arrivedAt;
         private OffsetDateTime replyDeadlineAt;
+        private String backgroundColor;
     }
 
     public static InboxNextResponse empty() {

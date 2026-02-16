@@ -48,6 +48,7 @@ public class PlazaLetterMapper {
                         .content(letter.getContent())
                         .arrivedAt(letter.getArrivedAt())
                         .replyDeadlineAt(letter.getReplyDeadlineAt())
+                        .backgroundColor(letter.getBackgroundColor().name())
                         .build())
                 .build();
     }

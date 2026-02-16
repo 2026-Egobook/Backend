@@ -51,22 +51,7 @@ public class PlazaLetterController {
             description = "성공",
             content = @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = InboxNextResponse.class),
-                    examples = @ExampleObject(
-                            name = "example",
-                            value =
-                                    "{\n" +
-                                            "  \"letter\": {\n" +
-                                            "    \"letterId\": 301,\n" +
-                                            "    \"status\": \"ARRIVED\",\n" +
-                                            "    \"mode\": \"RANDOM\",\n" +
-                                            "    \"fromLabel\": \"익명\",\n" +
-                                            "    \"content\": \"요즘 너무 지치는데… 어떻게 버티지?\",\n" +
-                                            "    \"arrivedAt\": \"2026-01-04T10:00:00+09:00\",\n" +
-                                            "    \"replyDeadlineAt\": \"2026-01-05T10:00:00+09:00\"\n" +
-                                            "  }\n" +
-                                            "}"
-                    )
+                    schema = @Schema(implementation = InboxNextResponse.class)
             )
     )
     @GetMapping("/inbox/next")
