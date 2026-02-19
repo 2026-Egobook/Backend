@@ -2,6 +2,7 @@ package com.example.egobook_be.domain.letters.service;
 
 import com.example.egobook_be.domain.letters.dto.response.*;
 import com.example.egobook_be.domain.letters.entity.PlazaLetter;
+import com.example.egobook_be.domain.letters.entity.PlazaLetterMode;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReply;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.mapper.PlazaLetterMapper;
@@ -16,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import java.util.List;
 
@@ -30,6 +33,7 @@ public class PlazaLetterQueryService {
     private final PlazaLetterReplyRepository plazaLetterReplyRepository;
     private final PlazaLetterReplyReportRepository replyReportRepository;
     private final PlazaLetterMapper plazaLetterMapper;
+    private final UserRepository userRepository;
 
 
     @Transactional(readOnly = true)
@@ -83,7 +87,24 @@ public class PlazaLetterQueryService {
                 ? java.util.Collections.emptySet()
                 : new java.util.HashSet<>(replyReportRepository.findReportedReplyIds(userId, replyIds));
 
-        // 3. DTO 변환
+        // 3) N+1 방지: 답장 작성자(replierId)들 한 번에 조회
+        List<Long> replierIds = slice.getContent().stream()
+                .map(PlazaLetterReply::getReplierId)
+                .distinct()
+                .toList();
+
+        java.util.Map<Long, String> replierNicknameMap = replierIds.isEmpty()
+                ? java.util.Collections.emptyMap()
+                : userRepository.findAllById(replierIds).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        User::getId,
+                        user -> {
+                            String nickname = user.getNickname();
+                            return (nickname == null || nickname.isBlank()) ? "친구" : nickname;
+                        }
+                ));
+
+        // 4) DTO 변환
         return SliceResponse.of(slice, reply -> {
             PlazaLetter letter = reply.getLetter();
             if (letter == null) {
@@ -91,7 +112,13 @@ public class PlazaLetterQueryService {
             }
 
             boolean reported = reportedSet.contains(reply.getReplyId());
-            return plazaLetterMapper.toReceivedReplyDto(letter, reply, reported);
+
+            String fromLabel = "익명";
+            if (letter.getMode() == PlazaLetterMode.FRIEND) {
+                fromLabel = replierNicknameMap.getOrDefault(reply.getReplierId(), "친구");
+            }
+
+            return plazaLetterMapper.toReceivedReplyDto(letter, reply, reported, fromLabel);
         });
     }
 

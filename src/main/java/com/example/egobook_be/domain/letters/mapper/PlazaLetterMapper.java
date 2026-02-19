@@ -57,7 +57,8 @@ public class PlazaLetterMapper {
     public PlazaReceivedReplyResDto toReceivedReplyDto(
             PlazaLetter letter,
             PlazaLetterReply reply,
-            boolean reported
+            boolean reported,
+            String fromLabel
     ) {
         return PlazaReceivedReplyResDto.builder()
                 .letterId(letter.getLetterId())
@@ -71,7 +72,7 @@ public class PlazaLetterMapper {
                 .reported(reported)
 
                 .mode(letter.getMode())
-                .fromLabel(letter.getFromLabel())
+                .fromLabel(fromLabel)
                 .backgroundColor(letter.getBackgroundColor().name())
 
                 .build();
