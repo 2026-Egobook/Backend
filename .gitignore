@@ -38,6 +38,7 @@ out/
 
 ### application secrets ###
 application-local.yml
+src/test/resources/application-test.yml
 
 ### env ###
 .env
