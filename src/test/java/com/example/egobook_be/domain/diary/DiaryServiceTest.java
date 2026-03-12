@@ -55,7 +55,7 @@ class DiaryServiceTest {
                 Set.of(DiaryType.EMOTION, DiaryType.CONCERN),
                 3,
                 "오늘 감정 조절을 잘했다.",
-                LocalDateTime.now()
+                LocalDate.now()
         );
 
         given(diaryQueryService.getUserById(userId)).willReturn(user);
@@ -117,7 +117,7 @@ class DiaryServiceTest {
                 Set.of(DiaryType.EMOTION, DiaryType.CONCERN),
                 3,
                 "평범한 고민 일기",
-                LocalDateTime.now()
+                LocalDate.now()
         );
 
         given(diaryQueryService.getUserById(userId)).willReturn(user);
