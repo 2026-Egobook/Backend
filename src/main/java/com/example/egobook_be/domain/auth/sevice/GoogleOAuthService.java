@@ -4,16 +4,12 @@ import com.example.egobook_be.domain.auth.enums.AuthErrorCode;
 import com.example.egobook_be.global.exception.CustomException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.Collections;
 
 /**
  * 클라이언트로부터 전달받은 ID(Token)의 유효성을 검증하고, 사용자 정보를 추출하는 서비스 클래스
