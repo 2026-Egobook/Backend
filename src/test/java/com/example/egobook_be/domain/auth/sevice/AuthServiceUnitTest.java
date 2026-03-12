@@ -314,13 +314,53 @@ public class AuthServiceUnitTest {
         @DisplayName("[실패 2] 완전 삭제 처리되었지만 아직 데이터가 남아있는 사용자 가입 시도")
         void failWithdrewGoogleUser(){
             // ========= Given =========
+            String idToken = "valid.google.id.token";
+            String googleSub = "google-sub-12345";
+            String email = "test@gmail.com";
+            String hashedGoogleSub = "hashed-google-sub-12345";
+            String accountCode = "abcde1234";
 
+            GoogleJoinReqDto reqDto = new GoogleJoinReqDto(idToken);
 
-            // ========= When =========
+            /*
+             * 1. 구글 토큰 파싱 결과 Mocking & Stub
+             * - googleOAuthService.verifyToken(reqDto.idToken())가 실행되면 기존 prod 코드처럼 payload를 반환하도록 Stub 설정
+             * - hashingUtil.hashingValue(googleSub)가 실행되면 hashedGoogleSub값 반환하도록 Stub 설정
+             */
+            GoogleIdToken.Payload payload = new GoogleIdToken.Payload();
+            payload.setSubject(googleSub);
+            payload.setEmail(email);
+            given(googleOAuthService.verifyToken(reqDto.idToken())).willReturn(payload);
+            given(hashingUtil.hashingValue(googleSub)).willReturn(hashedGoogleSub);
 
+            // 2. 이미 DB에 Status가 Withdraw인 계정이 있는 상태로 Mock, Stub 설정
+            User mockUser = User.builder()
+                    .id(1L)
+                    .accountCode(accountCode)
+                    .nickname("nickname")
+                    .status(UserStatus.WITHDRAW)
+                    .lastLoginAt(LocalDateTime.now())
+                    .build();
+            AuthAccount mockAuthAccount = AuthAccount.builder()
+                    .id(1L)
+                    .provider(Provider.GOOGLE)
+                    .hashedDeviceUid(hashedGoogleSub)
+                    .user(mockUser)
+                    .build();
+            given(authAccountRepository.findByHashedDeviceUidAndProvider(hashedGoogleSub, Provider.GOOGLE)).willReturn(Optional.of(mockAuthAccount));
 
-            // ========= Then =========
+            // ========= When & Then =========
+            // 1. authService.registerGoogle(reqDto)에서 CustomException이 발생하면 테스트 성공
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                authService.registerGoogle(reqDto);
+            });
 
+            // 2. 발생한 Exception에 들어있는 내용이 AuthErrorCode.GOOGLE_JOIN_FAIL_USER_WITHDRAWN와 같은지 확인
+            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.GOOGLE_JOIN_FAIL_USER_WITHDRAWN);
+
+            // 3. 예외가 터져서 로직이 중단되었으므로, DB 저장이나 토큰 발급 로직이 실행되지 않았음을 검증
+            verify(userRepository, never()).save(any(User.class));
+            verify(jwtUtil, never()).createAccessToken(any());
         }
     }
 
