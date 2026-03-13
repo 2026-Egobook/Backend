@@ -1,12 +1,14 @@
 package com.example.egobook_be.domain.auth.sevice;
 
 import com.example.egobook_be.domain.auth.dto.req.GoogleJoinReqDto;
+import com.example.egobook_be.domain.auth.dto.req.GuestJoinReqDto;
 import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
 import com.example.egobook_be.domain.auth.entity.AuthAccount;
 import com.example.egobook_be.domain.auth.enums.AuthErrorCode;
 import com.example.egobook_be.domain.auth.enums.Provider;
 import com.example.egobook_be.domain.auth.repository.AuthAccountRepository;
 import com.example.egobook_be.domain.auth.repository.RefreshTokenBackupRepository;
+import com.example.egobook_be.domain.home.entity.Mission;
 import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.shop.entity.Item;
 import com.example.egobook_be.domain.shop.repository.ItemRepository;
@@ -360,6 +362,133 @@ public class AuthServiceUnitTest {
             // 3. 예외가 터져서 로직이 중단되었으므로, DB 저장이나 토큰 발급 로직이 실행되지 않았음을 검증
             verify(userRepository, never()).save(any(User.class));
             verify(jwtUtil, never()).createAccessToken(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("registerGuest() 메서드 테스트")
+    class RegisterGuestTest{
+        @Test
+        @DisplayName("[성공] 신규 게스트 사용자 가입")
+        void successRegisterGuestUser(){
+            // ========= Given =========
+            String deviceUid = "guest-device-uid-123";
+            String hashedDeviceUid = "hashed-guest-device-uid-123";
+            String accountCode = "guest1234";
+
+            GuestJoinReqDto reqDto = new GuestJoinReqDto(deviceUid);
+
+            // 1. DeviceUid 해싱 및 중복 가입 검증 Mocking
+            given(hashingUtil.hashingValue(deviceUid)).willReturn(hashedDeviceUid);
+            given(authAccountRepository.existsByHashedDeviceUidAndProvider(hashedDeviceUid, Provider.GUEST)).willReturn(false);
+
+            /*
+             * 2. 신규 User Entity 생성 로직 (createUser())
+             */
+            given(userRepository.existsByAccountCode(anyString())).willReturn(false);
+            given(userNicknameGenerator.generateUniqueNickname()).willReturn("GuestNick");
+
+            User mockUser = User.builder()
+                    .id(1L)
+                    .accountCode(accountCode)
+                    .nickname("GuestNick")
+                    .lastLoginAt(LocalDateTime.now())
+                    .build();
+            given(userRepository.save(any(User.class))).willReturn(mockUser);
+
+            /*
+             * 3. allocateUser() 내부 메서드 (기본 아이템, 약관, 능력치, 미션 할당)
+             */
+            given(itemRepository.findAllByName("Default.png")).willReturn(List.of(Item.builder().path("tmpPath").name("skin").build()));
+            given(userItemRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
+            given(abilityRepository.save(any(Ability.class))).willAnswer(invocation -> invocation.getArgument(0));
+            given(termRepository.findAll()).willReturn(List.of(Term.builder().build()));
+            given(userTermRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
+            given(missionRepository.save(any(Mission.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+            /*
+             * 4. createAuthAccount()
+             */
+            AuthAccount mockAuthAccount = AuthAccount.builder()
+                    .id(2L)
+                    .provider(Provider.GUEST)
+                    .hashedDeviceUid(hashedDeviceUid)
+                    .user(mockUser)
+                    .build();
+            given(authAccountRepository.save(any(AuthAccount.class))).willReturn(mockAuthAccount);
+
+            /*
+             * 5. 토큰 발급 및 저장 (processIssueTokens 및 Recover Token)
+             * - Guest 로직에서는 Recover Token과 Refresh Token 2개가 해싱되므로 각각에 대한 리턴값을 명시합니다.
+             */
+            TokenInfo mockAccessTokenInfo = TokenInfo.builder().token("access-token-value").expiresAt(LocalDateTime.now().plusHours(1)).build();
+            TokenInfo mockRefreshTokenInfo = TokenInfo.builder().token("refresh-token-value").expiresAt(LocalDateTime.now().plusDays(14)).build();
+            TokenInfo mockRecoverTokenInfo = TokenInfo.builder().token("recover-token-value").expiresAt(LocalDateTime.now().plusDays(30)).build();
+
+            String hashedRefreshToken = "hashed-refresh-token-value";
+            String hashedRecoverToken = "hashed-recover-token-value";
+            String subject = Provider.GUEST + ":" + hashedDeviceUid;
+
+            given(jwtUtil.createAccessToken(any(CustomUserDetails.class))).willReturn(mockAccessTokenInfo);
+            given(jwtUtil.createRefreshToken(any(CustomUserDetails.class))).willReturn(mockRefreshTokenInfo);
+            given(jwtUtil.createRecoverToken(any(CustomUserDetails.class))).willReturn(mockRecoverTokenInfo);
+
+            // hashingUtil이 파라미터에 따라 다르게 리턴하도록 설정
+            given(hashingUtil.hashingValue("recover-token-value")).willReturn(hashedRecoverToken);
+            given(hashingUtil.hashingValue("refresh-token-value")).willReturn(hashedRefreshToken);
+
+            given(jwtUtil.createSubject(Provider.GUEST, hashedDeviceUid)).willReturn(subject);
+            given(refreshTokenBackupRepository.existsByAuthAccount(mockAuthAccount)).willReturn(false);
+
+            // ========= When =========
+            JwtTokenResDto resDto = authService.registerGuest(reqDto);
+
+            // ========= Then =========
+            // 1. 반환된 객체의 상태 값 검증
+            assertThat(resDto).isNotNull();
+            assertThat(resDto.accessToken()).isEqualTo("access-token-value");
+            assertThat(resDto.refreshToken()).isEqualTo("refresh-token-value");
+            assertThat(resDto.recoverToken()).isEqualTo("recover-token-value"); // Guest는 Recover Token이 발급되어야 함
+            assertThat(resDto.email()).isNull(); // Guest는 이메일이 없음
+
+            // 2. 핵심 로직들 1번씩 실행 되었는지 행위 검증
+            verify(userRepository, times(1)).save(any(User.class));
+            verify(authAccountRepository, times(1)).save(any(AuthAccount.class));
+            verify(redisUtil, times(1)).setHashedRefreshTokenValue(anyString(), any(RedisValue.class), anyLong());
+
+            // 3. AuthAccount에 해싱된 Recover Token이 정상적으로 업데이트되었는지 검증
+            assertThat(mockAuthAccount.getHashedRecoverToken()).isEqualTo(hashedRecoverToken);
+        }
+
+        @Test
+        @DisplayName("[실패] 이미 Guest로 등록된 기기 가입 시도")
+        void failExistingGuestUser(){
+            // ========= Given =========
+            String deviceUid = "existing-guest-device-uid";
+            String hashedDeviceUid = "hashed-existing-guest-device-uid";
+
+            GuestJoinReqDto reqDto = new GuestJoinReqDto(deviceUid);
+
+            // 1. DeviceUid 해싱
+            given(hashingUtil.hashingValue(deviceUid)).willReturn(hashedDeviceUid);
+
+            // 2. 이미 해당 HashedDeviceUid와 GUEST Provider로 가입된 계정이 존재한다고 가정 (true 반환)
+            given(authAccountRepository.existsByHashedDeviceUidAndProvider(hashedDeviceUid, Provider.GUEST)).willReturn(true);
+
+            // ========= When & Then =========
+            // 1. authService.registerGuest(reqDto) 호출 시 CustomException 발생 검증
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                authService.registerGuest(reqDto);
+            });
+
+            // 2. 발생한 Exception의 에러 코드가 ALREADY_REGISTERED_USER 인지 확인
+            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.ALREADY_REGISTERED_USER);
+
+            // 3. 예외가 발생했으므로 User 저장이나 토큰 생성 등 후속 로직이 전혀 실행되지 않았음을 행위 검증
+            verify(userRepository, never()).save(any(User.class));
+            verify(authAccountRepository, never()).save(any(AuthAccount.class));
+            verify(jwtUtil, never()).createAccessToken(any());
+            verify(redisUtil, never()).setHashedRefreshTokenValue(anyString(), any(), anyLong());
         }
     }
 
