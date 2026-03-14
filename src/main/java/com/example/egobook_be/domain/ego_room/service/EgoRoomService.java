@@ -20,6 +20,7 @@ import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.exception.GlobalErrorCode;
 import com.example.egobook_be.global.response.SliceResponse;
+import com.example.egobook_be.global.util.InkLogUtil;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +45,7 @@ public class EgoRoomService {
     private final WeeklyAnalysisAiService weeklyAnalysisAiService;
     private final DiaryRepository diaryRepository;
     private final InkLogRepository inkLogRepository;
-
+    private final InkLogUtil inkLogUtil;
     private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
@@ -104,20 +105,26 @@ public class EgoRoomService {
     public DailyPraiseItemDto getDailyPraiseDetail(Long userId, LocalDate date) {
         DailyPraise praise = dailyPraiseRepository.findByUserIdAndPraiseDate(userId, date)
                 .orElseThrow(() -> new CustomException(DiaryErrorCode.PRAISE_NOT_FOUND));
+        User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
         List<RewardDto> rewards = new java.util.ArrayList<>();
 
         if (!praise.isRead()) {
             praise.markAsRead();
 
-            Ability ability = praise.getUser().getAbility();
+            Ability ability = user.getAbility();
 
             if (ability != null) {
                 if (ability.getSelfEsteem() == null) {
                     ability.setSelfEsteem(new AbilityStat()); 
                 }
 
-                ability.addSelfEsteem(1);
-
+                List<InkLog> inkLogs = new ArrayList<>();
+                int earnedInk = ability.addSelfEsteem(1);
+                // 자존감 레벨업했는지 여부 확인
+                if(earnedInk == 1){
+                    inkLogUtil.addInkLogToList(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
+                    user.levelUp();
+                }
                 rewards.add(new RewardDto(
                         "SELF_ESTEEM",
                         1,

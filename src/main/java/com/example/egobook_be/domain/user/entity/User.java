@@ -205,6 +205,10 @@ public class User extends BaseTimeEntity {
         return letterReceiveBlockedUntil == null || !now.isBefore(letterReceiveBlockedUntil);
     }
 
+    public void levelUp(){
+        this.level += 1;
+    }
+
 
     // 해당 시간까지 수신 차단된 상태인지 확인하는 메서드도 필요할 수 있음.
     public boolean canReceiveLetters() {
