@@ -456,6 +456,7 @@ public class PlazaLetterService {
             // 1-1. 레벨업했는지 여부 확인
             if(earnedInk == 1){
                 inkLogUtil.addInkLogToList(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
+                user.levelUp();
                 rewards.add(ReplyResponse.RewardDto.builder()
                         .kind(ReplyResponse.RewardKind.EMPATHY) // [수정] SINCERITY -> EMPATHY
                         .amount(1)
