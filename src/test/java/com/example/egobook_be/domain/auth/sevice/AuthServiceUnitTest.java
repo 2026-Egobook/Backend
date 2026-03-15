@@ -2,8 +2,10 @@ package com.example.egobook_be.domain.auth.sevice;
 
 import com.example.egobook_be.domain.auth.dto.req.GoogleJoinReqDto;
 import com.example.egobook_be.domain.auth.dto.req.GuestJoinReqDto;
+import com.example.egobook_be.domain.auth.dto.req.RefreshReqDto;
 import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
 import com.example.egobook_be.domain.auth.entity.AuthAccount;
+import com.example.egobook_be.domain.auth.entity.RefreshTokenBackup;
 import com.example.egobook_be.domain.auth.enums.AuthErrorCode;
 import com.example.egobook_be.domain.auth.enums.Provider;
 import com.example.egobook_be.domain.auth.repository.AuthAccountRepository;
@@ -18,6 +20,7 @@ import com.example.egobook_be.domain.terms.repository.TermRepository;
 import com.example.egobook_be.domain.terms.repository.UserTermRepository;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.enums.RoleType;
 import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
@@ -492,7 +495,207 @@ public class AuthServiceUnitTest {
         }
     }
 
+    @Nested
+    @DisplayName("refreshToken() 메서드 테스트")
+    class RefreshTokenTest {
+        @Test
+        @DisplayName("[성공 1] Redis에서 Refresh Token 조회 후 AccessToken 재발급")
+        void successSearchRefreshTokenInRedis(){
+            // given
+            RefreshReqDto reqDto = new RefreshReqDto("oldAccessToken", "rawRefreshToken");
+            String hashedToken = "hashedRefreshToken";
 
+            RedisValue redisValue = RedisValue.builder()
+                    .userId(1L)
+                    .authAccountId(1L)
+                    .subject("GUEST:deviceUid")
+                    .role(RoleType.ROLE_USER)
+                    .expiresAt(LocalDateTime.now().plusDays(1))
+                    .build();
 
+            TokenInfo newAccessTokenInfo = new TokenInfo("newAccessToken", LocalDateTime.now().plusHours(1));
+
+            when(hashingUtil.hashingValue(reqDto.refreshToken())).thenReturn(hashedToken);
+            when(redisUtil.getHashedRefreshTokenValue(hashedToken)).thenReturn(redisValue);
+            when(jwtUtil.createAccessToken(1L, 1L, "GUEST:deviceUid", RoleType.ROLE_USER))
+                    .thenReturn(newAccessTokenInfo);
+
+            // when
+            JwtTokenResDto resDto = authService.refreshToken(reqDto);
+
+            // then
+            // 1. resDto의 accessToken, refreshToken값에 Mock으로 넣은 데이터가 있고, recoverToken에는 값이 없는지 확인
+            assertThat(resDto.accessToken()).isEqualTo("newAccessToken");
+            assertThat(resDto.refreshToken()).isEqualTo("rawRefreshToken");
+            assertThat(resDto.recoverToken()).isNull();
+
+            // 2. 블랙리스트 등록 로직이 정상 호출되었는지 검증 (사이드 이펙트 확인)
+            verify(redisUtil, times(1)).setTokenInBlacklist("oldAccessToken");
+            // 3. DB 조회가 발생하지 않았는지 확인
+            verify(refreshTokenBackupRepository, never()).findByHashedTokenValue(anyString());
+        }
+
+        @Test
+        @DisplayName("[성공 2] RefreshTokenBackup Table에서 Refresh Token 조회 후 AccessToken 재발급")
+        void successSearchRefreshTokenInRefreshTokenBackupTable(){
+            // given
+            RefreshReqDto reqDto = new RefreshReqDto("oldAccessToken", "rawRefreshToken");
+            String hashedToken = "hashedRefreshToken";
+            LocalDateTime expiresAt = LocalDateTime.now().plusDays(1);
+
+            // User Entity Mocking
+            User user = mock(User.class);
+            when(user.getId()).thenReturn(1L);
+            when(user.getRole()).thenReturn(RoleType.ROLE_USER);
+
+            // AuthAccount Entity Mocking
+            AuthAccount authAccount = mock(AuthAccount.class);
+            when(authAccount.getId()).thenReturn(1L);
+            when(authAccount.getUser()).thenReturn(user);
+            when(authAccount.getProvider()).thenReturn(Provider.GUEST);
+            when(authAccount.getHashedDeviceUid()).thenReturn("hashedDeviceUid");
+
+            // RefreshTokenBackup Entity Mocking
+            RefreshTokenBackup backup = mock(RefreshTokenBackup.class);
+            when(backup.getAuthAccount()).thenReturn(authAccount);
+            when(backup.getExpiresAt()).thenReturn(expiresAt);
+
+            // 새롭게 생성할 Access Token 생성
+            TokenInfo newAccessTokenInfo = new TokenInfo("newAccessToken", LocalDateTime.now().plusHours(1));
+
+            // Stub 설정
+            when(hashingUtil.hashingValue(reqDto.refreshToken())).thenReturn(hashedToken);
+            when(redisUtil.getHashedRefreshTokenValue(hashedToken)).thenReturn(null); // Redis Miss 발생
+            when(refreshTokenBackupRepository.findByHashedTokenValue(hashedToken)).thenReturn(Optional.of(backup));
+
+            when(jwtUtil.createSubject(Provider.GUEST, "hashedDeviceUid")).thenReturn("GUEST:hashedDeviceUid");
+            when(jwtUtil.createAccessToken(1L, 1L, "GUEST:hashedDeviceUid", RoleType.ROLE_USER)).thenReturn(newAccessTokenInfo);
+
+            // when
+            JwtTokenResDto resDto = authService.refreshToken(reqDto);
+
+            // then
+            // 1. resDto의 accessToken, refreshToken값에 Mock으로 넣은 데이터가 있고, recoverToken에는 값이 없는지 확인
+            assertThat(resDto.accessToken()).isEqualTo("newAccessToken");
+            assertThat(resDto.refreshToken()).isEqualTo("rawRefreshToken");
+            assertThat(resDto.recoverToken()).isNull();
+
+            // 기존 토큰 블랙리스트 등록 확인
+            verify(redisUtil, times(1)).setTokenInBlacklist("oldAccessToken");
+            // Redis 복구 로직이 실행되었는지 확인 (registerToRedis 호출 여부)
+            verify(redisUtil, times(1)).setHashedRefreshTokenValue(eq(hashedToken), any(RedisValue.class), anyLong());
+        }
+
+        @Test
+        @DisplayName("[성공 3] 클라이언트가 보낸 Access Token이 null인 경우에도 예외 없이 동작")
+        void successWhenAccessTokenIsNull() {
+            // given
+            RefreshReqDto reqDto = new RefreshReqDto(null, "rawRefreshToken"); // accessToken에 null 전달
+            String hashedToken = "hashedRefreshToken";
+
+            RedisValue redisValue = RedisValue.builder()
+                    .userId(1L)
+                    .authAccountId(1L)
+                    .subject("GUEST:deviceUid")
+                    .role(RoleType.ROLE_USER)
+                    .expiresAt(LocalDateTime.now().plusDays(1))
+                    .build();
+
+            TokenInfo newAccessTokenInfo = new TokenInfo("newAccessToken", LocalDateTime.now().plusHours(1));
+
+            when(hashingUtil.hashingValue(reqDto.refreshToken())).thenReturn(hashedToken);
+            when(redisUtil.getHashedRefreshTokenValue(hashedToken)).thenReturn(redisValue);
+            when(jwtUtil.createAccessToken(anyLong(), anyLong(), anyString(), any())).thenReturn(newAccessTokenInfo);
+
+            // when
+            JwtTokenResDto resDto = authService.refreshToken(reqDto);
+
+            // then
+            assertThat(resDto.accessToken()).isNotNull();
+            // NullPointerException 없이 redisUtil.setTokenInBlacklist(null)이 호출되었는지 검증
+            verify(redisUtil, times(1)).setTokenInBlacklist(null);
+        }
+
+        @Test
+        @DisplayName("[실패 1] RefreshTokenBackup Table에서 Refresh Token을 찾지 못한 경우")
+        void failSearchRefreshTokenInRefreshTokenBackupTable(){
+            // given
+            RefreshReqDto reqDto = new RefreshReqDto("oldAccessToken", "rawRefreshToken");
+            String hashedToken = "hashedRefreshToken";
+
+            when(hashingUtil.hashingValue(reqDto.refreshToken())).thenReturn(hashedToken);
+            when(redisUtil.getHashedRefreshTokenValue(hashedToken)).thenReturn(null); // Redis에 없음
+            when(refreshTokenBackupRepository.findByHashedTokenValue(hashedToken)).thenReturn(Optional.empty()); // DB도 비었음
+
+            // when & then
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                authService.refreshToken(reqDto);
+            });
+            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("[실패 2] RefreshTokenBackup Table에서 찾은 Refresh Token이 만료된 경우 - 만료된 토큰이 GUEST인 경우")
+        void failGuestRefreshTokenExpired() {
+            // given
+            RefreshReqDto reqDto = new RefreshReqDto("oldAccessToken", "rawRefreshToken");
+            String hashedToken = "hashedRefreshToken";
+
+            AuthAccount authAccount = mock(AuthAccount.class);
+            when(authAccount.getProvider()).thenReturn(Provider.GUEST); // Provider = GUEST
+
+            RefreshTokenBackup backup = mock(RefreshTokenBackup.class);
+            when(backup.getExpiresAt()).thenReturn(LocalDateTime.now().minusDays(1)); // 이미 만료된 시간 셋팅
+            when(backup.getAuthAccount()).thenReturn(authAccount);
+
+            when(hashingUtil.hashingValue(reqDto.refreshToken())).thenReturn(hashedToken);
+            when(redisUtil.getHashedRefreshTokenValue(hashedToken)).thenReturn(null);
+            when(refreshTokenBackupRepository.findByHashedTokenValue(hashedToken)).thenReturn(Optional.of(backup));
+
+            // when & then
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                authService.refreshToken(reqDto);
+            });
+            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.REFRESH_TOKEN_EXPIRED_GUEST);
+        }
+
+        @Test
+        @DisplayName("[실패 3] RefreshTokenBackup Table에서 찾은 Refresh Token이 만료된 경우 - 만료된 토큰이 GOOGLE인 경우")
+        void failGoogleRefreshTokenExpired() {
+            // given
+            RefreshReqDto reqDto = new RefreshReqDto("oldAccessToken", "rawRefreshToken");
+            String hashedToken = "hashedRefreshToken";
+
+            AuthAccount authAccount = mock(AuthAccount.class);
+            when(authAccount.getProvider()).thenReturn(Provider.GOOGLE); // Provider = GOOGLE
+
+            RefreshTokenBackup backup = mock(RefreshTokenBackup.class);
+            when(backup.getExpiresAt()).thenReturn(LocalDateTime.now().minusDays(1)); // 이미 만료된 시간 셋팅
+            when(backup.getAuthAccount()).thenReturn(authAccount);
+
+            when(hashingUtil.hashingValue(reqDto.refreshToken())).thenReturn(hashedToken);
+            when(redisUtil.getHashedRefreshTokenValue(hashedToken)).thenReturn(null);
+            when(refreshTokenBackupRepository.findByHashedTokenValue(hashedToken)).thenReturn(Optional.of(backup));
+
+            // when & then
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                authService.refreshToken(reqDto);
+            });
+            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.REFRESH_TOKEN_EXPIRED_GOOGLE);
+        }
+
+    }
+
+    @Nested
+    @DisplayName("recertificationGuestToken() 메서드 테스트")
+    class RecertificationGuestTokenTest {
+
+    }
+
+    @Nested
+    @DisplayName("recertificationGoogleToken() 메서드 테스트")
+    class RecertificationGoogleTokenTest {
+
+    }
 
 }
