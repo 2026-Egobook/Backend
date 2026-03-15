@@ -357,7 +357,9 @@ public class AuthService {
          * (1) 기존에 사용되던 AccessToken 블랙리스트에 등록
          * (2) 기존에 Refresh Token Backup 테이블에 있던 Refresh Token Redis에서 삭제 (아직 만료되지 않은 상태에서 복구 로직이 실행될 수도 있으므로)
          */
-        addAccessTokenInRedisBlackList(reqDto.accessToken());
+        if(reqDto.accessToken() != null && !reqDto.accessToken().isBlank()){
+            addAccessTokenInRedisBlackList(reqDto.accessToken());
+        }
         deleteOldRefreshTokenFromRedis(authAccount);
 
         /*
