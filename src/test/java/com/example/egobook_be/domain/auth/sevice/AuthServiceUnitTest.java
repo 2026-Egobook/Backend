@@ -1,9 +1,9 @@
 package com.example.egobook_be.domain.auth.sevice;
 
-import com.example.egobook_be.domain.auth.dto.req.GoogleJoinReqDto;
-import com.example.egobook_be.domain.auth.dto.req.GuestJoinReqDto;
+import com.example.egobook_be.domain.auth.dto.req.*;
 import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
 import com.example.egobook_be.domain.auth.entity.AuthAccount;
+import com.example.egobook_be.domain.auth.entity.RefreshTokenBackup;
 import com.example.egobook_be.domain.auth.enums.AuthErrorCode;
 import com.example.egobook_be.domain.auth.enums.Provider;
 import com.example.egobook_be.domain.auth.repository.AuthAccountRepository;
@@ -18,6 +18,7 @@ import com.example.egobook_be.domain.terms.repository.TermRepository;
 import com.example.egobook_be.domain.terms.repository.UserTermRepository;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.enums.RoleType;
 import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
@@ -30,6 +31,7 @@ import com.example.egobook_be.global.util.UserNicknameGenerator;
 import com.example.egobook_be.global.util.module.RedisValue;
 import com.example.egobook_be.global.util.module.TokenInfo;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import org.antlr.v4.runtime.Token;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -492,7 +494,565 @@ public class AuthServiceUnitTest {
         }
     }
 
+    @Nested
+    @DisplayName("refreshToken() 메서드 테스트")
+    class RefreshTokenTest {
+        @Test
+        @DisplayName("[성공 1] Redis에서 Refresh Token 조회 후 AccessToken 재발급")
+        void successSearchRefreshTokenInRedis(){
+            // given
+            RefreshReqDto reqDto = new RefreshReqDto("oldAccessToken", "rawRefreshToken");
+            String hashedToken = "hashedRefreshToken";
 
+            RedisValue redisValue = RedisValue.builder()
+                    .userId(1L)
+                    .authAccountId(1L)
+                    .subject("GUEST:deviceUid")
+                    .role(RoleType.ROLE_USER)
+                    .expiresAt(LocalDateTime.now().plusDays(1))
+                    .build();
 
+            TokenInfo newAccessTokenInfo = new TokenInfo("newAccessToken", LocalDateTime.now().plusHours(1));
+
+            when(hashingUtil.hashingValue(reqDto.refreshToken())).thenReturn(hashedToken);
+            when(redisUtil.getHashedRefreshTokenValue(hashedToken)).thenReturn(redisValue);
+            when(jwtUtil.createAccessToken(1L, 1L, "GUEST:deviceUid", RoleType.ROLE_USER))
+                    .thenReturn(newAccessTokenInfo);
+
+            // when
+            JwtTokenResDto resDto = authService.refreshToken(reqDto);
+
+            // then
+            // 1. resDto의 accessToken, refreshToken값에 Mock으로 넣은 데이터가 있고, recoverToken에는 값이 없는지 확인
+            assertThat(resDto.accessToken()).isEqualTo("newAccessToken");
+            assertThat(resDto.refreshToken()).isEqualTo("rawRefreshToken");
+            assertThat(resDto.recoverToken()).isNull();
+
+            // 2. 블랙리스트 등록 로직이 정상 호출되었는지 검증 (사이드 이펙트 확인)
+            verify(redisUtil, times(1)).setTokenInBlacklist("oldAccessToken");
+            // 3. DB 조회가 발생하지 않았는지 확인
+            verify(refreshTokenBackupRepository, never()).findByHashedTokenValue(anyString());
+        }
+
+        @Test
+        @DisplayName("[성공 2] RefreshTokenBackup Table에서 Refresh Token 조회 후 AccessToken 재발급")
+        void successSearchRefreshTokenInRefreshTokenBackupTable(){
+            // given
+            RefreshReqDto reqDto = new RefreshReqDto("oldAccessToken", "rawRefreshToken");
+            String hashedToken = "hashedRefreshToken";
+            LocalDateTime expiresAt = LocalDateTime.now().plusDays(1);
+
+            // User Entity Mocking
+            User user = mock(User.class);
+            when(user.getId()).thenReturn(1L);
+            when(user.getRole()).thenReturn(RoleType.ROLE_USER);
+
+            // AuthAccount Entity Mocking
+            AuthAccount authAccount = mock(AuthAccount.class);
+            when(authAccount.getId()).thenReturn(1L);
+            when(authAccount.getUser()).thenReturn(user);
+            when(authAccount.getProvider()).thenReturn(Provider.GUEST);
+            when(authAccount.getHashedDeviceUid()).thenReturn("hashedDeviceUid");
+
+            // RefreshTokenBackup Entity Mocking
+            RefreshTokenBackup backup = mock(RefreshTokenBackup.class);
+            when(backup.getAuthAccount()).thenReturn(authAccount);
+            when(backup.getExpiresAt()).thenReturn(expiresAt);
+
+            // 새롭게 생성할 Access Token 생성
+            TokenInfo newAccessTokenInfo = new TokenInfo("newAccessToken", LocalDateTime.now().plusHours(1));
+
+            // Stub 설정
+            when(hashingUtil.hashingValue(reqDto.refreshToken())).thenReturn(hashedToken);
+            when(redisUtil.getHashedRefreshTokenValue(hashedToken)).thenReturn(null); // Redis Miss 발생
+            when(refreshTokenBackupRepository.findByHashedTokenValue(hashedToken)).thenReturn(Optional.of(backup));
+
+            when(jwtUtil.createSubject(Provider.GUEST, "hashedDeviceUid")).thenReturn("GUEST:hashedDeviceUid");
+            when(jwtUtil.createAccessToken(1L, 1L, "GUEST:hashedDeviceUid", RoleType.ROLE_USER)).thenReturn(newAccessTokenInfo);
+
+            // when
+            JwtTokenResDto resDto = authService.refreshToken(reqDto);
+
+            // then
+            // 1. resDto의 accessToken, refreshToken값에 Mock으로 넣은 데이터가 있고, recoverToken에는 값이 없는지 확인
+            assertThat(resDto.accessToken()).isEqualTo("newAccessToken");
+            assertThat(resDto.refreshToken()).isEqualTo("rawRefreshToken");
+            assertThat(resDto.recoverToken()).isNull();
+
+            // 기존 토큰 블랙리스트 등록 확인
+            verify(redisUtil, times(1)).setTokenInBlacklist("oldAccessToken");
+            // Redis 복구 로직이 실행되었는지 확인 (registerToRedis 호출 여부)
+            verify(redisUtil, times(1)).setHashedRefreshTokenValue(eq(hashedToken), any(RedisValue.class), anyLong());
+        }
+
+        @Test
+        @DisplayName("[성공 3] 클라이언트가 보낸 Access Token이 null인 경우에도 예외 없이 동작")
+        void successWhenAccessTokenIsNull() {
+            // given
+            RefreshReqDto reqDto = new RefreshReqDto(null, "rawRefreshToken"); // accessToken에 null 전달
+            String hashedToken = "hashedRefreshToken";
+
+            RedisValue redisValue = RedisValue.builder()
+                    .userId(1L)
+                    .authAccountId(1L)
+                    .subject("GUEST:deviceUid")
+                    .role(RoleType.ROLE_USER)
+                    .expiresAt(LocalDateTime.now().plusDays(1))
+                    .build();
+
+            TokenInfo newAccessTokenInfo = new TokenInfo("newAccessToken", LocalDateTime.now().plusHours(1));
+
+            when(hashingUtil.hashingValue(reqDto.refreshToken())).thenReturn(hashedToken);
+            when(redisUtil.getHashedRefreshTokenValue(hashedToken)).thenReturn(redisValue);
+            when(jwtUtil.createAccessToken(anyLong(), anyLong(), anyString(), any())).thenReturn(newAccessTokenInfo);
+
+            // when
+            JwtTokenResDto resDto = authService.refreshToken(reqDto);
+
+            // then
+            assertThat(resDto.accessToken()).isNotNull();
+            // NullPointerException 없이 redisUtil.setTokenInBlacklist(null)이 호출되었는지 검증
+            verify(redisUtil, times(1)).setTokenInBlacklist(null);
+        }
+
+        @Test
+        @DisplayName("[실패 1] RefreshTokenBackup Table에서 Refresh Token을 찾지 못한 경우")
+        void failSearchRefreshTokenInRefreshTokenBackupTable(){
+            // given
+            RefreshReqDto reqDto = new RefreshReqDto("oldAccessToken", "rawRefreshToken");
+            String hashedToken = "hashedRefreshToken";
+
+            when(hashingUtil.hashingValue(reqDto.refreshToken())).thenReturn(hashedToken);
+            when(redisUtil.getHashedRefreshTokenValue(hashedToken)).thenReturn(null); // Redis에 없음
+            when(refreshTokenBackupRepository.findByHashedTokenValue(hashedToken)).thenReturn(Optional.empty()); // DB도 비었음
+
+            // when & then
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                authService.refreshToken(reqDto);
+            });
+            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("[실패 2] RefreshTokenBackup Table에서 찾은 Refresh Token이 만료된 경우 - 만료된 토큰이 GUEST인 경우")
+        void failGuestRefreshTokenExpired() {
+            // given
+            RefreshReqDto reqDto = new RefreshReqDto("oldAccessToken", "rawRefreshToken");
+            String hashedToken = "hashedRefreshToken";
+
+            AuthAccount authAccount = mock(AuthAccount.class);
+            when(authAccount.getProvider()).thenReturn(Provider.GUEST); // Provider = GUEST
+
+            RefreshTokenBackup backup = mock(RefreshTokenBackup.class);
+            when(backup.getExpiresAt()).thenReturn(LocalDateTime.now().minusDays(1)); // 이미 만료된 시간 셋팅
+            when(backup.getAuthAccount()).thenReturn(authAccount);
+
+            when(hashingUtil.hashingValue(reqDto.refreshToken())).thenReturn(hashedToken);
+            when(redisUtil.getHashedRefreshTokenValue(hashedToken)).thenReturn(null);
+            when(refreshTokenBackupRepository.findByHashedTokenValue(hashedToken)).thenReturn(Optional.of(backup));
+
+            // when & then
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                authService.refreshToken(reqDto);
+            });
+            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.REFRESH_TOKEN_EXPIRED_GUEST);
+        }
+
+        @Test
+        @DisplayName("[실패 3] RefreshTokenBackup Table에서 찾은 Refresh Token이 만료된 경우 - 만료된 토큰이 GOOGLE인 경우")
+        void failGoogleRefreshTokenExpired() {
+            // given
+            RefreshReqDto reqDto = new RefreshReqDto("oldAccessToken", "rawRefreshToken");
+            String hashedToken = "hashedRefreshToken";
+
+            AuthAccount authAccount = mock(AuthAccount.class);
+            when(authAccount.getProvider()).thenReturn(Provider.GOOGLE); // Provider = GOOGLE
+
+            RefreshTokenBackup backup = mock(RefreshTokenBackup.class);
+            when(backup.getExpiresAt()).thenReturn(LocalDateTime.now().minusDays(1)); // 이미 만료된 시간 셋팅
+            when(backup.getAuthAccount()).thenReturn(authAccount);
+
+            when(hashingUtil.hashingValue(reqDto.refreshToken())).thenReturn(hashedToken);
+            when(redisUtil.getHashedRefreshTokenValue(hashedToken)).thenReturn(null);
+            when(refreshTokenBackupRepository.findByHashedTokenValue(hashedToken)).thenReturn(Optional.of(backup));
+
+            // when & then
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                authService.refreshToken(reqDto);
+            });
+            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.REFRESH_TOKEN_EXPIRED_GOOGLE);
+        }
+
+    }
+
+    @Nested
+    @DisplayName("recertificationGuestToken() 메서드 테스트")
+    class RecertificationGuestTokenTest {
+        @Test
+        @DisplayName("[성공] Guest Refresh/Recover Token 재발급 및 세션 정보 정상 갱신")
+        void successRecertificationGuestRefreshToken() {
+            // given
+            GuestRecertificationReqDto reqDto = new GuestRecertificationReqDto("rawDeviceUid", "oldAccessToken", "rawRecoverToken");
+            String hashedDeviceUid = "hashedDeviceUid";
+            String hashedRecoverToken = "hashedRecoverToken";
+
+            // User Entity 모킹
+            User user = mock(User.class);
+            when(user.getId()).thenReturn(1L);
+            when(user.getRole()).thenReturn(RoleType.ROLE_USER);
+            when(user.getStatus()).thenReturn(UserStatus.ACTIVE); // 삭제 대기가 아닌 정상 상태
+
+            // AuthAccount Entity 모킹
+            AuthAccount authAccount = mock(AuthAccount.class);
+            when(authAccount.getId()).thenReturn(1L);
+            when(authAccount.getUser()).thenReturn(user);
+            when(authAccount.getProvider()).thenReturn(Provider.GUEST);
+            when(authAccount.getHashedDeviceUid()).thenReturn(hashedDeviceUid);
+            when(authAccount.getHashedRecoverToken()).thenReturn(hashedRecoverToken); // 요청과 동일한 토큰 값으로 설정
+
+            when(hashingUtil.hashingValue(reqDto.deviceUid())).thenReturn(hashedDeviceUid);
+            when(hashingUtil.hashingValue(reqDto.recoverToken())).thenReturn(hashedRecoverToken);
+
+            when(authAccountRepository.findByHashedDeviceUidAndProvider(hashedDeviceUid, Provider.GUEST))
+                    .thenReturn(Optional.of(authAccount));
+
+            // 기존 Refresh Token 삭제 로직을 위한 모킹
+            RefreshTokenBackup oldBackup = mock(RefreshTokenBackup.class);
+            when(oldBackup.getHashedTokenValue()).thenReturn("oldHashedRefreshToken");
+            when(refreshTokenBackupRepository.findByAuthAccount(authAccount)).thenReturn(Optional.of(oldBackup));
+
+            // 신규 발급 토큰 정보 모킹
+            String subject = "GUEST:hashedDeviceUid";
+            when(jwtUtil.createSubject(Provider.GUEST, hashedDeviceUid)).thenReturn(subject);
+
+            TokenInfo newAccessTokenInfo = new TokenInfo("newAccessToken", LocalDateTime.now().plusHours(1));
+            TokenInfo newRefreshTokenInfo = new TokenInfo("newRefreshToken", LocalDateTime.now().plusDays(1));
+            TokenInfo newRecoverTokenInfo = new TokenInfo("newRecoverToken", LocalDateTime.now().plusDays(30));
+
+            when(jwtUtil.createAccessToken(eq(1L), eq(1L), eq(subject), eq(RoleType.ROLE_USER))).thenReturn(newAccessTokenInfo);
+            when(jwtUtil.createRefreshToken(eq(subject), eq(RoleType.ROLE_USER))).thenReturn(newRefreshTokenInfo);
+            when(jwtUtil.createRecoverToken(any(CustomUserDetails.class))).thenReturn(newRecoverTokenInfo);
+
+            when(hashingUtil.hashingValue(newRecoverTokenInfo.token())).thenReturn("newHashedRecoverToken");
+            when(hashingUtil.hashingValue(newRefreshTokenInfo.token())).thenReturn("newHashedRefreshToken");
+
+            // Refresh Token Backup 업데이트 검증을 위해 기존에 백업이 있다고 가정
+            when(refreshTokenBackupRepository.existsByAuthAccount(authAccount)).thenReturn(true);
+
+            // when
+            JwtTokenResDto resDto = authService.recertificationGuestToken(reqDto);
+
+            // then
+            assertThat(resDto.accessToken()).isEqualTo("newAccessToken");
+            assertThat(resDto.refreshToken()).isEqualTo("newRefreshToken");
+            assertThat(resDto.recoverToken()).isEqualTo("newRecoverToken");
+
+            // [검증 1] 기존 AccessToken 블랙리스트 등록 확인
+            verify(redisUtil, times(1)).setTokenInBlacklist("oldAccessToken");
+            // [검증 2] Redis에서 기존 RefreshToken 삭제 확인
+            verify(redisUtil, times(1)).deleteHashedRefreshToken("oldHashedRefreshToken");
+            // [검증 3] AuthAccount의 RecoverToken 값이 갱신되었는지 확인
+            verify(authAccount, times(1)).updateHashedRecoverToken("newHashedRecoverToken");
+            // [검증 4] 새로운 RefreshToken이 Redis에 잘 등록되었는지 확인
+            verify(redisUtil, times(1)).setHashedRefreshTokenValue(eq("newHashedRefreshToken"), any(RedisValue.class), anyLong());
+        }
+
+        @Test
+        @DisplayName("[엣지 케이스] Access Token이 null인 상태로 요청이 와도 정상적으로 처리되는가")
+        void successWhenAccessTokenIsNull() {
+            // given
+            // Access Token 자리에 null 전달
+            GuestRecertificationReqDto reqDto = new GuestRecertificationReqDto("rawDeviceUid", null,"rawRecoverToken");
+            String hashedDeviceUid = "hashedDeviceUid";
+            String hashedRecoverToken = "hashedRecoverToken";
+
+            User user = mock(User.class);
+            when(user.getId()).thenReturn(1L);
+            when(user.getRole()).thenReturn(RoleType.ROLE_USER);
+            when(user.getStatus()).thenReturn(UserStatus.ACTIVE);
+
+            AuthAccount authAccount = mock(AuthAccount.class);
+            when(authAccount.getId()).thenReturn(1L);
+            when(authAccount.getUser()).thenReturn(user);
+            when(authAccount.getProvider()).thenReturn(Provider.GUEST);
+            when(authAccount.getHashedDeviceUid()).thenReturn(hashedDeviceUid);
+            when(authAccount.getHashedRecoverToken()).thenReturn(hashedRecoverToken);
+
+            when(hashingUtil.hashingValue("rawDeviceUid")).thenReturn(hashedDeviceUid);
+            when(hashingUtil.hashingValue("rawRecoverToken")).thenReturn(hashedRecoverToken);
+
+            when(authAccountRepository.findByHashedDeviceUidAndProvider(hashedDeviceUid, Provider.GUEST))
+                    .thenReturn(Optional.of(authAccount));
+
+            when(jwtUtil.createSubject(Provider.GUEST, hashedDeviceUid)).thenReturn("GUEST:"+hashedDeviceUid);
+            when(jwtUtil.createAccessToken(anyLong(), anyLong(), anyString(), any(RoleType.class))).thenReturn(new TokenInfo("newAccessToken", LocalDateTime.now()));
+            when(jwtUtil.createRefreshToken(anyString(), any(RoleType.class))).thenReturn(new TokenInfo("newRefreshToken", LocalDateTime.now()));
+            when(jwtUtil.createRecoverToken(any(CustomUserDetails.class))).thenReturn(new TokenInfo("newRecoverToken", LocalDateTime.now()));
+
+            // when
+            authService.recertificationGuestToken(reqDto);
+
+            // then
+            // null이 들어가더라도 NPE 없이 블랙리스트 메서드가 호출되었는지 확인
+            verify(redisUtil, never()).setTokenInBlacklist(null);
+        }
+
+        @Test
+        @DisplayName("[실패 1] 해당 사용자의 AuthAccount 객체 찾기 실패")
+        void failFindAuthAccount(){
+            // given
+            GuestRecertificationReqDto reqDto = new GuestRecertificationReqDto("rawDeviceUid", "rawRecoverToken", "oldAccessToken");
+            String hashedDeviceUid = "hashedDeviceUid";
+
+            when(hashingUtil.hashingValue("rawDeviceUid")).thenReturn(hashedDeviceUid);
+            when(authAccountRepository.findByHashedDeviceUidAndProvider(hashedDeviceUid, Provider.GUEST))
+                    .thenReturn(Optional.empty()); // DB에 없음
+
+            // when & then
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                authService.recertificationGuestToken(reqDto);
+            });
+            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.USER_AUTH_ACCOUNT_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("[실패 2] Recover Token이 AuthAccount의 값과 같지 않은 경우")
+        void failRecoverTokenNotEqualWithAuthAccount(){
+            // given
+            GuestRecertificationReqDto reqDto = new GuestRecertificationReqDto("rawDeviceUid", "oldAccessToken", "wrongRecoverToken");
+            String hashedDeviceUid = "hashedDeviceUid";
+            String wrongHashedRecoverToken = "wrongHashedRecoverToken";
+
+            User user = mock(User.class);
+            AuthAccount authAccount = mock(AuthAccount.class);
+            when(authAccount.getUser()).thenReturn(user);
+            when(authAccount.getHashedRecoverToken()).thenReturn("correctHashedRecoverToken"); // DB에 저장된 정상 값
+
+            when(hashingUtil.hashingValue("rawDeviceUid")).thenReturn(hashedDeviceUid);
+            when(hashingUtil.hashingValue("wrongRecoverToken")).thenReturn(wrongHashedRecoverToken);
+
+            when(authAccountRepository.findByHashedDeviceUidAndProvider(hashedDeviceUid, Provider.GUEST))
+                    .thenReturn(Optional.of(authAccount));
+
+            // when & then
+            // 1. 제대로 예외가 터지는지 확인
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                authService.recertificationGuestToken(reqDto);
+            });
+            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.INVALID_RECOVER_TOKEN);
+            // 2. 보안을 위해 사용자의 상태를 탈퇴 대기로 변경하는 withdrawUser() 로직이 실행되었는지 확인!
+            verify(user, times(1)).withdrawUser(any());
+        }
+
+        @Test
+        @DisplayName("[실패 3] 인증 정보를 갖고 있는 User가 삭제대기인 경우")
+        void failUserWithdrawPending(){
+            // given
+            GuestRecertificationReqDto reqDto = new GuestRecertificationReqDto("rawDeviceUid", "oldAccessToken", "rawRecoverToken");
+            String hashedDeviceUid = "hashedDeviceUid";
+            String hashedRecoverToken = "hashedRecoverToken";
+
+            User user = mock(User.class);
+            when(user.getStatus()).thenReturn(UserStatus.WITHDRAW_PENDING); // 사용자가 삭제 대기 상태임
+
+            AuthAccount authAccount = mock(AuthAccount.class);
+            when(authAccount.getUser()).thenReturn(user);
+            when(authAccount.getHashedRecoverToken()).thenReturn(hashedRecoverToken); // Recover Token은 일치하게 둠
+
+            when(hashingUtil.hashingValue("rawDeviceUid")).thenReturn(hashedDeviceUid);
+            when(hashingUtil.hashingValue("rawRecoverToken")).thenReturn(hashedRecoverToken);
+
+            when(authAccountRepository.findByHashedDeviceUidAndProvider(hashedDeviceUid, Provider.GUEST))
+                    .thenReturn(Optional.of(authAccount));
+
+            // when & then
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                authService.recertificationGuestToken(reqDto);
+            });
+            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.RECERTIFICATION_FAIL_USER_WITHDRAW_PENDING);
+        }
+    }
+
+    @Nested
+    @DisplayName("recertificationGoogleToken() 메서드 테스트")
+    class RecertificationGoogleTokenTest {
+        @Test
+        @DisplayName("[성공 1] 기존 AccessToken이 존재하는 경우 정상 재발급 및 세션 갱신")
+        void successRecertificationGoogleTokenWithAccessToken() {
+            // given
+            GoogleRecertificationReqDto reqDto = new GoogleRecertificationReqDto("validIdToken", "oldAccessToken");
+            String googleSub = "googleSub123";
+            String hashedGoogleSub = "hashedGoogleSub123";
+            String email = "test@gmail.com";
+
+            GoogleIdToken.Payload payload = new GoogleIdToken.Payload();
+            payload.setSubject(googleSub);
+            payload.setEmail(email);
+
+            when(googleOAuthService.verifyToken(reqDto.idToken())).thenReturn(payload);
+            when(hashingUtil.hashingValue(googleSub)).thenReturn(hashedGoogleSub);
+
+            User user = mock(User.class);
+            when(user.getId()).thenReturn(1L);
+            when(user.getRole()).thenReturn(RoleType.ROLE_USER);
+            when(user.getStatus()).thenReturn(UserStatus.ACTIVE);
+            when(user.getEmail()).thenReturn(email);
+
+            AuthAccount authAccount = mock(AuthAccount.class);
+            when(authAccount.getId()).thenReturn(1L);
+            when(authAccount.getUser()).thenReturn(user);
+            when(authAccount.getProvider()).thenReturn(Provider.GOOGLE);
+            when(authAccount.getHashedDeviceUid()).thenReturn(hashedGoogleSub);
+
+            when(authAccountRepository.findByHashedDeviceUidAndProvider(hashedGoogleSub, Provider.GOOGLE))
+                    .thenReturn(Optional.of(authAccount));
+
+            // 기존 Refresh Token 삭제 로직 모킹
+            RefreshTokenBackup oldBackup = mock(RefreshTokenBackup.class);
+            when(oldBackup.getHashedTokenValue()).thenReturn("oldHashedRefreshToken");
+            when(refreshTokenBackupRepository.findByAuthAccount(authAccount)).thenReturn(Optional.of(oldBackup));
+
+            // 신규 토큰 발급 모킹
+            TokenInfo newAccessTokenInfo = new TokenInfo("newAccessToken", LocalDateTime.now().plusHours(1));
+            TokenInfo newRefreshTokenInfo = new TokenInfo("newRefreshToken", LocalDateTime.now().plusDays(1));
+
+            when(jwtUtil.createAccessToken(any(CustomUserDetails.class))).thenReturn(newAccessTokenInfo);
+            when(jwtUtil.createRefreshToken(any(CustomUserDetails.class))).thenReturn(newRefreshTokenInfo);
+
+            when(hashingUtil.hashingValue("newRefreshToken")).thenReturn("newHashedRefreshToken");
+
+            String subject = Provider.GOOGLE + ":" + hashedGoogleSub;
+            when(jwtUtil.createSubject(Provider.GOOGLE, hashedGoogleSub)).thenReturn(subject);
+
+            when(refreshTokenBackupRepository.existsByAuthAccount(authAccount)).thenReturn(true);
+
+            // when
+            JwtTokenResDto resDto = authService.recertificationGoogleToken(reqDto);
+
+            // then
+            assertThat(resDto.accessToken()).isEqualTo("newAccessToken");
+            assertThat(resDto.refreshToken()).isEqualTo("newRefreshToken");
+            assertThat(resDto.recoverToken()).isNull(); // Google 로그인은 Recover Token이 없음
+            assertThat(resDto.email()).isEqualTo(email);
+
+            // 사이드 이펙트 검증
+            verify(redisUtil, times(1)).setTokenInBlacklist("oldAccessToken");
+            verify(redisUtil, times(1)).deleteHashedRefreshToken("oldHashedRefreshToken");
+            verify(redisUtil, times(1)).setHashedRefreshTokenValue(eq("newHashedRefreshToken"), any(RedisValue.class), anyLong());
+        }
+
+        @Test
+        @DisplayName("[성공 2] AccessToken이 null이거나 빈 문자열인 경우 예외 없이 정상 재발급")
+        void successRecertificationGoogleTokenWithoutAccessToken() {
+            // given
+            // Access Token에 null 전달
+            GoogleRecertificationReqDto reqDto = new GoogleRecertificationReqDto("validIdToken", null);
+            String googleSub = "googleSub123";
+            String hashedGoogleSub = "hashedGoogleSub123";
+
+            GoogleIdToken.Payload payload = new GoogleIdToken.Payload();
+            payload.setSubject(googleSub);
+
+            when(googleOAuthService.verifyToken(reqDto.idToken())).thenReturn(payload);
+            when(hashingUtil.hashingValue(googleSub)).thenReturn(hashedGoogleSub);
+
+            User user = mock(User.class);
+            when(user.getId()).thenReturn(1L);
+            when(user.getRole()).thenReturn(RoleType.ROLE_USER);
+            when(user.getStatus()).thenReturn(UserStatus.ACTIVE);
+
+            AuthAccount authAccount = mock(AuthAccount.class);
+            when(authAccount.getId()).thenReturn(1L);
+            when(authAccount.getUser()).thenReturn(user);
+            when(authAccount.getProvider()).thenReturn(Provider.GOOGLE);
+            when(authAccount.getHashedDeviceUid()).thenReturn(hashedGoogleSub);
+
+            when(authAccountRepository.findByHashedDeviceUidAndProvider(hashedGoogleSub, Provider.GOOGLE))
+                    .thenReturn(Optional.of(authAccount));
+
+            // 기존 Refresh Token 삭제 로직 모킹
+            RefreshTokenBackup oldBackup = mock(RefreshTokenBackup.class);
+            when(oldBackup.getHashedTokenValue()).thenReturn("oldHashedRefreshToken");
+            when(refreshTokenBackupRepository.findByAuthAccount(authAccount)).thenReturn(Optional.of(oldBackup));
+
+            // 신규 토큰 발급 모킹
+            TokenInfo newAccessTokenInfo = new TokenInfo("newAccessToken", LocalDateTime.now().plusHours(1));
+            TokenInfo newRefreshTokenInfo = new TokenInfo("newRefreshToken", LocalDateTime.now().plusDays(1));
+
+            when(jwtUtil.createAccessToken(any(CustomUserDetails.class))).thenReturn(newAccessTokenInfo);
+            when(jwtUtil.createRefreshToken(any(CustomUserDetails.class))).thenReturn(newRefreshTokenInfo);
+
+            when(hashingUtil.hashingValue("newRefreshToken")).thenReturn("newHashedRefreshToken");
+
+            String subject = Provider.GOOGLE + ":" + hashedGoogleSub;
+            when(jwtUtil.createSubject(Provider.GOOGLE, hashedGoogleSub)).thenReturn(subject);
+
+            when(refreshTokenBackupRepository.existsByAuthAccount(authAccount)).thenReturn(true);
+
+            // when
+            authService.recertificationGoogleToken(reqDto);
+
+            // then
+            // null이 전달되었으므로 방어 로직에 의해 블랙리스트 등록 로직이 호출되지 않아야 함
+            verify(redisUtil, never()).setTokenInBlacklist(any());
+        }
+
+        @Test
+        @DisplayName("[실패 1] 등록되지 않은 Google 사용자(DB에 AuthAccount 없음)의 접근")
+        void failGoogleUserNotFound() {
+            // given
+            GoogleRecertificationReqDto reqDto = new GoogleRecertificationReqDto("validIdToken", "oldAccessToken");
+            String googleSub = "googleSub123";
+            String hashedGoogleSub = "hashedGoogleSub123";
+
+            GoogleIdToken.Payload payload = new GoogleIdToken.Payload();
+            payload.setSubject(googleSub);
+
+            when(googleOAuthService.verifyToken(reqDto.idToken())).thenReturn(payload);
+            when(hashingUtil.hashingValue(googleSub)).thenReturn(hashedGoogleSub);
+
+            // DB에 계정이 없다고 가정
+            when(authAccountRepository.findByHashedDeviceUidAndProvider(hashedGoogleSub, Provider.GOOGLE))
+                    .thenReturn(Optional.empty());
+
+            // when & then
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                authService.recertificationGoogleToken(reqDto);
+            });
+            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.USER_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("[실패 2] 인증 정보를 가진 User가 삭제 대기(WITHDRAW_PENDING) 상태인 경우")
+        void failGoogleUserWithdrawPending() {
+            // given
+            GoogleRecertificationReqDto reqDto = new GoogleRecertificationReqDto("validIdToken", "oldAccessToken");
+            String googleSub = "googleSub123";
+            String hashedGoogleSub = "hashedGoogleSub123";
+
+            GoogleIdToken.Payload payload = new GoogleIdToken.Payload();
+            payload.setSubject(googleSub);
+
+            when(googleOAuthService.verifyToken(reqDto.idToken())).thenReturn(payload);
+            when(hashingUtil.hashingValue(googleSub)).thenReturn(hashedGoogleSub);
+
+            // 삭제 대기 상태 모킹
+            User user = mock(User.class);
+            when(user.getStatus()).thenReturn(UserStatus.WITHDRAW_PENDING);
+
+            AuthAccount authAccount = mock(AuthAccount.class);
+            when(authAccount.getUser()).thenReturn(user);
+
+            when(authAccountRepository.findByHashedDeviceUidAndProvider(hashedGoogleSub, Provider.GOOGLE))
+                    .thenReturn(Optional.of(authAccount));
+
+            // when & then
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                authService.recertificationGoogleToken(reqDto);
+            });
+            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.RECERTIFICATION_FAIL_USER_WITHDRAW_PENDING);
+        }
+
+    }
 
 }
