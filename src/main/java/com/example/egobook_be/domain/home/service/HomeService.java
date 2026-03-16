@@ -72,8 +72,7 @@ public class HomeService {
                             .user(user)
                             .amount(attendanceRewardInk)
                             .reason(InkLogType.ATTENDANCE_REWARD)
-                            .build()
-                    );
+                            .build());
         }
         else attendanceRewardInk = 0;
         HomeResDto resDto = homeMapper.toHomeResDto(user, unReadNotificationCount, hasUnopenedPsychology, attendanceRewardInk);
