@@ -53,15 +53,12 @@ import static org.mockito.BDDMockito.given;
 @ActiveProfiles("test") // application-test.yml
 public class AuthServiceIntegrationTest {
     @Autowired private AuthService authService;
-    @Autowired private GoogleOAuthService googleOAuthService;
     @Autowired private AuthAccountRepository authAccountRepository;
     @Autowired private RefreshTokenBackupRepository refreshTokenBackupRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private ItemRepository itemRepository;
     @Autowired private UserItemRepository userItemRepository;
-    @Autowired private JwtUtil jwtUtil;
     @Autowired private HashingUtil hashingUtil;
-    @Autowired private UserNicknameGenerator userNicknameGenerator;
     @Autowired private RedisUtil redisUtil;
     @Autowired private TermRepository termRepository;
     @Autowired private AbilityRepository abilityRepository;
