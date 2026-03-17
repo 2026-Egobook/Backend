@@ -71,7 +71,7 @@ class TodayQuestionCreateAnswerServiceTest {
     @Test
     @DisplayName("createAnswer_정상답변저장_성공")
     void createAnswer_validRequest_success() {
-        // given
+
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(missionRepository.findByUser(user)).willReturn(Optional.of(mission));
         given(abilityRepository.findByUser(user)).willReturn(Optional.of(ability));
@@ -84,10 +84,8 @@ class TodayQuestionCreateAnswerServiceTest {
         given(mission.updateDailyQuestionMissionStatus(true)).willReturn(false);
         given(ability.addDiligence(1)).willReturn(0);
 
-        // when
         todayQuestionService.createAnswer(1L, reqDto);
 
-        // then
         ArgumentCaptor<QuestionAnswer> captor = ArgumentCaptor.forClass(QuestionAnswer.class);
         verify(questionAnswerRepository).save(captor.capture());
         assertThat(captor.getValue().getContent()).isEqualTo("오늘의 답변입니다.");
@@ -97,10 +95,9 @@ class TodayQuestionCreateAnswerServiceTest {
     @Test
     @DisplayName("createAnswer_사용자없음_실패")
     void createAnswer_userNotFound_fail() {
-        // given
+
         given(userRepository.findById(1L)).willReturn(Optional.empty());
 
-        // when & then
         assertThatThrownBy(() -> todayQuestionService.createAnswer(1L, reqDto))
                 .isInstanceOf(CustomException.class)
                 .extracting(e -> ((CustomException) e).getErrorCode())
@@ -110,11 +107,10 @@ class TodayQuestionCreateAnswerServiceTest {
     @Test
     @DisplayName("createAnswer_미션정보없음_실패")
     void createAnswer_missionNotFound_fail() {
-        // given
+
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(missionRepository.findByUser(user)).willReturn(Optional.empty());
 
-        // when & then
         assertThatThrownBy(() -> todayQuestionService.createAnswer(1L, reqDto))
                 .isInstanceOf(CustomException.class)
                 .extracting(e -> ((CustomException) e).getErrorCode())
@@ -124,12 +120,11 @@ class TodayQuestionCreateAnswerServiceTest {
     @Test
     @DisplayName("createAnswer_능력치정보없음_실패")
     void createAnswer_abilityNotFound_fail() {
-        // given
+
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(missionRepository.findByUser(user)).willReturn(Optional.of(mission));
         given(abilityRepository.findByUser(user)).willReturn(Optional.empty());
 
-        // when & then
         assertThatThrownBy(() -> todayQuestionService.createAnswer(1L, reqDto))
                 .isInstanceOf(CustomException.class)
                 .extracting(e -> ((CustomException) e).getErrorCode())
@@ -139,14 +134,13 @@ class TodayQuestionCreateAnswerServiceTest {
     @Test
     @DisplayName("createAnswer_오늘의질문없음_실패")
     void createAnswer_todayQuestionNotFound_fail() {
-        // given
+
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(missionRepository.findByUser(user)).willReturn(Optional.of(mission));
         given(abilityRepository.findByUser(user)).willReturn(Optional.of(ability));
         given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
                 .willReturn(Optional.empty());
 
-        // when & then
         assertThatThrownBy(() -> todayQuestionService.createAnswer(1L, reqDto))
                 .isInstanceOf(CustomException.class)
                 .extracting(e -> ((CustomException) e).getErrorCode())
@@ -156,7 +150,7 @@ class TodayQuestionCreateAnswerServiceTest {
     @Test
     @DisplayName("createAnswer_오늘이미답변함_실패")
     void createAnswer_alreadyAnsweredToday_fail() {
-        // given
+
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(missionRepository.findByUser(user)).willReturn(Optional.of(mission));
         given(abilityRepository.findByUser(user)).willReturn(Optional.of(ability));
@@ -164,7 +158,6 @@ class TodayQuestionCreateAnswerServiceTest {
                 .willReturn(Optional.of(todayQuestion));
         given(questionAnswerRepository.existsByUserAndQuestion(user, todayQuestion)).willReturn(true);
 
-        // when & then
         assertThatThrownBy(() -> todayQuestionService.createAnswer(1L, reqDto))
                 .isInstanceOf(CustomException.class)
                 .extracting(e -> ((CustomException) e).getErrorCode())
@@ -174,7 +167,7 @@ class TodayQuestionCreateAnswerServiceTest {
     @Test
     @DisplayName("createAnswer_첫답변시잉크보상지급_성공")
     void createAnswer_firstAnswerToday_inkRewardGiven() {
-        // given
+
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(missionRepository.findByUser(user)).willReturn(Optional.of(mission));
         given(abilityRepository.findByUser(user)).willReturn(Optional.of(ability));
@@ -187,17 +180,15 @@ class TodayQuestionCreateAnswerServiceTest {
         given(mission.updateDailyQuestionMissionStatus(true)).willReturn(false);
         given(ability.addDiligence(1)).willReturn(0);
 
-        // when
         todayQuestionService.createAnswer(1L, reqDto);
 
-        // then
         verify(inkLogUtil, atLeastOnce()).addInkLogToList(any(), eq(user), anyInt(), any());
     }
 
     @Test
     @DisplayName("createAnswer_일일미션최초달성시추가잉크지급_성공")
     void createAnswer_dailyMissionFirstComplete_bonusInkGiven() {
-        // given
+
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(missionRepository.findByUser(user)).willReturn(Optional.of(mission));
         given(abilityRepository.findByUser(user)).willReturn(Optional.of(ability));
@@ -211,10 +202,8 @@ class TodayQuestionCreateAnswerServiceTest {
         given(mission.isWeeklyMissionCompleted()).willReturn(false);
         given(ability.addDiligence(1)).willReturn(0);
 
-        // when
         todayQuestionService.createAnswer(1L, reqDto);
 
-        // then
         verify(inkLogUtil, atLeast(2)).addInkLogToList(any(), eq(user), anyInt(), any());
     }
 }
