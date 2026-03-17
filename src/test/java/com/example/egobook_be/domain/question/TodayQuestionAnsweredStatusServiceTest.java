@@ -52,11 +52,6 @@ class TodayQuestionAnsweredStatusServiceTest {
     @BeforeEach
     void setUp() {
         todayQuestion = mock(TodayQuestion.class);
-        given(todayQuestion.getId()).willReturn(100L);
-        given(todayQuestion.getContent()).willReturn("오늘의 질문입니다.");
-        given(todayQuestion.getQuestionDate()).willReturn(LocalDate.now());
-        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
-                .willReturn(Optional.of(todayQuestion));
     }
 
     @Test
@@ -76,6 +71,11 @@ class TodayQuestionAnsweredStatusServiceTest {
     @DisplayName("getTodayQuestion_답변안한경우_answered가false_성공")
     void getTodayQuestion_notAnsweredYet_answeredFalse() {
 
+        given(todayQuestion.getId()).willReturn(100L);
+        given(todayQuestion.getContent()).willReturn("오늘의 질문입니다.");
+        given(todayQuestion.getQuestionDate()).willReturn(LocalDate.now());
+        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+                .willReturn(Optional.of(todayQuestion));
         given(questionAnswerRepository.findByUserIdAndQuestionIdWithQuestion(1L, 100L))
                 .willReturn(Optional.empty());
 
@@ -89,12 +89,17 @@ class TodayQuestionAnsweredStatusServiceTest {
     @DisplayName("getTodayQuestion_이미답변한경우_answered가true_성공")
     void getTodayQuestion_alreadyAnswered_answeredTrue() {
 
+        given(todayQuestion.getId()).willReturn(100L);
+        given(todayQuestion.getContent()).willReturn("오늘의 질문입니다.");
+        given(todayQuestion.getQuestionDate()).willReturn(LocalDate.now());
+        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+                .willReturn(Optional.of(todayQuestion));
+
         QuestionAnswer answer = mock(QuestionAnswer.class);
         given(answer.getId()).willReturn(10L);
         given(answer.getContent()).willReturn("내 답변");
         given(answer.getVisibility()).willReturn(AnswerVisibility.PUBLIC);
         given(answer.getCreatedAt()).willReturn(LocalDateTime.now());
-
         given(questionAnswerRepository.findByUserIdAndQuestionIdWithQuestion(1L, 100L))
                 .willReturn(Optional.of(answer));
 
@@ -109,6 +114,11 @@ class TodayQuestionAnsweredStatusServiceTest {
     @Test
     @DisplayName("getTodayQuestion_비로그인유저_answered가false_성공")
     void getTodayQuestion_anonymousUser_answeredFalse() {
+
+        given(todayQuestion.getContent()).willReturn("오늘의 질문입니다.");
+        given(todayQuestion.getQuestionDate()).willReturn(LocalDate.now());
+        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+                .willReturn(Optional.of(todayQuestion));
 
         TodayQuestionResDto result = todayQuestionService.getTodayQuestion(null);
 
