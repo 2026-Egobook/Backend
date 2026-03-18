@@ -8,30 +8,18 @@ import com.example.egobook_be.domain.auth.enums.AuthErrorCode;
 import com.example.egobook_be.domain.auth.enums.Provider;
 import com.example.egobook_be.domain.auth.repository.AuthAccountRepository;
 import com.example.egobook_be.domain.auth.repository.RefreshTokenBackupRepository;
-import com.example.egobook_be.domain.home.entity.Mission;
-import com.example.egobook_be.domain.home.repository.MissionRepository;
-import com.example.egobook_be.domain.shop.entity.Item;
-import com.example.egobook_be.domain.shop.repository.ItemRepository;
-import com.example.egobook_be.domain.shop.repository.UserItemRepository;
-import com.example.egobook_be.domain.terms.entity.Term;
-import com.example.egobook_be.domain.terms.repository.TermRepository;
-import com.example.egobook_be.domain.terms.repository.UserTermRepository;
-import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.enums.RoleType;
 import com.example.egobook_be.domain.user.enums.UserStatus;
-import com.example.egobook_be.domain.user.repository.AbilityRepository;
-import com.example.egobook_be.domain.user.repository.UserRepository;
+import com.example.egobook_be.domain.user.service.UserService;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.security.CustomUserDetails;
 import com.example.egobook_be.global.util.HashingUtil;
 import com.example.egobook_be.global.util.JwtUtil;
 import com.example.egobook_be.global.util.RedisUtil;
-import com.example.egobook_be.global.util.UserNicknameGenerator;
 import com.example.egobook_be.global.util.module.RedisValue;
 import com.example.egobook_be.global.util.module.TokenInfo;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import org.antlr.v4.runtime.Token;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -39,14 +27,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
@@ -58,22 +43,14 @@ public class AuthServiceUnitTest {
     private AuthService authService;
 
     @Mock private GoogleOAuthService googleOAuthService;
+    @Mock private TokenManagementService tokenManagementService;
+    @Mock private UserService userService;
+
     @Mock private AuthAccountRepository authAccountRepository;
     @Mock private RefreshTokenBackupRepository refreshTokenBackupRepository;
-    @Mock private UserRepository userRepository;
-    @Mock private ItemRepository itemRepository;
-    @Mock private UserItemRepository userItemRepository;
-    @Mock private AbilityRepository abilityRepository;
     @Mock private JwtUtil jwtUtil;
     @Mock private HashingUtil hashingUtil;
-    @Mock private UserNicknameGenerator userNicknameGenerator;
     @Mock private RedisUtil redisUtil;
-    @Mock private TermRepository termRepository;
-    @Mock private UserTermRepository userTermRepository;
-    @Mock private MissionRepository missionRepository;
-
-    @Value("${app.data.purge-duration-in-ms}")
-    private Long purgeDurationInMs;
 
     @Nested
     @DisplayName("registerGoogle() 메서드 테스트")
@@ -104,38 +81,18 @@ public class AuthServiceUnitTest {
             // 2. 신규 사용자의 가입을 테스트하므로 DB에 기존 계정이 없다는 상태를 반환하도록 Stub 설정 (내가 null을 반환하도록 직접 설정하면 안되고, 프로덕션 코드에서 orElse로 null을 반환하도록 해야함)
             given(authAccountRepository.findByHashedDeviceUidAndProvider(hashedGoogleSub, Provider.GOOGLE)).willReturn(Optional.empty());
 
-            /*
-             * 3. 신규 User Entity 생성 로직으로 전환 (createUser())
-             * - userRepository.existsByAccountCode(어떤 문자열이던) : false 반환
-             * - userNicknameGenerator.generateUniqueNickname() :  Ego1234 반환
-             */
-            given(userRepository.existsByAccountCode(anyString())).willReturn(false);
-            given(userNicknameGenerator.generateUniqueNickname()).willReturn("Ego1234");
-
-            // userRepository가 반환할 mockUser
+            // 3. 신규 User Entity 생성
             User mockUser = User.builder()
                     .id(1L)
                     .accountCode(accountCode)
-                    .nickname(userNicknameGenerator.generateUniqueNickname())
+                    .nickname("에고북1234")
                     .lastLoginAt(LocalDateTime.now())
                     .email(email)
                     .build();
-            // save에 User 클래스만 들어가면 미리 설정해둔 mockUser를 반환하도록 Stub 설정
-            given(userRepository.save(any(User.class))).willReturn(mockUser);
+            given(userService.initializeAndRegisterUser(anyString())).willReturn(mockUser);
 
             /*
-             * 4. allocateUser() 내부 메서드 - createDefaultUserItems()
-             * - defaultItem.getFullUrl() 부분에서 에러 반환하지 않도록 defaultItems에 필요한 값이 들어간 Item 생성 및 주입
-             */
-            given(itemRepository.findAllByName("Default.png")).willReturn(List.of(Item.builder().path("tmpPath").name("skin").build()));
-            given(userItemRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
-            // -> InvocationOnMock::getArguments = userItemRepository.saveAll()의 함수의 파라미터로 들어간 인자들 중 첫번째 인자의 값 추출
-
-            // 5. allocateUser() 내부 메서드 - createDefaultUserTerms()
-            given(termRepository.findAll()).willReturn(List.of(Term.builder().build()));
-
-            /*
-             * 6. createAuthAccount()
+             * 4. createAuthAccount()
              * - MockAuthAccount 객체 생성
              * - authAccountRepository.save(authAccount) return Stub 설정
              */
@@ -148,7 +105,7 @@ public class AuthServiceUnitTest {
             given(authAccountRepository.save(any(AuthAccount.class))).willReturn(mockAuthAccount);
 
             /*
-             * 7. processIssueTokens()
+             * 5. processIssueTokens()
              * - jwtUtil.createAccessToken(), createRefreshToken() Mock, Stub 설정
              * - processRefreshTokenSaving - hashingUtil.hashingValue() Mock, Stub 설정
              * - processRefreshTokenSaving - jwtUtil.createSubject() Mock, Stub 설정
@@ -156,14 +113,9 @@ public class AuthServiceUnitTest {
              */
             TokenInfo mockAccessTokenInfo = TokenInfo.builder().token("access-token-value").expiresAt(LocalDateTime.now().plusHours(1)).build();
             TokenInfo mockRefreshTokenInfo = TokenInfo.builder().token("refresh-token-value").expiresAt(LocalDateTime.now().plusHours(24)).build();
-            String hashedRefreshToken = "hashed-refresh-token-value";
-            String subject = Provider.GOOGLE + ":" + hashedGoogleSub;
 
             given(jwtUtil.createAccessToken(any(CustomUserDetails.class))).willReturn(mockAccessTokenInfo);
             given(jwtUtil.createRefreshToken(any(CustomUserDetails.class))).willReturn(mockRefreshTokenInfo);
-            given(jwtUtil.createSubject(Provider.GOOGLE, hashedGoogleSub)).willReturn(subject);
-            given(hashingUtil.hashingValue("refresh-token-value")).willReturn(hashedRefreshToken);
-            given(refreshTokenBackupRepository.existsByAuthAccount(mockAuthAccount)).willReturn(false);
 
             // ========= When =========
             JwtTokenResDto resDto = authService.registerGoogle(reqDto);
@@ -178,9 +130,9 @@ public class AuthServiceUnitTest {
 
             // 2. 핵심 로직들 1번씩 실행 되었는지 행위 검증
             verify(googleOAuthService, times(1)).verifyToken(reqDto.idToken());
-            verify(userRepository, times(1)).save(any(User.class));
+            verify(userService, times(1)).initializeAndRegisterUser(email);
             verify(authAccountRepository, times(1)).save(any(AuthAccount.class));
-            verify(redisUtil, times(1)).setHashedRefreshTokenValue(anyString(), any(RedisValue.class), anyLong());
+            verify(tokenManagementService, times(1)).saveRefreshTokenToTableAndRedis(mockRefreshTokenInfo, mockUser, mockAuthAccount);
         }
 
         @Test
@@ -231,14 +183,9 @@ public class AuthServiceUnitTest {
              */
             TokenInfo mockAccessTokenInfo = TokenInfo.builder().token("access-token-value").expiresAt(LocalDateTime.now().plusHours(1)).build();
             TokenInfo mockRefreshTokenInfo = TokenInfo.builder().token("refresh-token-value").expiresAt(LocalDateTime.now().plusHours(24)).build();
-            String hashedRefreshToken = "hashed-refresh-token-value";
-            String subject = Provider.GOOGLE + ":" + hashedGoogleSub;
 
             given(jwtUtil.createAccessToken(any(CustomUserDetails.class))).willReturn(mockAccessTokenInfo);
             given(jwtUtil.createRefreshToken(any(CustomUserDetails.class))).willReturn(mockRefreshTokenInfo);
-            given(jwtUtil.createSubject(Provider.GOOGLE, hashedGoogleSub)).willReturn(subject);
-            given(hashingUtil.hashingValue("refresh-token-value")).willReturn(hashedRefreshToken);
-            given(refreshTokenBackupRepository.existsByAuthAccount(mockAuthAccount)).willReturn(false);
 
             // ========= When =========
             JwtTokenResDto resDto = authService.registerGoogle(reqDto);
@@ -254,9 +201,10 @@ public class AuthServiceUnitTest {
 
             // 2. 핵심 로직들 1번씩 실행 되었는지 행위 검증
             verify(googleOAuthService, times(1)).verifyToken(reqDto.idToken()); // 구글 ID Token 검증 행위
-            verify(redisUtil, times(1)).setHashedRefreshTokenValue(anyString(), any(RedisValue.class), anyLong()); // Hashed Refresh Token Redis에 등록하는 행위
-            // 기존 User의 데이터 복구이므로, 아래의 save 로직은 절대 타지 말아야함
-            verify(userRepository, never()).save(any(User.class));
+            verify(tokenManagementService, times(1)).saveRefreshTokenToTableAndRedis(mockRefreshTokenInfo, mockUser, mockAuthAccount);
+
+            // 3. 삭제 대기중인 사용자가 계정을 복구한 것이므로, 아래 2개의 로직은 실행되면 안된다
+            verify(userService, never()).initializeAndRegisterUser(anyString());
             verify(authAccountRepository, never()).save(any(AuthAccount.class));
         }
 
@@ -309,7 +257,7 @@ public class AuthServiceUnitTest {
             assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.ALREADY_REGISTERED_USER);
 
             // 3. 예외가 터져서 로직이 중단되었으므로, DB 저장이나 토큰 발급 로직이 실행되지 않았음을 검증
-            verify(userRepository, never()).save(any(User.class));
+            verify(userService, never()).initializeAndRegisterUser(anyString());
             verify(jwtUtil, never()).createAccessToken(any());
         }
 
@@ -362,7 +310,7 @@ public class AuthServiceUnitTest {
             assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.GOOGLE_JOIN_FAIL_USER_WITHDRAWN);
 
             // 3. 예외가 터져서 로직이 중단되었으므로, DB 저장이나 토큰 발급 로직이 실행되지 않았음을 검증
-            verify(userRepository, never()).save(any(User.class));
+            verify(userService, never()).initializeAndRegisterUser(anyString());
             verify(jwtUtil, never()).createAccessToken(any());
         }
     }
@@ -384,33 +332,16 @@ public class AuthServiceUnitTest {
             given(hashingUtil.hashingValue(deviceUid)).willReturn(hashedDeviceUid);
             given(authAccountRepository.existsByHashedDeviceUidAndProvider(hashedDeviceUid, Provider.GUEST)).willReturn(false);
 
-            /*
-             * 2. 신규 User Entity 생성 로직 (createUser())
-             */
-            given(userRepository.existsByAccountCode(anyString())).willReturn(false);
-            given(userNicknameGenerator.generateUniqueNickname()).willReturn("GuestNick");
-
+            // 2. 신규 User Entity 생성
             User mockUser = User.builder()
                     .id(1L)
                     .accountCode(accountCode)
-                    .nickname("GuestNick")
+                    .nickname("에고북1234")
                     .lastLoginAt(LocalDateTime.now())
                     .build();
-            given(userRepository.save(any(User.class))).willReturn(mockUser);
+            given(userService.initializeAndRegisterUser(anyString())).willReturn(mockUser);
 
-            /*
-             * 3. allocateUser() 내부 메서드 (기본 아이템, 약관, 능력치, 미션 할당)
-             */
-            given(itemRepository.findAllByName("Default.png")).willReturn(List.of(Item.builder().path("tmpPath").name("skin").build()));
-            given(userItemRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
-            given(abilityRepository.save(any(Ability.class))).willAnswer(invocation -> invocation.getArgument(0));
-            given(termRepository.findAll()).willReturn(List.of(Term.builder().build()));
-            given(userTermRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
-            given(missionRepository.save(any(Mission.class))).willAnswer(invocation -> invocation.getArgument(0));
-
-            /*
-             * 4. createAuthAccount()
-             */
+            // 3. createAuthAccount()
             AuthAccount mockAuthAccount = AuthAccount.builder()
                     .id(2L)
                     .provider(Provider.GUEST)
@@ -420,16 +351,14 @@ public class AuthServiceUnitTest {
             given(authAccountRepository.save(any(AuthAccount.class))).willReturn(mockAuthAccount);
 
             /*
-             * 5. 토큰 발급 및 저장 (processIssueTokens 및 Recover Token)
+             * 4. 토큰 발급 및 저장 (processIssueTokens 및 Recover Token)
              * - Guest 로직에서는 Recover Token과 Refresh Token 2개가 해싱되므로 각각에 대한 리턴값을 명시합니다.
              */
             TokenInfo mockAccessTokenInfo = TokenInfo.builder().token("access-token-value").expiresAt(LocalDateTime.now().plusHours(1)).build();
             TokenInfo mockRefreshTokenInfo = TokenInfo.builder().token("refresh-token-value").expiresAt(LocalDateTime.now().plusDays(14)).build();
             TokenInfo mockRecoverTokenInfo = TokenInfo.builder().token("recover-token-value").expiresAt(LocalDateTime.now().plusDays(30)).build();
 
-            String hashedRefreshToken = "hashed-refresh-token-value";
             String hashedRecoverToken = "hashed-recover-token-value";
-            String subject = Provider.GUEST + ":" + hashedDeviceUid;
 
             given(jwtUtil.createAccessToken(any(CustomUserDetails.class))).willReturn(mockAccessTokenInfo);
             given(jwtUtil.createRefreshToken(any(CustomUserDetails.class))).willReturn(mockRefreshTokenInfo);
@@ -437,10 +366,6 @@ public class AuthServiceUnitTest {
 
             // hashingUtil이 파라미터에 따라 다르게 리턴하도록 설정
             given(hashingUtil.hashingValue("recover-token-value")).willReturn(hashedRecoverToken);
-            given(hashingUtil.hashingValue("refresh-token-value")).willReturn(hashedRefreshToken);
-
-            given(jwtUtil.createSubject(Provider.GUEST, hashedDeviceUid)).willReturn(subject);
-            given(refreshTokenBackupRepository.existsByAuthAccount(mockAuthAccount)).willReturn(false);
 
             // ========= When =========
             JwtTokenResDto resDto = authService.registerGuest(reqDto);
@@ -454,11 +379,10 @@ public class AuthServiceUnitTest {
             assertThat(resDto.email()).isNull(); // Guest는 이메일이 없음
 
             // 2. 핵심 로직들 1번씩 실행 되었는지 행위 검증
-            verify(userRepository, times(1)).save(any(User.class));
+            verify(userService, times(1)).initializeAndRegisterUser(hashedDeviceUid);
             verify(authAccountRepository, times(1)).save(any(AuthAccount.class));
-            verify(redisUtil, times(1)).setHashedRefreshTokenValue(anyString(), any(RedisValue.class), anyLong());
+            verify(tokenManagementService, times(1)).saveRefreshTokenToTableAndRedis(mockRefreshTokenInfo, mockUser, mockAuthAccount);
 
-            // 3. AuthAccount에 해싱된 Recover Token이 정상적으로 업데이트되었는지 검증
             assertThat(mockAuthAccount.getHashedRecoverToken()).isEqualTo(hashedRecoverToken);
         }
 
@@ -487,10 +411,10 @@ public class AuthServiceUnitTest {
             assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.ALREADY_REGISTERED_USER);
 
             // 3. 예외가 발생했으므로 User 저장이나 토큰 생성 등 후속 로직이 전혀 실행되지 않았음을 행위 검증
-            verify(userRepository, never()).save(any(User.class));
+            verify(userService, never()).initializeAndRegisterUser(anyString());
             verify(authAccountRepository, never()).save(any(AuthAccount.class));
             verify(jwtUtil, never()).createAccessToken(any());
-            verify(redisUtil, never()).setHashedRefreshTokenValue(anyString(), any(), anyLong());
+            verify(tokenManagementService, never()).saveRefreshTokenToTableAndRedis(any(), any(), any());
         }
     }
 
@@ -529,7 +453,7 @@ public class AuthServiceUnitTest {
             assertThat(resDto.recoverToken()).isNull();
 
             // 2. 블랙리스트 등록 로직이 정상 호출되었는지 검증 (사이드 이펙트 확인)
-            verify(redisUtil, times(1)).setTokenInBlacklist("oldAccessToken");
+            verify(tokenManagementService, times(1)).addAccessTokenInRedisBlackList("oldAccessToken");
             // 3. DB 조회가 발생하지 않았는지 확인
             verify(refreshTokenBackupRepository, never()).findByHashedTokenValue(anyString());
         }
@@ -579,10 +503,10 @@ public class AuthServiceUnitTest {
             assertThat(resDto.refreshToken()).isEqualTo("rawRefreshToken");
             assertThat(resDto.recoverToken()).isNull();
 
-            // 기존 토큰 블랙리스트 등록 확인
-            verify(redisUtil, times(1)).setTokenInBlacklist("oldAccessToken");
+            // tokenManagementService 로직 실행 검증
+            verify(tokenManagementService, times(1)).addAccessTokenInRedisBlackList("oldAccessToken");
             // Redis 복구 로직이 실행되었는지 확인 (registerToRedis 호출 여부)
-            verify(redisUtil, times(1)).setHashedRefreshTokenValue(eq(hashedToken), any(RedisValue.class), anyLong());
+            verify(tokenManagementService, times(1)).restoreHashedRefreshTokenRedisValue(hashedToken, user, authAccount, expiresAt);
         }
 
         @Test
@@ -612,7 +536,7 @@ public class AuthServiceUnitTest {
             // then
             assertThat(resDto.accessToken()).isNotNull();
             // NullPointerException 없이 redisUtil.setTokenInBlacklist(null)이 호출되었는지 검증
-            verify(redisUtil, times(1)).setTokenInBlacklist(null);
+            verify(tokenManagementService, times(1)).addAccessTokenInRedisBlackList(null);
         }
 
         @Test
@@ -718,7 +642,6 @@ public class AuthServiceUnitTest {
 
             // 기존 Refresh Token 삭제 로직을 위한 모킹
             RefreshTokenBackup oldBackup = mock(RefreshTokenBackup.class);
-            when(oldBackup.getHashedTokenValue()).thenReturn("oldHashedRefreshToken");
             when(refreshTokenBackupRepository.findByAuthAccount(authAccount)).thenReturn(Optional.of(oldBackup));
 
             // 신규 발급 토큰 정보 모킹
@@ -734,10 +657,6 @@ public class AuthServiceUnitTest {
             when(jwtUtil.createRecoverToken(any(CustomUserDetails.class))).thenReturn(newRecoverTokenInfo);
 
             when(hashingUtil.hashingValue(newRecoverTokenInfo.token())).thenReturn("newHashedRecoverToken");
-            when(hashingUtil.hashingValue(newRefreshTokenInfo.token())).thenReturn("newHashedRefreshToken");
-
-            // Refresh Token Backup 업데이트 검증을 위해 기존에 백업이 있다고 가정
-            when(refreshTokenBackupRepository.existsByAuthAccount(authAccount)).thenReturn(true);
 
             // when
             JwtTokenResDto resDto = authService.recertificationGuestToken(reqDto);
@@ -748,13 +667,13 @@ public class AuthServiceUnitTest {
             assertThat(resDto.recoverToken()).isEqualTo("newRecoverToken");
 
             // [검증 1] 기존 AccessToken 블랙리스트 등록 확인
-            verify(redisUtil, times(1)).setTokenInBlacklist("oldAccessToken");
+            verify(tokenManagementService, times(1)).addAccessTokenInRedisBlackList("oldAccessToken");
             // [검증 2] Redis에서 기존 RefreshToken 삭제 확인
-            verify(redisUtil, times(1)).deleteHashedRefreshToken("oldHashedRefreshToken");
+            verify(tokenManagementService, times(1)).deleteOldRefreshTokenFromRedis(oldBackup, 1L);
             // [검증 3] AuthAccount의 RecoverToken 값이 갱신되었는지 확인
             verify(authAccount, times(1)).updateHashedRecoverToken("newHashedRecoverToken");
             // [검증 4] 새로운 RefreshToken이 Redis에 잘 등록되었는지 확인
-            verify(redisUtil, times(1)).setHashedRefreshTokenValue(eq("newHashedRefreshToken"), any(RedisValue.class), anyLong());
+            verify(tokenManagementService, times(1)).saveRefreshTokenToTableAndRedis(newRefreshTokenInfo, user, authAccount);
         }
 
         @Test
@@ -909,7 +828,6 @@ public class AuthServiceUnitTest {
 
             // 기존 Refresh Token 삭제 로직 모킹
             RefreshTokenBackup oldBackup = mock(RefreshTokenBackup.class);
-            when(oldBackup.getHashedTokenValue()).thenReturn("oldHashedRefreshToken");
             when(refreshTokenBackupRepository.findByAuthAccount(authAccount)).thenReturn(Optional.of(oldBackup));
 
             // 신규 토큰 발급 모킹
@@ -918,13 +836,6 @@ public class AuthServiceUnitTest {
 
             when(jwtUtil.createAccessToken(any(CustomUserDetails.class))).thenReturn(newAccessTokenInfo);
             when(jwtUtil.createRefreshToken(any(CustomUserDetails.class))).thenReturn(newRefreshTokenInfo);
-
-            when(hashingUtil.hashingValue("newRefreshToken")).thenReturn("newHashedRefreshToken");
-
-            String subject = Provider.GOOGLE + ":" + hashedGoogleSub;
-            when(jwtUtil.createSubject(Provider.GOOGLE, hashedGoogleSub)).thenReturn(subject);
-
-            when(refreshTokenBackupRepository.existsByAuthAccount(authAccount)).thenReturn(true);
 
             // when
             JwtTokenResDto resDto = authService.recertificationGoogleToken(reqDto);
@@ -936,9 +847,9 @@ public class AuthServiceUnitTest {
             assertThat(resDto.email()).isEqualTo(email);
 
             // 사이드 이펙트 검증
-            verify(redisUtil, times(1)).setTokenInBlacklist("oldAccessToken");
-            verify(redisUtil, times(1)).deleteHashedRefreshToken("oldHashedRefreshToken");
-            verify(redisUtil, times(1)).setHashedRefreshTokenValue(eq("newHashedRefreshToken"), any(RedisValue.class), anyLong());
+            verify(tokenManagementService, times(1)).addAccessTokenInRedisBlackList("oldAccessToken");
+            verify(tokenManagementService, times(1)).deleteOldRefreshTokenFromRedis(oldBackup, 1L);
+            verify(tokenManagementService, times(1)).saveRefreshTokenToTableAndRedis(newRefreshTokenInfo, user, authAccount);
         }
 
         @Test
@@ -972,7 +883,6 @@ public class AuthServiceUnitTest {
 
             // 기존 Refresh Token 삭제 로직 모킹
             RefreshTokenBackup oldBackup = mock(RefreshTokenBackup.class);
-            when(oldBackup.getHashedTokenValue()).thenReturn("oldHashedRefreshToken");
             when(refreshTokenBackupRepository.findByAuthAccount(authAccount)).thenReturn(Optional.of(oldBackup));
 
             // 신규 토큰 발급 모킹
@@ -982,19 +892,12 @@ public class AuthServiceUnitTest {
             when(jwtUtil.createAccessToken(any(CustomUserDetails.class))).thenReturn(newAccessTokenInfo);
             when(jwtUtil.createRefreshToken(any(CustomUserDetails.class))).thenReturn(newRefreshTokenInfo);
 
-            when(hashingUtil.hashingValue("newRefreshToken")).thenReturn("newHashedRefreshToken");
-
-            String subject = Provider.GOOGLE + ":" + hashedGoogleSub;
-            when(jwtUtil.createSubject(Provider.GOOGLE, hashedGoogleSub)).thenReturn(subject);
-
-            when(refreshTokenBackupRepository.existsByAuthAccount(authAccount)).thenReturn(true);
-
             // when
             authService.recertificationGoogleToken(reqDto);
 
             // then
             // null이 전달되었으므로 방어 로직에 의해 블랙리스트 등록 로직이 호출되지 않아야 함
-            verify(redisUtil, never()).setTokenInBlacklist(any());
+            verify(tokenManagementService, never()).addAccessTokenInRedisBlackList(any());
         }
 
         @Test
