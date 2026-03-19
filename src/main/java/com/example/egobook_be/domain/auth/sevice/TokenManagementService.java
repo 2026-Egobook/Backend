@@ -31,6 +31,30 @@ public class TokenManagementService {
     private final RedisUtil redisUtil;
 
     /**
+     * 재인증 및 계정 연동 시, 기존에 사용하던 토큰들을 모두 무효화하는 함수
+     * @param accessToken : 무효화할 기존 Access Token
+     * @param authAccount : 조회할 기존 AuthAccount
+     * @param userId : 로깅용 User ID
+     */
+    @Transactional
+    public void invalidatePreviousTokens(String accessToken, AuthAccount authAccount, Long userId) {
+        // 1. Access Token 블랙리스트 등록
+        if (accessToken != null && !accessToken.isBlank()) {
+            addAccessTokenInRedisBlackList(accessToken);
+        }
+
+        // 2. 기존 Refresh Token 백업 조회 후 Redis 및 DB에서 삭제
+        refreshTokenBackupRepository.findByAuthAccount(authAccount).ifPresent(refreshTokenBackup -> {
+            // Redis에서 삭제
+            deleteOldRefreshTokenFromRedis(refreshTokenBackup, userId);
+
+            // DB에서 삭제
+            refreshTokenBackupRepository.delete(refreshTokenBackup);
+            log.info("🗑️ [TokenManagement] 기존 Refresh Token Backup을 DB에서 삭제했습니다. User: {}", userId);
+        });
+    }
+
+    /**
      * 이전 버전의 RefreshToken(Refresh Token Backup Table에 있는 Refresh Token)이 Redis에 남아있다면 Redis에서 지우는 함수
      * @param refreshTokenBackup : 확인할 Refresh Token Backup Table
      * @param userId : 로깅할 userId
@@ -113,28 +137,30 @@ public class TokenManagementService {
      * @param expiresAt : refreshToken의 만료 시간
      */
     private void updateRefreshTokenBackupTable(AuthAccount authAccount, String hashedRefreshToken, LocalDateTime expiresAt){
-        RefreshTokenBackup backup = null;
-        /*
-         * 1. RefreshTokenBackup Table에 해당 authAccount PK가 존재하는 경우
-         * 기존에 해당 테이블에 authAccount Pk가 존재한다면, 기존 Row를 Update한다.
-         */
-        if(refreshTokenBackupRepository.existsByAuthAccount(authAccount)){
-            backup = refreshTokenBackupRepository.findByAuthAccount(authAccount).orElseThrow(() -> new CustomException(AuthErrorCode.AUTH_ACCOUNT_NOT_FOUND_IN_REFRESH_TOKEN_BACKUP));
-            backup.updateBackupInfo(authAccount.getHashedDeviceUid(), hashedRefreshToken, expiresAt); // RefreshTokenBackup 테이블의 내용을 업데이트한다.
-        }
-        /*
-         * 2. RefreshTokenBackup Table에 해당 authAccount PK가 존재하는 경우
-         * 새로운 RefreshTokenBackup 객체를 생성하여 authAccount에 연관관계를 추가한다.
-         */
-        else{
-            backup = RefreshTokenBackup.builder()
-                    .authAccount(authAccount)
-                    .hashedDeviceUid(authAccount.getHashedDeviceUid()) // 이미 암호화된 deviceUid이므로, 한번 더 해싱하면 안된다.
-                    .hashedTokenValue(hashedRefreshToken) // 암호화된 refreshToken을 저장한다.
-                    .expiresAt(expiresAt)
-                    .build();
-            authAccount.updateRefreshTokenBackup(backup);
-        }
+        refreshTokenBackupRepository.findByAuthAccount(authAccount)
+                .ifPresentOrElse(
+                        /*
+                         * 1. RefreshTokenBackup Table에 해당 authAccount PK가 존재하는 경우
+                         * 기존에 해당 테이블에 authAccount Pk가 존재한다면, 기존 Row를 Update한다.
+                         * => findBy 쿼리 한 번으로 조회 후, 분기 처리한다.
+                         */
+                        existingBackup -> {
+                            existingBackup.updateBackupInfo(authAccount.getHashedDeviceUid(), hashedRefreshToken, expiresAt); // RefreshTokenBackup 테이블의 내용을 업데이트한다.
+                        },
+                        /*
+                         * 2. RefreshTokenBackup Table에 해당 authAccount PK가 존재하지 않는 경우
+                         * 새로운 RefreshTokenBackup 객체를 생성하여 authAccount에 연관관계를 추가한다.
+                         */
+                        () -> {
+                            RefreshTokenBackup newBackup = RefreshTokenBackup.builder()
+                                    .authAccount(authAccount)
+                                    .hashedDeviceUid(authAccount.getHashedDeviceUid()) // 이미 암호화된 deviceUid이므로, 한번 더 해싱하면 안된다.
+                                    .hashedTokenValue(hashedRefreshToken) // 암호화된 refreshToken을 저장한다.
+                                    .expiresAt(expiresAt)
+                                    .build();
+                            authAccount.updateRefreshTokenBackup(newBackup);
+                        }
+                );
     }
 
     /**

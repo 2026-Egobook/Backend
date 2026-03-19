@@ -329,13 +329,7 @@ public class AuthService {
          * (1) 기존에 사용되던 AccessToken 블랙리스트에 등록
          * (2) 기존에 Refresh Token Backup 테이블에 있던(기존에 사용되던) Refresh Token Redis에서 삭제 (아직 만료되지 않은 상태에서 복구 로직이 실행될 수도 있으므로)
          */
-        if(reqDto.accessToken() != null && !reqDto.accessToken().isBlank()){
-            tokenManagementService.addAccessTokenInRedisBlackList(reqDto.accessToken());
-        }
-        refreshTokenBackupRepository.findByAuthAccount(authAccount).ifPresent(refreshTokenBackup -> {
-            tokenManagementService.deleteOldRefreshTokenFromRedis(refreshTokenBackup, user.getId());
-        });
-
+        tokenManagementService.invalidatePreviousTokens(reqDto.accessToken(), authAccount, user.getId());
 
         /*
          * 6. 검증 통과 시, 새로운 Access, Refresh, Recover Token 생성
@@ -393,12 +387,7 @@ public class AuthService {
          * (1) 기존에 사용되던 AccessToken 블랙리스트에 등록 (Access Token이 Request Dto에 있는 경우에만)
          * (2) 기존에 Refresh Token Backup 테이블에 있던 Refresh Token Redis에서 삭제 (아직 만료되지 않은 상태에서 복구 로직이 실행될 수도 있으므로)
          */
-        if (reqDto.accessToken() != null && !reqDto.accessToken().isBlank()) {
-            tokenManagementService.addAccessTokenInRedisBlackList(reqDto.accessToken());
-        }
-        refreshTokenBackupRepository.findByAuthAccount(authAccount).ifPresent(refreshTokenBackup -> {
-            tokenManagementService.deleteOldRefreshTokenFromRedis(refreshTokenBackup, user.getId());
-        });
+        tokenManagementService.invalidatePreviousTokens(reqDto.accessToken(), authAccount, user.getId());
 
         // 5. 토큰 재발급 (Access + Refresh)
         CustomUserDetails userDetails = buildCustomUserDetails(user, authAccount);
@@ -433,48 +422,28 @@ public class AuthService {
         }
 
         // 3. 현재 유저의 Guest AuthAccount 조회
-        AuthAccount guestAccount = authAccountRepository.findByUserIdAndProvider(userId, Provider.GUEST)
+        AuthAccount authAccount = authAccountRepository.findByUserIdAndProvider(userId, Provider.GUEST)
                 .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND)); // Guest 계정이 없는 경우
-        User user = guestAccount.getUser();
+        User user = authAccount.getUser();
 
-        // 4. 삭제할 기존 Guest Refresh Token 정보 확보 (Redis 삭제를 위해 Hashed Token 값이 필요함)
-        String oldHashedRefreshToken = null;
-        if (refreshTokenBackupRepository.existsByAuthAccount(guestAccount)) {
-            RefreshTokenBackup backup = refreshTokenBackupRepository.findByAuthAccount(guestAccount)
-                    .orElseThrow(() -> new CustomException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND));
-            oldHashedRefreshToken = backup.getHashedTokenValue();
-
-            // 4-1. DB Backup 삭제
-            refreshTokenBackupRepository.delete(backup);
-        }
-
-        // 4-2. Redis 삭제 (기존 토큰이 있었다면)
-        if (oldHashedRefreshToken != null) {
-            redisUtil.deleteHashedRefreshToken(oldHashedRefreshToken); // RedisUtil에 delete 메서드 필요 (없으면 setTTL(0))
-        }
-
-        /*
-         * 4-3. Guest AuthAccount 삭제 (이제 Guest로는 로그인 불가)
-         * - Cascade 설정에 따라 다르지만, 명시적으로 지워주는 것이 안전하다
-         * - flush를 통해 삭제 쿼리를 즉시 실행하여 Unique 제약 조건 충돌 등을 방지한다.
-         */
-        authAccountRepository.delete(guestAccount);
-        authAccountRepository.flush();
+        // 4. 기존 게스트 토큰 완전 무효화
+        // (주의: reqDto에 기존 accessToken이 없다면 null을 넘겨도 내부에서 안전하게 처리된다.)
+        tokenManagementService.invalidatePreviousTokens(null, authAccount, user.getId());
 
         // 5. User 정보 업데이트
         // Guest 시절엔 이메일이 없었으므로, Google 이메일로 채워줌 (User 엔티티에 setter 혹은 update 메서드 필요)
         user.updateEmail(email);
 
-        // 6. 새로운 Google AuthAccount 생성 및 연결
-        AuthAccount googleAuthAccount = createAuthAccount(user, Provider.GOOGLE, hashedGoogleSub);
+        // 6. 기존 AuthAccount 정보 수정 -> Google AuthAccount 정보로 수정한다.
+        authAccount.linkToGoogle(hashedGoogleSub);
 
         // 7. 새로운 토큰 발급 (Google Context)
-        CustomUserDetails userDetails = buildCustomUserDetails(user, googleAuthAccount);
+        CustomUserDetails userDetails = buildCustomUserDetails(user, authAccount);
         TokenInfo accessTokenInfo = jwtUtil.createAccessToken(userDetails);
         TokenInfo refreshTokenInfo = jwtUtil.createRefreshToken(userDetails);
 
         // 8. 새 토큰 저장 (DB & Redis)
-        tokenManagementService.saveRefreshTokenToTableAndRedis(refreshTokenInfo, user, googleAuthAccount);
+        tokenManagementService.saveRefreshTokenToTableAndRedis(refreshTokenInfo, user, authAccount);
 
         // 9. 반환 (Google이므로 Recover Token은 비워놓고 반환한다)
         return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), null, user.getEmail());
