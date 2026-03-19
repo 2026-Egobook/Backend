@@ -27,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -640,10 +641,6 @@ public class AuthServiceUnitTest {
             when(authAccountRepository.findByHashedDeviceUidAndProvider(hashedDeviceUid, Provider.GUEST))
                     .thenReturn(Optional.of(authAccount));
 
-            // 기존 Refresh Token 삭제 로직을 위한 모킹
-            RefreshTokenBackup oldBackup = mock(RefreshTokenBackup.class);
-            when(refreshTokenBackupRepository.findByAuthAccount(authAccount)).thenReturn(Optional.of(oldBackup));
-
             // 신규 발급 토큰 정보 모킹
             String subject = "GUEST:hashedDeviceUid";
             when(jwtUtil.createSubject(Provider.GUEST, hashedDeviceUid)).thenReturn(subject);
@@ -667,9 +664,7 @@ public class AuthServiceUnitTest {
             assertThat(resDto.recoverToken()).isEqualTo("newRecoverToken");
 
             // [검증 1] 기존 AccessToken 블랙리스트 등록 확인
-            verify(tokenManagementService, times(1)).addAccessTokenInRedisBlackList("oldAccessToken");
-            // [검증 2] Redis에서 기존 RefreshToken 삭제 확인
-            verify(tokenManagementService, times(1)).deleteOldRefreshTokenFromRedis(oldBackup, 1L);
+            verify(tokenManagementService, times(1)).invalidatePreviousTokens(reqDto.accessToken(), authAccount, user.getId());
             // [검증 3] AuthAccount의 RecoverToken 값이 갱신되었는지 확인
             verify(authAccount, times(1)).updateHashedRecoverToken("newHashedRecoverToken");
             // [검증 4] 새로운 RefreshToken이 Redis에 잘 등록되었는지 확인
@@ -826,10 +821,6 @@ public class AuthServiceUnitTest {
             when(authAccountRepository.findByHashedDeviceUidAndProvider(hashedGoogleSub, Provider.GOOGLE))
                     .thenReturn(Optional.of(authAccount));
 
-            // 기존 Refresh Token 삭제 로직 모킹
-            RefreshTokenBackup oldBackup = mock(RefreshTokenBackup.class);
-            when(refreshTokenBackupRepository.findByAuthAccount(authAccount)).thenReturn(Optional.of(oldBackup));
-
             // 신규 토큰 발급 모킹
             TokenInfo newAccessTokenInfo = new TokenInfo("newAccessToken", LocalDateTime.now().plusHours(1));
             TokenInfo newRefreshTokenInfo = new TokenInfo("newRefreshToken", LocalDateTime.now().plusDays(1));
@@ -847,8 +838,7 @@ public class AuthServiceUnitTest {
             assertThat(resDto.email()).isEqualTo(email);
 
             // 사이드 이펙트 검증
-            verify(tokenManagementService, times(1)).addAccessTokenInRedisBlackList("oldAccessToken");
-            verify(tokenManagementService, times(1)).deleteOldRefreshTokenFromRedis(oldBackup, 1L);
+            verify(tokenManagementService, times(1)).invalidatePreviousTokens(reqDto.accessToken(), authAccount, user.getId());
             verify(tokenManagementService, times(1)).saveRefreshTokenToTableAndRedis(newRefreshTokenInfo, user, authAccount);
         }
 
@@ -880,10 +870,6 @@ public class AuthServiceUnitTest {
 
             when(authAccountRepository.findByHashedDeviceUidAndProvider(hashedGoogleSub, Provider.GOOGLE))
                     .thenReturn(Optional.of(authAccount));
-
-            // 기존 Refresh Token 삭제 로직 모킹
-            RefreshTokenBackup oldBackup = mock(RefreshTokenBackup.class);
-            when(refreshTokenBackupRepository.findByAuthAccount(authAccount)).thenReturn(Optional.of(oldBackup));
 
             // 신규 토큰 발급 모킹
             TokenInfo newAccessTokenInfo = new TokenInfo("newAccessToken", LocalDateTime.now().plusHours(1));
@@ -956,6 +942,168 @@ public class AuthServiceUnitTest {
             assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.RECERTIFICATION_FAIL_USER_WITHDRAW_PENDING);
         }
 
+    }
+
+    @Nested
+    @DisplayName("linkGoogleAccount() 메서드 테스트")
+    class LinkGoogleAccountTest {
+
+        @Test
+        @DisplayName("[성공] Guest User Google 계정 연동 성공")
+        void successGuestUserLinkGoogleAccount() {
+            // ========= Given =========
+            Long userId = 1L;
+            String idToken = "valid.google.id.token";
+            String googleSub = "google-sub-12345";
+            String email = "test@gmail.com";
+            String hashedGoogleSub = "hashed-google-sub-12345";
+            String accountCode = "testCode";
+
+            GoogleJoinReqDto reqDto = new GoogleJoinReqDto(idToken);
+
+            /*
+             * 1. 구글 토큰 파싱 결과 Mocking & Stub
+             */
+            GoogleIdToken.Payload payload = new GoogleIdToken.Payload();
+            payload.setSubject(googleSub);
+            payload.setEmail(email);
+            given(googleOAuthService.verifyToken(reqDto.idToken())).willReturn(payload);
+            given(hashingUtil.hashingValue(googleSub)).willReturn(hashedGoogleSub);
+
+            /*
+             * 2. 실제 User, AuthAccount 객체 생성 및 세팅 (Real Objects)
+             * - 게스트 계정을 조회하는 것이므로 시작은 GUEST 상태여야 합니다.
+             */
+            User user = User.builder()
+                    .id(userId)
+                    .accountCode(accountCode)
+                    .nickname("에고북1234")
+                    .lastLoginAt(LocalDateTime.now())
+                    .build();
+
+            AuthAccount authAccount = AuthAccount.builder()
+                    .id(2L)
+                    .provider(Provider.GUEST) // 처음엔 GUEST
+                    .hashedDeviceUid("guest-device-uid")
+                    .user(user)
+                    .build();
+
+            // 중복 가입 방지 (기존 가입된 구글 계정 없음)
+            given(authAccountRepository.existsByHashedDeviceUidAndProvider(hashedGoogleSub, Provider.GOOGLE)).willReturn(false);
+
+            // 실제 생성한 객체를 반환하도록 Stub
+            given(authAccountRepository.findByUserIdAndProvider(userId, Provider.GUEST)).willReturn(Optional.of(authAccount));
+
+            /*
+             * 3. JwtUtil 토큰 발급 Stub
+             */
+            TokenInfo mockAccessTokenInfo = new TokenInfo("new.access.token", LocalDateTime.now().plusHours(1));
+            TokenInfo mockRefreshTokenInfo = new TokenInfo("new.refresh.token", LocalDateTime.now().plusDays(14));
+
+            given(jwtUtil.createAccessToken(any(CustomUserDetails.class))).willReturn(mockAccessTokenInfo);
+            given(jwtUtil.createRefreshToken(any(CustomUserDetails.class))).willReturn(mockRefreshTokenInfo);
+
+            // ========= When =========
+            JwtTokenResDto result = authService.linkGoogleAccount(userId, reqDto);
+
+            // ========= Then =========
+            // 1. 반환값 검증 (assertThat 사용)
+            assertThat(result).isNotNull();
+            assertThat(result.accessToken()).isEqualTo("new.access.token");
+            assertThat(result.refreshToken()).isEqualTo("new.refresh.token");
+            assertThat(result.recoverToken()).isNull();
+            assertThat(result.email()).isEqualTo(email);
+
+            // 2. 외부 서비스(인프라) 호출 검증
+            verify(tokenManagementService, times(1)).invalidatePreviousTokens(null, authAccount, userId);
+            verify(tokenManagementService, times(1)).saveRefreshTokenToTableAndRedis(mockRefreshTokenInfo, user, authAccount);
+
+            // 3. 엔티티 상태 변경 검증 (State Verification - assertThat의 as()를 통해 실패 메시지 설정)
+            assertThat(user.getEmail())
+                    .as("유저의 이메일이 구글 이메일로 정상 업데이트 되어야 합니다.")
+                    .isEqualTo(email);
+
+            assertThat(authAccount.getProvider())
+                    .as("인증 제공자가 GOOGLE로 변경되어야 합니다.")
+                    .isEqualTo(Provider.GOOGLE);
+
+            assertThat(authAccount.getHashedDeviceUid())
+                    .as("기기 식별자가 구글 Sub의 해시값으로 변경되어야 합니다.")
+                    .isEqualTo(hashedGoogleSub);
+
+            assertThat(authAccount.getHashedRecoverToken())
+                    .as("게스트 계정 연동 시 복구 토큰은 null로 초기화되어야 합니다.")
+                    .isNull();
+        }
+
+        @Test
+        @DisplayName("[실패 1] 이미 해당 구글 계정으로 가입된 유저가 있는 경우 (중복 가입 방지)")
+        void failAlreadyGoogleUserAccounted() {
+            // ========= Given =========
+            Long userId = 1L;
+            String idToken = "valid.google.id.token";
+            String googleSub = "google-sub-12345";
+            String email = "test@gmail.com";
+            String hashedGoogleSub = "hashed-google-sub-12345";
+
+            GoogleJoinReqDto reqDto = new GoogleJoinReqDto(idToken);
+
+            GoogleIdToken.Payload payload = new GoogleIdToken.Payload();
+            payload.setSubject(googleSub);
+            payload.setEmail(email);
+
+            given(googleOAuthService.verifyToken(reqDto.idToken())).willReturn(payload);
+            given(hashingUtil.hashingValue(googleSub)).willReturn(hashedGoogleSub);
+
+            // 이미 가입된 구글 계정이 존재한다고 설정 (true 반환)
+            given(authAccountRepository.existsByHashedDeviceUidAndProvider(hashedGoogleSub, Provider.GOOGLE)).willReturn(true);
+
+            // ========= When & Then =========
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                authService.linkGoogleAccount(userId, reqDto);
+            });
+
+            // 예외 코드 검증도 assertThat으로 통일
+            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.ALREADY_REGISTERED_USER);
+
+            // 예외 발생 이후의 로직이 실행되지 않았음을 검증
+            verify(authAccountRepository, never()).findByUserIdAndProvider(anyLong(), any());
+            verify(tokenManagementService, never()).invalidatePreviousTokens(any(), any(), anyLong());
+        }
+
+        @Test
+        @DisplayName("[실패 2] 현재 유저의 Guest 계정 정보를 찾을 수 없는 경우")
+        void failGuestAccountNotFound() {
+            // ========= Given =========
+            Long userId = 1L;
+            String idToken = "valid.google.id.token";
+            String googleSub = "google-sub-12345";
+            String email = "test@gmail.com";
+            String hashedGoogleSub = "hashed-google-sub-12345";
+
+            GoogleJoinReqDto reqDto = new GoogleJoinReqDto(idToken);
+
+            GoogleIdToken.Payload payload = new GoogleIdToken.Payload();
+            payload.setSubject(googleSub);
+            payload.setEmail(email);
+
+            given(googleOAuthService.verifyToken(reqDto.idToken())).willReturn(payload);
+            given(hashingUtil.hashingValue(googleSub)).willReturn(hashedGoogleSub);
+
+            given(authAccountRepository.existsByHashedDeviceUidAndProvider(hashedGoogleSub, Provider.GOOGLE)).willReturn(false);
+
+            // Guest 계정을 DB에서 찾을 수 없음 (Empty 반환)
+            given(authAccountRepository.findByUserIdAndProvider(userId, Provider.GUEST)).willReturn(Optional.empty());
+
+            // ========= When & Then =========
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                authService.linkGoogleAccount(userId, reqDto);
+            });
+
+            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.USER_NOT_FOUND);
+
+            verify(tokenManagementService, never()).invalidatePreviousTokens(any(), any(), anyLong());
+        }
     }
 
 }
