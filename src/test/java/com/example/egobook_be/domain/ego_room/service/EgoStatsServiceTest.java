@@ -81,4 +81,22 @@ class EgoStatsServiceTest {
         });
     }
 
+    @Test
+    @DisplayName("일기 데이터가 없는 경우 빈 통계 데이터를 생성하여 저장")
+    void calculateAndSaveStats_noDiaries_saveEmptyStats() throws Exception {
+        // given
+        Long userId = 1L;
+        User user = User.builder().id(userId).build();
+
+        when(diaryRepository.findAllByUserIdAndWrittenAtAfter(anyLong(), any())).thenReturn(Collections.emptyList());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userStatsRepository.findByUserId(userId)).thenReturn(Optional.empty());
+
+        // when
+        egoStatsService.calculateAndSaveStats(userId, 2026, 3);
+
+        // then
+        verify(userStatsRepository, times(1)).save(any(UserStats.class));
+    }
+
 }
