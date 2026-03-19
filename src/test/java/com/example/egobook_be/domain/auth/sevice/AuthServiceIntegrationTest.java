@@ -547,5 +547,130 @@ public class AuthServiceIntegrationTest {
             }
         }
     }
-    
+
+    @Nested
+    @DisplayName("linkGoogleAccount() 메서드 테스트")
+    class LinkGoogleAccountTest {
+        private final String DEVICE_UID = "link-guest-device-uid";
+        private final String GOOGLE_SUB = "link-google-sub";
+        private final String EMAIL = "link-test@egobook.com";
+        private final String ID_TOKEN = "dummy-link-id-token";
+
+        private JwtTokenResDto initialTokens;
+        private User guestUser;
+
+        @BeforeEach
+        void setUp() throws Exception {
+            // 1. 필수 초기화 데이터 세팅 (테스트 독립성을 위해 저장)
+            itemRepository.save(Item.builder().path("/test").category(ItemCategory.BACK).name("test").build());
+            termRepository.save(Term.builder().termType(TermType.TERM_OF_SERVICE).description("test").context("test").required(true).build());
+
+            // 2. Google OAuth 검증 Mocking 세팅 (연동 시 사용될 구글 계정 정보)
+            GoogleIdToken.Payload payload = new GoogleIdToken.Payload();
+            payload.setSubject(GOOGLE_SUB);
+            payload.setEmail(EMAIL);
+            GoogleIdToken mockToken = new GoogleIdToken(new JsonWebSignature.Header(), payload, new byte[0], new byte[0]);
+            given(verifier.verify(anyString())).willReturn(mockToken);
+
+            // 3. 연동을 시도할 주체인 Guest 사용자 실제 회원가입
+            GuestJoinReqDto guestReqDto = GuestJoinReqDto.builder().deviceUid(DEVICE_UID).build();
+            initialTokens = authService.registerGuest(guestReqDto);
+
+            // 4. 방금 가입한 Guest 유저 엔티티를 조회
+            String hashedDeviceUid = hashingUtil.hashingValue(DEVICE_UID);
+            AuthAccount guestAccount = authAccountRepository.findByHashedDeviceUidAndProvider(hashedDeviceUid, Provider.GUEST)
+                    .orElseThrow(() -> new IllegalStateException("Guest AuthAccount를 찾을 수 없습니다."));
+            guestUser = guestAccount.getUser();
+        }
+
+        @Test
+        @DisplayName("[성공] Guest 사용자 Google 계정 연동 성공 및 데이터 마이그레이션 확인")
+        void successLinkGoogleAccount() {
+            // ========= Given =========
+            GoogleJoinReqDto reqDto = GoogleJoinReqDto.builder().idToken(ID_TOKEN).build();
+
+            // ========= When =========
+            JwtTokenResDto resDto = authService.linkGoogleAccount(guestUser.getId(), reqDto);
+
+            // ========= Then =========
+            // 1. 반환된 DTO 토큰 검증
+            assertThat(resDto).isNotNull();
+            assertThat(resDto.accessToken()).isNotBlank();
+            assertThat(resDto.refreshToken()).isNotBlank();
+            assertThat(resDto.recoverToken()).isNull(); // Google 연동이므로 Recover Token은 발급되지 않아야 함
+            assertThat(resDto.email()).isEqualTo(EMAIL);
+
+            // 발급된 토큰들이 기존 Guest 토큰과 다른 새로운 토큰인지 검증
+            assertThat(resDto.accessToken()).isNotEqualTo(initialTokens.accessToken());
+            assertThat(resDto.refreshToken()).isNotEqualTo(initialTokens.refreshToken());
+
+            // 2. DB 상태 검증 (마이그레이션 확인)
+            // 2-1. User 정보 업데이트 확인 (이메일이 들어갔는지)
+            User updatedUser = userRepository.findById(guestUser.getId()).orElseThrow();
+            assertThat(updatedUser.getEmail()).isEqualTo(EMAIL);
+
+            // 2-2. AuthAccount 정보 업데이트 확인 (GUEST -> GOOGLE 로 완전히 전환되었는지)
+            AuthAccount updatedAuthAccount = authAccountRepository.findByUserIdAndProvider(guestUser.getId(), Provider.GOOGLE)
+                    .orElseThrow(() -> new IllegalStateException("Google 연동 계정을 찾을 수 없습니다."));
+            assertThat(updatedAuthAccount.getProvider()).isEqualTo(Provider.GOOGLE);
+            assertThat(updatedAuthAccount.getHashedDeviceUid()).isEqualTo(hashingUtil.hashingValue(GOOGLE_SUB));
+            assertThat(updatedAuthAccount.getHashedRecoverToken()).isNull();
+
+            // 3. Redis 상태 검증
+            // 3-1. 기존 Guest Refresh Token이 Redis에서 확실히 지워졌는지 확인
+            String oldHashedRefreshToken = hashingUtil.hashingValue(initialTokens.refreshToken());
+            assertThat(redisUtil.getHashedRefreshTokenValue(oldHashedRefreshToken)).isNull();
+
+            // 3-2. 새로운 Google Refresh Token이 Redis에 정상 등록되었는지 확인
+            String newHashedRefreshToken = hashingUtil.hashingValue(resDto.refreshToken());
+            RedisValue redisValue = redisUtil.getHashedRefreshTokenValue(newHashedRefreshToken);
+            assertThat(redisValue).isNotNull();
+            assertThat(redisValue.subject()).isEqualTo(Provider.GOOGLE + ":" + hashingUtil.hashingValue(GOOGLE_SUB));
+        }
+
+        @Test
+        @DisplayName("[실패] 이미 다른 계정에서 연동하여 사용 중인 구글 계정으로 연동 시도 시 예외 발생")
+        void failAlreadyRegisteredGoogleUser() {
+            // ========= Given =========
+            GoogleJoinReqDto googleReqDto = GoogleJoinReqDto.builder().idToken(ID_TOKEN).build();
+
+            // 1. 누군가 구글 계정(GOOGLE_SUB)으로 먼저 회원가입을 한 상태라고 가정
+            authService.registerGoogle(googleReqDto);
+
+            // ========= When & Then =========
+            // 2. Guest 사용자가 해당 구글 계정으로 연동을 시도하면 예외 발생
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                authService.linkGoogleAccount(guestUser.getId(), googleReqDto);
+            });
+            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.ALREADY_REGISTERED_USER);
+
+            // 3. 예외 발생 시, 기존 Guest 계정 정보가 날아가지 않고 그대로 유지되는지 롤백 검증
+            AuthAccount guestAccount = authAccountRepository.findByUserIdAndProvider(guestUser.getId(), Provider.GUEST).orElse(null);
+            assertThat(guestAccount).isNotNull();
+            assertThat(guestAccount.getProvider()).isEqualTo(Provider.GUEST);
+        }
+
+        @Test
+        @DisplayName("[실패] 존재하지 않는 사용자의 PK(Guest 계정 없음)로 연동 시도 시 예외 발생")
+        void failGuestAccountNotFound() {
+            // ========= Given =========
+            Long invalidUserId = 99999L; // DB에 존재하지 않는 임의의 유저 ID
+            GoogleJoinReqDto reqDto = GoogleJoinReqDto.builder().idToken(ID_TOKEN).build();
+
+            // ========= When & Then =========
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                authService.linkGoogleAccount(invalidUserId, reqDto);
+            });
+            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.USER_NOT_FOUND);
+        }
+
+        @AfterEach
+        void tearDownRedis() {
+            // 테스트 종료 후 Redis 깔끔하게 초기화
+            if (redisTemplate.getConnectionFactory() != null) {
+                redisTemplate.getConnectionFactory().getConnection().serverCommands().flushDb();
+            }
+        }
+    }
+
 }
