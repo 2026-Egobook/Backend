@@ -66,22 +66,16 @@ public class HomeService {
         Boolean hasUnopenedPsychology = hasUnopenedPsychologyKnowledge(user);
 
         // 4. 오늘 최초 출석인지 여부에 따라서 보상 잉크 값 결정
-        Integer attendanceRewardInk = 0;
-        if (user.isFirstAttendanceToday()) {
-            attendanceRewardInk = ATTENDANCE_REWARD_INK;
-            user.addInk(attendanceRewardInk);
+        int attendanceRewardInk = user.checkFirstAttendanceTodayAndGetReward(ATTENDANCE_REWARD_INK);;
+        if (attendanceRewardInk > 0) {
             inkLogRepository.save(InkLog.builder()
                             .user(user)
                             .amount(attendanceRewardInk)
                             .reason(InkLogType.ATTENDANCE_REWARD)
-                            .build()
-                    );
+                            .build());
         }
         else attendanceRewardInk = 0;
         HomeResDto resDto = homeMapper.toHomeResDto(user, unReadNotificationCount, hasUnopenedPsychology, attendanceRewardInk);
-
-        // 5. 사용자가 이미 출석 보상을 받았다고 설정
-        user.rewardAttendance();
 
         return resDto;
     }

@@ -62,4 +62,12 @@ public class UserItem {
     public void unequip() {
         this.isEquipped = false;
     }
+
+    public static UserItem create(User user, Item item) {
+        return UserItem.builder()
+                .user(user)
+                .item(item)
+                .isEquipped(false)
+                .build();
+    }
 }
