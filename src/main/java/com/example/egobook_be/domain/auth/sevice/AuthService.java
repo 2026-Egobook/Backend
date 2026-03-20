@@ -19,6 +19,7 @@ import com.example.egobook_be.domain.user.enums.RoleType;
 import com.example.egobook_be.domain.user.enums.UserErrorCode;
 import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
+import com.example.egobook_be.domain.user.service.UserService;
 import com.example.egobook_be.global.util.*;
 import com.example.egobook_be.global.util.module.TokenInfo;
 import com.example.egobook_be.global.util.module.UserAuthDto;
@@ -53,19 +54,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AuthService {
     private final GoogleOAuthService googleOAuthService;
+    private final TokenManagementService tokenManagementService;
     private final AuthAccountRepository authAccountRepository;
     private final RefreshTokenBackupRepository refreshTokenBackupRepository;
-    private final UserRepository userRepository;
-    private final ItemRepository itemRepository;
-    private final UserItemRepository userItemRepository;
-    private final AbilityRepository abilityRepository;
     private final JwtUtil jwtUtil;
     private final HashingUtil hashingUtil;
-    private final UserNicknameGenerator userNicknameGenerator;
     private final RedisUtil redisUtil;
-    private final TermRepository termRepository;
-    private final UserTermRepository userTermRepository;
-    private final MissionRepository missionRepository;
+    private final UserService userService;
 
     @Value("${app.data.purge-duration-in-ms}")
     private Long purgeDurationInMs;
@@ -126,8 +121,7 @@ public class AuthService {
          * - 닉네임: createUser 내부에서 자동 생성된다. (만약 reqDto의 nickname을 쓰고 싶다면 createUser 수정 필요)
          * - 이메일: Google Payload에서 추출한 이메일을 저장한다.
          */
-        User user = createUser(email);
-        allocateUser(user);
+        User user = userService.initializeAndRegisterUser(email);
 
         /*
          * 4. AuthAccount 엔티티 생성 (Google Provider)
@@ -153,7 +147,7 @@ public class AuthService {
         TokenInfo refreshTokenInfo = jwtUtil.createRefreshToken(userDetails);
 
         // 3. Refresh Token을 Table, Redis에 저장하는 Process 수행
-        processRefreshTokenSaving(user, authAccount, refreshTokenInfo);
+        tokenManagementService.saveRefreshTokenToTableAndRedis(refreshTokenInfo, user, authAccount);
 
         /*
          * 4. 클라이언트에게 토큰 반환
@@ -189,8 +183,7 @@ public class AuthService {
         }
 
         // 2. 신규 User Entity 생성 (+ 처음 사용자가 회원가입했을 때 받아야할 것들 할당)
-        User user = createUser(null);
-        allocateUser(user);
+        User user = userService.initializeAndRegisterUser(hashedDeviceUid);
 
         // 3. AuthAccount 엔티티 생성 (Guest Provider)
         AuthAccount authAccount = createAuthAccount(user, Provider.GUEST, hashedDeviceUid);
@@ -216,7 +209,7 @@ public class AuthService {
         authAccount.updateHashedRecoverToken(hashingUtil.hashingValue(recoverTokenInfo.token()));
 
         // 7. 모든 토큰들을 발급한 뒤, Refresh Token을 Table, Redis에 저장하는 Process를 수행
-        processRefreshTokenSaving(user, authAccount, refreshTokenInfo);
+        tokenManagementService.saveRefreshTokenToTableAndRedis(refreshTokenInfo, user, authAccount);
 
         /*
          * 10. 클라이언트에게 토큰을 반환
@@ -248,7 +241,7 @@ public class AuthService {
         RedisValue redisValue = redisUtil.getHashedRefreshTokenValue(hashedRefreshToken);
         if(redisValue != null){
             // 기존 AccessToken Redis 블랙리스트에 추가
-            addAccessTokenInRedisBlackList(reqDto.accessToken());
+            tokenManagementService.addAccessTokenInRedisBlackList(reqDto.accessToken());
             TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(redisValue.userId(), redisValue.authAccountId(), redisValue.subject(), redisValue.role());
             return buildJwtTokenResDto(newAccessTokenInfo.token(), reqDto.refreshToken(), null, null);
         }
@@ -284,38 +277,17 @@ public class AuthService {
          * - Redis에 데이터를 복구한다.
          * - Redis에 복구할 데이터 : RedisValue
          */
-        AuthAccount authAccount = backup.getAuthAccount(); // 연결된 AuthAccount 객체 가져오기
-        User user = authAccount.getUser(); // 연결된 User 객체 가져오기
-        String subject = jwtUtil.createSubject(authAccount.getProvider(), authAccount.getHashedDeviceUid());
-        RedisValue restoreRedisValue = buildRedisValue(user.getId(), authAccount.getId(), subject, user.getRole(), backup.getExpiresAt()); // RedisValue 생성
-        registerToRedis(hashedRefreshToken, restoreRedisValue, backup.getExpiresAt()); // Redis에 해당 데이터들 복구
+        AuthAccount authAccount = backup.getAuthAccount();
+        User user = authAccount.getUser();
+        tokenManagementService.restoreHashedRefreshTokenRedisValue(hashedRefreshToken, user, authAccount, backup.getExpiresAt());
 
         // 6. 기존 Access Token Redis의 BlackList에 추가
-        addAccessTokenInRedisBlackList(reqDto.accessToken());
+        tokenManagementService.addAccessTokenInRedisBlackList(reqDto.accessToken());
 
         // 7. Access Token 재생성 후 Access, Refresh Token 반환
+        String subject = jwtUtil.createSubject(authAccount.getProvider(), authAccount.getHashedDeviceUid());
         TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(user.getId(), authAccount.getId(), subject, user.getRole());
         return buildJwtTokenResDto(newAccessTokenInfo.token(), reqDto.refreshToken(), null, null);
-    }
-
-    /** HttpServletRequest에 들어있는 AccessToken 추출 및 블랙리스트 등록 */
-    private void addAccessTokenInRedisBlackList(String accessToken){
-            // 만료되지 않은 토큰이라도 강제로 블랙리스트 처리
-            redisUtil.setTokenInBlacklist(accessToken);
-            log.info("🪪 재발급 요청에 사용된 기존 Access Token을 블랙리스트에 등록했습니다.");
-    }
-
-    private void deleteOldRefreshTokenFromRedis(AuthAccount authAccount) {
-        // DB에 백업된 정보가 있는지 확인
-        refreshTokenBackupRepository.findByAuthAccount(authAccount).ifPresent(backup -> {
-            String oldHashedToken = backup.getHashedTokenValue();
-
-            // RedisUtil을 통해 삭제 (존재하면 삭제, 없으면 무시됨)
-            if (oldHashedToken != null) {
-                redisUtil.deleteHashedRefreshToken(oldHashedToken);
-                log.info("🔄 [Rotation] 기존 Refresh Token을 Redis에서 삭제했습니다. User: {}", authAccount.getId());
-            }
-        });
     }
 
     /**
@@ -355,12 +327,9 @@ public class AuthService {
         /*
          * 5. Redis 상태 업데이트
          * (1) 기존에 사용되던 AccessToken 블랙리스트에 등록
-         * (2) 기존에 Refresh Token Backup 테이블에 있던 Refresh Token Redis에서 삭제 (아직 만료되지 않은 상태에서 복구 로직이 실행될 수도 있으므로)
+         * (2) 기존에 Refresh Token Backup 테이블에 있던(기존에 사용되던) Refresh Token Redis에서 삭제 (아직 만료되지 않은 상태에서 복구 로직이 실행될 수도 있으므로)
          */
-        if(reqDto.accessToken() != null && !reqDto.accessToken().isBlank()){
-            addAccessTokenInRedisBlackList(reqDto.accessToken());
-        }
-        deleteOldRefreshTokenFromRedis(authAccount);
+        tokenManagementService.invalidatePreviousTokens(reqDto.accessToken(), authAccount, user.getId());
 
         /*
          * 6. 검증 통과 시, 새로운 Access, Refresh, Recover Token 생성
@@ -379,20 +348,9 @@ public class AuthService {
          * 7. Refresh Token 백업 테이블 업데이트
          * - 기존에 만료된 Refresh Token 정보를 새로운 토큰 정보로 덮어씌운다.
          */
-        String newHashedRefreshToken = hashingUtil.hashingValue(newRefreshTokenInfo.token());
-        updateRefreshTokenBackupTable(
-                authAccount,
-                newHashedRefreshToken,
-                newRefreshTokenInfo.expiresAt());
+        tokenManagementService.saveRefreshTokenToTableAndRedis(newRefreshTokenInfo, user, authAccount);
 
-        /*
-         * 8. Redis 업데이트
-         * - 새로운 Refresh Token을 Redis에 등록하여 바로 사용 가능하도록 처리
-         */
-        RedisValue newRedisValue = buildRedisValue(user.getId(), authAccount.getId(), subject, user.getRole(), newRefreshTokenInfo.expiresAt());
-        registerToRedis(newHashedRefreshToken, newRedisValue, newRefreshTokenInfo.expiresAt());
-
-        // 9. 결과 반환
+        // 8. 결과 반환
         return buildJwtTokenResDto(newAccessTokenInfo.token(), newRefreshTokenInfo.token(), newRecoverTokenInfo.token(), null);
     }
 
@@ -429,18 +387,15 @@ public class AuthService {
          * (1) 기존에 사용되던 AccessToken 블랙리스트에 등록 (Access Token이 Request Dto에 있는 경우에만)
          * (2) 기존에 Refresh Token Backup 테이블에 있던 Refresh Token Redis에서 삭제 (아직 만료되지 않은 상태에서 복구 로직이 실행될 수도 있으므로)
          */
-        if (reqDto.accessToken() != null && !reqDto.accessToken().isBlank()) {
-            addAccessTokenInRedisBlackList(reqDto.accessToken());
-        }
-        deleteOldRefreshTokenFromRedis(authAccount);
+        tokenManagementService.invalidatePreviousTokens(reqDto.accessToken(), authAccount, user.getId());
 
         // 5. 토큰 재발급 (Access + Refresh)
         CustomUserDetails userDetails = buildCustomUserDetails(user, authAccount);
         TokenInfo accessTokenInfo = jwtUtil.createAccessToken(userDetails);
         TokenInfo refreshTokenInfo = jwtUtil.createRefreshToken(userDetails);
 
-        // 5. Refresh Token 저장 (DB + Redis)
-        processRefreshTokenSaving(user, authAccount, refreshTokenInfo);
+        // 5. Refresh Token 저장 최신화 (DB + Redis)
+        tokenManagementService.saveRefreshTokenToTableAndRedis(refreshTokenInfo, user, authAccount);
 
         // 6. 반환
         return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), null, user.getEmail());
@@ -467,48 +422,28 @@ public class AuthService {
         }
 
         // 3. 현재 유저의 Guest AuthAccount 조회
-        AuthAccount guestAccount = authAccountRepository.findByUserIdAndProvider(userId, Provider.GUEST)
+        AuthAccount authAccount = authAccountRepository.findByUserIdAndProvider(userId, Provider.GUEST)
                 .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND)); // Guest 계정이 없는 경우
-        User user = guestAccount.getUser();
+        User user = authAccount.getUser();
 
-        // 4. 삭제할 기존 Guest Refresh Token 정보 확보 (Redis 삭제를 위해 Hashed Token 값이 필요함)
-        String oldHashedRefreshToken = null;
-        if (refreshTokenBackupRepository.existsByAuthAccount(guestAccount)) {
-            RefreshTokenBackup backup = refreshTokenBackupRepository.findByAuthAccount(guestAccount)
-                    .orElseThrow(() -> new CustomException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND));
-            oldHashedRefreshToken = backup.getHashedTokenValue();
-
-            // 4-1. DB Backup 삭제
-            refreshTokenBackupRepository.delete(backup);
-        }
-
-        // 4-2. Redis 삭제 (기존 토큰이 있었다면)
-        if (oldHashedRefreshToken != null) {
-            redisUtil.deleteHashedRefreshToken(oldHashedRefreshToken); // RedisUtil에 delete 메서드 필요 (없으면 setTTL(0))
-        }
-
-        /*
-         * 4-3. Guest AuthAccount 삭제 (이제 Guest로는 로그인 불가)
-         * - Cascade 설정에 따라 다르지만, 명시적으로 지워주는 것이 안전하다
-         * - flush를 통해 삭제 쿼리를 즉시 실행하여 Unique 제약 조건 충돌 등을 방지한다.
-         */
-        authAccountRepository.delete(guestAccount);
-        authAccountRepository.flush();
+        // 4. 기존 게스트 토큰 완전 무효화
+        // (주의: reqDto에 기존 accessToken이 없다면 null을 넘겨도 내부에서 안전하게 처리된다.)
+        tokenManagementService.invalidatePreviousTokens(null, authAccount, user.getId());
 
         // 5. User 정보 업데이트
         // Guest 시절엔 이메일이 없었으므로, Google 이메일로 채워줌 (User 엔티티에 setter 혹은 update 메서드 필요)
         user.updateEmail(email);
 
-        // 6. 새로운 Google AuthAccount 생성 및 연결
-        AuthAccount googleAuthAccount = createAuthAccount(user, Provider.GOOGLE, hashedGoogleSub);
+        // 6. 기존 AuthAccount 정보 수정 -> Google AuthAccount 정보로 수정한다.
+        authAccount.linkToGoogle(hashedGoogleSub);
 
         // 7. 새로운 토큰 발급 (Google Context)
-        CustomUserDetails userDetails = buildCustomUserDetails(user, googleAuthAccount);
+        CustomUserDetails userDetails = buildCustomUserDetails(user, authAccount);
         TokenInfo accessTokenInfo = jwtUtil.createAccessToken(userDetails);
         TokenInfo refreshTokenInfo = jwtUtil.createRefreshToken(userDetails);
 
         // 8. 새 토큰 저장 (DB & Redis)
-        processRefreshTokenSaving(user, googleAuthAccount, refreshTokenInfo);
+        tokenManagementService.saveRefreshTokenToTableAndRedis(refreshTokenInfo, user, authAccount);
 
         // 9. 반환 (Google이므로 Recover Token은 비워놓고 반환한다)
         return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), null, user.getEmail());
@@ -518,43 +453,6 @@ public class AuthService {
     // ==================================================================
     // [Private] 내부 메서드
     // ==================================================================
-
-    /**
-     * registerGuest, registerGoogle에서 사용하는 User Entity 생성 공통 로직
-     * - AccountCode, Nickname을 자동으로 생성해준다.
-     * - email은 선택적으로 넣을 수 있다.
-     * - User 생성 후, userRepository에 save()까지 수행한 결과물을 반환한다.
-     * @param email : Guest-null, Google-Token에 있는 Google Email 설정
-     */
-    private User createUser(String email){
-        /*
-         * AuthAccount -> User Entity의 연관관계 설정을 위해, UserRepository로 먼저 save한다.
-         *  (1) accountCode: 랜덤으로 생성된 공개 고유 ID 지정 (중복 여부 확인)
-         *  (2) role : Builder.Default로 기본값 ROLE_USER 자동 지정
-         *  (3) nickname : AccountCodeGenerator에서 자동으로 닉네임 생성 (DB에서 중복 체크도 함)
-         *  (4) status: Builder.Default로 기본값 UserStatus.NEW 지정
-         *  (5) email: Guest에서는 생성할 때 email을 지정 안한다. 나중에 사용자가 구글로 로그인하였을 때 채워진다.
-         *  (6) streakCount: 연속 출석 수. 생성할 때 초기화되는 0으로 그대로 둔다.
-         *  (7) lastLoginAt: 처음 회원가입 하는 이 시점으로 설정
-         *  (8) level: 처음 시작 레벨 1로 기본 설정되어있음
-         *  (9) purgeAt, deletedAt: 설정 안함
-         *  (10) dailyPraise: AI 칭찬서 수신 여부. 기본값인 true로 설정되어있음
-         *  (11) weeklyReportStyle: 주간 AI 상담서 스타일. 기본값인 SOFT로 설정되어있음
-         *  (12) ink: 잉크 개수. 기본값인 0으로 생성됨
-         */
-        String accountCode = null;
-        do{
-            accountCode = AccountCodeGenerator.generateAccountCode();
-        }
-        while(userRepository.existsByAccountCode(accountCode));
-        User user = User.builder()
-                .accountCode(accountCode)
-                .nickname(userNicknameGenerator.generateUniqueNickname())
-                .lastLoginAt(LocalDateTime.now())
-                .build();
-        if(email != null){ user.updateEmail(email); }
-        return userRepository.save(user); // AuthAccount -> User Entity의 연관관계 설정을 위해, UserRepository로 먼저 save한다.
-    }
 
     /**
      * registerGuest, register Google에서 사용하는 AuthAccount Entity 생성 공통 로직
@@ -572,67 +470,6 @@ public class AuthService {
     }
 
     /**
-     * registerGuest - 6. Refresh Token을 RefreshTokenBackup Table에 추가(Update)
-     * 새로 생성한 RefreshToken을 RefreshTokenBackup 테이블에 업데이트 하는 함수이다.
-     * - 기존에 해당 authAccount PK 행이 존재하면 업데이트, 없다면 새로 추가한다.
-     * [ 업데이트 로직 ]
-     *  (1) authAccount.deviceUid -> refreshTokenBackup.deviceUid (authAccount 테이블이 deviceUid를 관리하는 책임자이다.)
-     *  (2) TokenInfo.token -> refreshTokenBackup.tokenValue
-     *  (3) TokenInfo.expiresAt -> refreshTokenBackup.expiresAt
-     * [ 신규 추가 로직 ]
-     *  (1) RefreshTokenBackup 새로 생성하여 authAccount.updateRefreshTokenBackup(...)으로 연결
-     *  -> 영속성 컨텍스트의 Dirty Checking으로 트랜잭션 종료 시 Update됨
-     * @param authAccount : 새로 생성한 AuthAccount 객체
-     * @param hashedRefreshToken : 새로 발급한 refreshToken을 해싱한 결과값
-     * @param expiresAt : refreshToken의 만료 시간
-     */
-    private void updateRefreshTokenBackupTable(AuthAccount authAccount, String hashedRefreshToken, LocalDateTime expiresAt){
-        RefreshTokenBackup backup = null;
-        /*
-         * 1. RefreshTokenBackup Table에 해당 authAccount PK가 존재하는 경우
-         * 기존에 해당 테이블에 authAccount Pk가 존재한다면, 기존 Row를 Update한다.
-         */
-        if(refreshTokenBackupRepository.existsByAuthAccount(authAccount)){
-            backup = refreshTokenBackupRepository.findByAuthAccount(authAccount).orElseThrow(() -> new CustomException(AuthErrorCode.AUTH_ACCOUNT_NOT_FOUND_IN_REFRESH_TOKEN_BACKUP));
-            backup.updateBackupInfo(authAccount.getHashedDeviceUid(), hashedRefreshToken, expiresAt); // RefreshTokenBackup 테이블의 내용을 업데이트한다.
-        }
-        /*
-         * 2. RefreshTokenBackup Table에 해당 authAccount PK가 존재하는 경우
-         * 새로운 RefreshTokenBackup 객체를 생성하여 authAccount에 연관관계를 추가한다.
-         */
-        else{
-            backup = RefreshTokenBackup.builder()
-                    .authAccount(authAccount)
-                    .hashedDeviceUid(authAccount.getHashedDeviceUid()) // 이미 암호화된 deviceUid이므로, 한번 더 해싱하면 안된다.
-                    .hashedTokenValue(hashedRefreshToken) // 암호화된 refreshToken을 저장한다.
-                    .expiresAt(expiresAt)
-                    .build();
-            authAccount.updateRefreshTokenBackup(backup);
-        }
-    }
-
-    /**
-     * key, value, expiresAt(절대시간)을 입력받아 redis에 등록해주는 함수
-     */
-    private void registerToRedis(String key, RedisValue value, LocalDateTime expiresAt){
-        long ttlInMillis = getDurationInMillis(expiresAt); // 현재 ~ refreshToken의 만료시간까지 남은 밀리초 계산
-        if (ttlInMillis < 0) { // 만료시간이 이미 지난 경우 방어 (음수를 Redis에 저장하면 에러날 수 있으므로)
-            ttlInMillis = 0;
-        }
-        if(ttlInMillis > 0){
-            redisUtil.setHashedRefreshTokenValue(key, value, ttlInMillis);
-        }
-    }
-
-    /**
-     * LocalDateTime (절대시간)까지 남은 시간을 millis로 반환해주는 함수
-     * @param at : 목표 절대 시간
-     */
-    private long getDurationInMillis(LocalDateTime at){
-        return Duration.between(LocalDateTime.now(), at).toMillis(); // 밀리초로 변환
-    }
-
-    /**
      * JwtTokenResDto를 빌드하는 함수
      */
     private JwtTokenResDto buildJwtTokenResDto(String accessToken, String refreshToken, String recoverToken, String email){
@@ -641,23 +478,6 @@ public class AuthService {
                 .refreshToken(refreshToken)
                 .recoverToken(recoverToken)
                 .email(email)
-                .build();
-    }
-
-    /**
-     * RedisValue를 빌드하는 함수
-     * @param subject : Access Token, Refresh Token, Recover Token을 생성하는데에 사용되는 subject (provider:hashedDeviceUid)
-     * @param role : User의 Role
-     * @param expiresAt : Refresh Token의 만료 절대 시간
-     * @return RedisValue
-     */
-    private RedisValue buildRedisValue(Long userId, Long authAccountId, String subject, RoleType role, LocalDateTime expiresAt){
-        return RedisValue.builder()
-                .userId(userId)
-                .authAccountId(authAccountId)
-                .subject(subject) // provider:deviceUid
-                .role(role) // RoleType Enum
-                .expiresAt(expiresAt) // Refresh Token 만료 절대 시간
                 .build();
     }
 
@@ -687,110 +507,5 @@ public class AuthService {
                 .role(user.getRole())
                 .build();
         return new CustomUserDetails(userAuthDto);
-    }
-
-    /**
-     * 모든 토큰들을 발급한 뒤, Refresh Token을 Table, Redis에 저장하는 Process를 수행해주는 함수
-     */
-    private void processRefreshTokenSaving(User user, AuthAccount authAccount, TokenInfo refreshTokenInfo){
-        // 1. Refresh Token을 RefreshTokenBackup Table에 추가(Update)
-        String hashedRefreshToken = hashingUtil.hashingValue(refreshTokenInfo.token());
-        updateRefreshTokenBackupTable(authAccount, hashedRefreshToken, refreshTokenInfo.expiresAt());
-
-        /*
-         * 2. Redis에 해당 RefreshToken 저장
-         * - Key: hashedRefreshToken
-         * - Value: RedisValue Record Dto
-         */
-        RedisValue redisValue = buildRedisValue(
-                user.getId(),
-                authAccount.getId(),
-                jwtUtil.createSubject(authAccount.getProvider(), authAccount.getHashedDeviceUid()),
-                user.getRole(),
-                refreshTokenInfo.expiresAt()
-        );
-        registerToRedis(hashedRefreshToken, redisValue, refreshTokenInfo.expiresAt());
-    }
-
-    /**
-     * 사용자가 회원가입을 한 뒤, 기본적으로 사용자에게 할당해줘야할 것들을 할당해주는 함수.
-     *  (1) 기본 UserItem 인스턴스 생성
-     *  (2) 기본 Ability 인스턴스 생성
-     *  (3) UserTerm 인스턴스 생성
-     */
-    private void allocateUser(User user){
-        // 1. 사용자 UserItems 생성
-        createDefaultUserItems(user);
-
-        // 2. 사용자 Ability 생성
-        createDefaultAbility(user);
-
-        // 3. 사용자 약관 동의
-        createDefaultUserTerms(user);
-
-        // 4. Mission 생성
-        createDefaultMission(user);
-    }
-
-
-    private List<UserItem> createDefaultUserItems(User user){
-        /*
-         * 1. Item들 중 name이 "Default.png"인 데이터들을 조회한다.
-         * - 기본 아이템들을 못찾으면 예외처리
-         */
-        List<Item> defaultItems = itemRepository.findAllByName("Default.png");
-        if(defaultItems.isEmpty()){throw new CustomException(ShopErrorCode.DEFAULT_ITEMS_NOT_FOUND);}
-
-        defaultItems.forEach(defaultItem -> {log.info("{}", defaultItem.getFullUrl("example"));});
-
-
-        // 2. 찾은 아이템들로 UserItem들을 생성해서 테이블에 저장
-        List<UserItem> userItems = defaultItems.stream().map(item ->
-                UserItem.builder()
-                    .user(user)
-                    .item(item)
-                    .isEquipped(true)
-                    .build()
-        ).toList();
-        return userItemRepository.saveAll(userItems);
-    }
-
-    /**
-     * user 생성 시 ability 생성 로직 (능력치)
-     * @param user 연동할 user
-     */
-    private Ability createDefaultAbility(User user) {
-        Ability ability = Ability.builder()
-                .user(user)
-                .build();
-        return abilityRepository.save(ability);
-    }
-
-    /**
-     * user 생성 시 할당해줄
-     */
-    private List<UserTerm> createDefaultUserTerms(User user){
-        // 1. 모든 약관들을 가져온다.
-        List<Term> terms = termRepository.findAll();
-        if(terms.isEmpty()){throw new CustomException(TermErrorCode.TERMS_NOT_FOUND);}
-
-        // 2. 새로 만든 User와 가져온 Term들을 연결한다.
-        List<UserTerm> userTerms = new ArrayList<>();
-        for(Term term : terms){
-            userTerms.add(
-                    UserTerm.builder()
-                            .term(term)
-                            .user(user)
-                            .build()
-            );
-        }
-        return userTermRepository.saveAll(userTerms);
-    }
-
-    private Mission createDefaultMission(User user){
-        Mission mission = Mission.builder()
-                .user(user)
-                .build();
-        return missionRepository.save(mission);
     }
 }

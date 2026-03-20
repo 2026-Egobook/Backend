@@ -108,27 +108,24 @@ public class ShopService {
          * - 2) 해당 사용자가 이미 구매한 Item인가?
          */
         Long itemId = reqDto.itemId();
-        User user = userRepository.findByIdWithLock(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
         Item item = itemRepository.findById(itemId).orElseThrow(() -> new CustomException(ShopErrorCode.ITEM_NOT_FOUND));
         if (userItemRepository.existsByUserIdAndItemId(userId, itemId)){
             throw new CustomException(ShopErrorCode.ALREADY_PURCHASED_ITEM);
         }
+        // 비관적 락으로 조회하기 때문에, 위에서 아이템 검증 로직이 종료된 뒤에 User을 조회한다.
+        User user = userRepository.findByIdWithLock(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
 
-        // 2. 해당 사용자가 아이템을 살 수 있는지 확인한다.
-        if(user.getInk() >= item.getPrice()){
-            // 3. 해당 아이템을 구매한다. (UserItem Table에 새로운 객체를 추가한다.)
-            UserItem userItem = UserItem.builder()
-                    .user(user)
-                    .item(item)
-                    .isEquipped(false)
-                    .build();
-            userItem = userItemRepository.save(userItem);
-            user.useInk(item.getPrice());
-
-            // 4. 아이템 구매 후, 해당 아이템에 대한 정보를 반환한다.
-            return userItemMapper.toItemInfoResDto(userItem, item, getShopCloudFrontDomain());
+        // 2. 해당 사용자가 아이템을 살 수 없으면 예외 반환
+        if(user.getInk() < item.getPrice()){
+            throw new CustomException(ShopErrorCode.INSUFFICIENT_INK_TO_BUY_ITEM);
         }
-        throw new CustomException(ShopErrorCode.INSUFFICIENT_INK_TO_BUY_ITEM);
+        // 3. 해당 아이템을 구매한다. (UserItem Table에 새로운 객체를 추가한다.)
+        UserItem userItem = UserItem.create(user, item);
+        userItem = userItemRepository.save(userItem);
+        user.useInk(item.getPrice());
+
+        // 4. 아이템 구매 후, 해당 아이템에 대한 정보를 반환한다.
+        return userItemMapper.toItemInfoResDto(userItem, item, getShopCloudFrontDomain());
     }
 
     /**
