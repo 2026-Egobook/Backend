@@ -26,12 +26,12 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-@Transactional // 테스트 종료 후 DB 롤백 (데이터 오염 방지)
+@Transactional
 @ActiveProfiles("local") // application-local.yml 설정을 사용한다고 가정
 class DailySchedulerTest {
 
     @Autowired
-    private DailySchedular dailyScheduler; // 테스트 대상 스케줄러
+    private DailySchedular dailyScheduler;
 
     @Autowired
     private UserRepository userRepository;
@@ -71,9 +71,8 @@ class DailySchedulerTest {
         Item dummyItem = itemRepository.save(Item.builder()
                 .name("TestItem")
                 .price(100)
-                // [수정] Not Null 컬럼인 category와 path를 반드시 넣어줘야 함
-                .category(ItemCategory.SKIN) // 또는 다른 카테고리 Enum
-                .path("dummy_image.png")     // path도 not null임
+                .category(ItemCategory.SKIN)
+                .path("dummy_image.png")
                 .build());
         UserItem userItem = UserItem.builder()
                 .user(deleteTargetUser)
@@ -81,7 +80,6 @@ class DailySchedulerTest {
                 .isEquipped(true)
                 .build();
 
-        // (User 엔티티에 연관관계 편의 메서드가 없으므로 리스트에 직접 추가하거나 repository로 저장)
         // 여기서는 CascadeType.ALL이 걸려있다고 가정하고 User에 추가
         deleteTargetUser.getUserItems().add(userItem);
 
@@ -126,7 +124,7 @@ class DailySchedulerTest {
         Optional<User> deletedUserSearch = userRepository.findById(deleteTargetUser.getId());
         assertThat(deletedUserSearch).isEmpty();
 
-        // 2. [중요] 연관된 자식 데이터(Cascade)도 실제로 삭제되었는지 확인
+        // 2. 연관된 자식 데이터(Cascade)도 실제로 삭제되었는지 확인
         // AuthAccount 조회
         boolean authAccountExists = authAccountRepository.existsById(authAccount.getId());
         assertThat(authAccountExists).isFalse();

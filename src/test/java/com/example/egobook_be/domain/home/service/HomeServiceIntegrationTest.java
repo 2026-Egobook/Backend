@@ -55,28 +55,33 @@ public class HomeServiceIntegrationTest {
     void successGetDailyRewardWithTwoThread() throws InterruptedException {
         // =========== Given ===========
         int threadCount = 2; // 실행할 스레드 개수
-        // 1. 실행할 스레드만큼의 크기로 Thread Pool 생성
-        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
-        // 2. 카운트다운 래치(대기표) 생성 - 모든 Thread의 작업이 끝날 때까지 기다리기 위한 장치 (인자로 정해준 카운터가 0으로 소모되어야 다음 작업이 실행됨)
+        // 1. 카운트다운 래치(대기표) 생성 - 모든 Thread의 작업이 끝날 때까지 기다리기 위한 장치 (인자로 정해준 카운터가 0으로 소모되어야 다음 작업이 실행됨)
         CountDownLatch latch = new CountDownLatch(threadCount);
 
-        // =========== When ===========
-        // 1. 생성한 Thread Pool에 속한 각 Thread에게 작업 부여
-        for(int i=0; i<threadCount; i++){
-            // 2. 각 Thread에게 작업 부여
-            // executorService.submit(): 스레드 풀에 작업을 제출할 때 사용하는 함수.
-            // 작업을 Queue에 넣고 바로 Future 객체를 반환한다.
-            executorService.submit(() -> {
-                try{
-                    homeService.getHomeData(userId);
-                } finally {
-                    // finally를 통해 작업이 끝나면 바로 latch의 카운트를 감소시킨다.
-                    latch.countDown();
-                }
-            });
-        }
-        // 2. 각 Thread의 작업이 끝날 때까지 대기
-        latch.await();
+        // 2. 실행할 스레드만큼의 크기로 Thread Pool 생성
+        try(ExecutorService executorService = Executors.newFixedThreadPool(threadCount)){
+            // =========== When ===========
+            // 1. 생성한 Thread Pool에 속한 각 Thread에게 작업 부여
+            for(int i=0; i<threadCount; i++){
+                // 2. 각 Thread에게 작업 부여
+                // executorService.submit(): 스레드 풀에 작업을 제출할 때 사용하는 함수.
+                // 작업을 Queue에 넣고 바로 Future 객체를 반환한다.
+                executorService.submit(() -> {
+                    try {
+                        homeService.getHomeData(userId);
+                    } catch (Exception e) {
+                        e.printStackTrace(); // 예외 발생 시 로그 찍기
+                    } finally {
+                        // finally를 통해 작업이 끝나면 바로 latch의 카운트를 감소시킨다.
+                        latch.countDown();
+                    }
+                });
+            }
+            // 2. 각 Thread의 작업이 끝날 때까지 대기
+            latch.await();
+            executorService.shutdown();
+        } // executorService.shutdown()이 자동으로 호출된다.
+
 
         // =========== Then ===========
         // 결과 확인을 위해, DB에서 최신 User를 조회
