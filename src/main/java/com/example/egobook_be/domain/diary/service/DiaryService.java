@@ -150,6 +150,7 @@ public class DiaryService {
             // 2-1. 감정 조절 레벨이 올랐는지 확인
             if(earnedInk == 1){
                 inkLogUtil.addInkLogToList(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
+                user.levelUp();
                 rewards.add(new DiaryCreateResDto.RewardResDto(
                         RewardType.INK, earnedInk, "[감정 조절 레벨업] 잉크를 추가로 1 획득했어요"+"(현재 감정 조절 레벨: " + ability.getEmotionRegulation() + ")"
                 ));
@@ -178,6 +179,7 @@ public class DiaryService {
             // 3-1. 긍정 사고의 레벨이 올랐는지 확인
             if(earnedInk == 1){
                 inkLogUtil.addInkLogToList(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
+                user.levelUp();
                 rewards.add(new DiaryCreateResDto.RewardResDto(
                         RewardType.INK, earnedInk, "[긍정 사고 레벨업] 잉크를 추가로 1 획득했어요"+"(현재 긍정 사고 레벨: " + ability.getPositiveThinking() + ")"
                 ));

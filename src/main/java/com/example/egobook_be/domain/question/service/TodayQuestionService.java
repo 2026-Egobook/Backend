@@ -156,6 +156,7 @@ public class TodayQuestionService {
             // 1-3. 성실성 레벨업했는지 여부 확인
             if(earnedInk == 1){
                 inkLogUtil.addInkLogToList(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
+                user.levelUp();
             }
         }
         inkLogRepository.saveAll(inkLogs);
