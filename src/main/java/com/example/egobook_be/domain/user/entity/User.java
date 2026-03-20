@@ -87,6 +87,10 @@ public class User extends BaseTimeEntity {
     @Column(length = 500)
     private String fcmToken;
 
+    // 편지 전송 조건 저장
+    @Column(name = "letter_receive_blocked_until")
+    private OffsetDateTime letterReceiveBlockedUntil;
+
     // ========= 연관관계 매핑 ========= //
 
     @OneToOne(
@@ -181,9 +185,6 @@ public class User extends BaseTimeEntity {
         this.notificationEnabled = !this.notificationEnabled;
     }
 
-    // 출석 보상을 주는 함수
-    public void rewardAttendance() { this.isFirstAttendanceToday = false; }
-
     public void updateDailyPraiseEnabled(boolean enabled) {
         this.dailyPraise = enabled;
     }
@@ -192,10 +193,24 @@ public class User extends BaseTimeEntity {
         this.weeklyAnalysisEnabled = enabled;
     }
 
+    /**
+     * 출석 여부를 확인한 후, 출석을 하지 않았다면 출석 보상 부여 및 상태를 변경하는 함수
+     * @param rewardAmount : 보상을 받을 잉크량
+     * return : 지급된 보상 잉크량
+     */
+    public int checkFirstAttendanceTodayAndGetReward(int rewardAmount){
+        // 1. 출석 여부 확인 - 이미 출석했다면 보상 0
+        if(!this.isFirstAttendanceToday()){
+            return 0;
+        }
 
-    // 편지 전송 조건 저장
-    @Column(name = "letter_receive_blocked_until")
-    private OffsetDateTime letterReceiveBlockedUntil;
+        // 2. 오늘 첫 접속 상태라면, 스스로 상태 변경 후 보상 지급
+        this.isFirstAttendanceToday = false;
+        this.addInk(rewardAmount);
+        return rewardAmount;
+    }
+
+
 
     public void blockLetterReceiveUntil(OffsetDateTime until) {
         this.letterReceiveBlockedUntil = until;

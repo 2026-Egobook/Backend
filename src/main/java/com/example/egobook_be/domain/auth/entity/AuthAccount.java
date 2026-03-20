@@ -114,4 +114,17 @@ public class AuthAccount extends BaseTimeEntity {
     public void updateHashedRecoverToken(String hashedRecoverToken) {
         this.hashedRecoverToken = hashedRecoverToken;
     }
+
+    /**
+     * Guest 사용자가 Google을 연동할 때 AuthAccount의 내용을 업데이트 하는 비즈니스 메서드
+     * @param hashedGoogleSub : Google로 연동되어있을 때, hashedDeviceUid 자리에는 hashedGoogleSub 값이 들어간다.
+     */
+    public void linkToGoogle(String hashedGoogleSub){
+        // 1. Provider 값 수정
+        this.provider = Provider.GOOGLE;
+        // 2. hashedDeviceUid값 -> hashedGoogleSub값으로 수정 (값으로 들어온 hashedGoogleSub값은 검증된 값으로 간주한다.)
+        this.hashedDeviceUid = hashedGoogleSub;
+        // 3. hashedRecoverToken값 삭제 - hashedRecoverToken값은 Guest일 때만 존재함
+        this.hashedRecoverToken = null;
+    }
 }

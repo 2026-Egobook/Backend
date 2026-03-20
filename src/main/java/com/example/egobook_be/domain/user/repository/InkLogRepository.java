@@ -13,6 +13,8 @@ import java.util.List;
 
 @Repository
 public interface InkLogRepository extends JpaRepository<InkLog, Long> {
+    int countByUser(User user);
+    
     boolean existsByUserAndReasonAndCreatedAtAfter(User user, InkLogType reason, LocalDateTime startOfDay);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
