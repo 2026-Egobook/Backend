@@ -29,6 +29,7 @@ public class ItemMapper {
     public ShopItemInfoResDto toShopItemInfoResDto(Item item, String shopCloudfrontDomain, String myCloudfrontDomain, Boolean isPurchased, Boolean isEquipped){
         return ShopItemInfoResDto.builder()
                 .itemId(item.getId())
+                .itemCategory(item.getCategory())
                 .shopImageUrl(item.getFullUrl(shopCloudfrontDomain))
                 .myImageUrl(item.getFullUrl(myCloudfrontDomain))
                 .price(item.getPrice())
