@@ -6,6 +6,7 @@ import com.example.egobook_be.domain.auth.sevice.AuthService;
 import com.example.egobook_be.domain.user.dto.FcmTokenReqDto;
 import com.example.egobook_be.domain.user.dto.UserNicknameResDto;
 import com.example.egobook_be.domain.user.dto.UserNicknameUpdateReqDto;
+import com.example.egobook_be.domain.user.dto.WithdrawReasonReqDto;
 import com.example.egobook_be.domain.user.service.UserService;
 import com.example.egobook_be.global.response.GlobalResponse;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -45,6 +46,17 @@ public class UserController implements UserControllerDocs{
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(GlobalResponse.success("사용자 닉네임 업데이트 성공", resDto));
+    }
+
+    @Override
+    public ResponseEntity<?> saveWithdrawReason(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestBody @Valid WithdrawReasonReqDto reqDto
+    ){
+        userService.saveWithdrawReason(userId, reqDto);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(GlobalResponse.success("탈퇴 사유 제출 성공", null));
     }
 
     @Override
