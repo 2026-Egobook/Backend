@@ -49,13 +49,25 @@ public class SwaggerConfig {
     }
 
     // Swagger 문서를 그룹화하여 구분해서 보여주는 설정
+    // 1. 기본 사용자 API 그룹
     @Bean
     public GroupedOpenApi customGroupedOpenApi() {
         return GroupedOpenApi.builder()
                 .group("전체 API")           // 그룹 이름 -> 단순 이름만 지정
                 // *:api로 시작하는 바로 아래 단계만, **: api로 시작하는 모든 것들
                 .pathsToMatch("/**")    // 전체 경로 포함
+                .pathsToExclude("/admin/**")
                 .build();
     }
+
+    // 2. 관리자(Admin) 전용 API 그룹
+    @Bean
+    public GroupedOpenApi adminGroupedOpenApi() {
+        return GroupedOpenApi.builder()
+                .group("관리자 API")
+                .pathsToMatch("/admin/**")
+                .build();
+    }
+
 
 }
