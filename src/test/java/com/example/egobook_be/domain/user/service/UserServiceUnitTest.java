@@ -5,10 +5,14 @@ import com.example.egobook_be.domain.auth.entity.RefreshTokenBackup;
 import com.example.egobook_be.domain.auth.enums.AuthErrorCode;
 import com.example.egobook_be.domain.auth.repository.AuthAccountRepository;
 import com.example.egobook_be.domain.auth.repository.RefreshTokenBackupRepository;
+import com.example.egobook_be.domain.user.dto.WithdrawReasonReqDto;
 import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.entity.WithdrawReason;
 import com.example.egobook_be.domain.user.enums.UserErrorCode;
 import com.example.egobook_be.domain.user.enums.UserStatus;
+import com.example.egobook_be.domain.user.enums.WithdrawReasonType;
 import com.example.egobook_be.domain.user.repository.UserRepository;
+import com.example.egobook_be.domain.user.repository.WithdrawReasonRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.util.RedisUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +46,7 @@ public class UserServiceUnitTest {
     @Mock private UserRepository userRepository;
     @Mock private AuthAccountRepository authAccountRepository;
     @Mock private RefreshTokenBackupRepository refreshTokenBackupRepository;
+    @Mock private WithdrawReasonRepository withdrawReasonRepository;
     @Mock private RedisUtil redisUtil;
 
     @BeforeEach
@@ -52,7 +57,7 @@ public class UserServiceUnitTest {
 
     @Nested
     @DisplayName("withDrawAccount() 회원 탈퇴 메서드 테스트")
-    class WithDrawAccountTest {
+    class WithdrawAccountTest {
 
         @Test
         @DisplayName("[성공] 정상적인 회원 탈퇴 요청 (상태 변경 및 토큰 무효화)")
@@ -178,6 +183,96 @@ public class UserServiceUnitTest {
             // 실패 이후의 토큰 무효화 로직이 실행되지 않았음을 검증
             verify(refreshTokenBackupRepository, never()).findAllByAuthAccount(any());
             verify(redisUtil, never()).setTokenInBlacklist(anyString());
+        }
+    }
+
+    @Nested
+    @DisplayName("saveWithdrawReason() 탈퇴 정보 저장 메서드 테스트")
+    class WithdrawReasonTest {
+
+        @Test
+        @DisplayName("[성공] 탈퇴 정보 저장 성공")
+        void saveWithdrawReason() {
+            // ========= Given =========
+            Long userId = 1L;
+            WithdrawReasonReqDto reqDto = new WithdrawReasonReqDto(WithdrawReasonType.LACK_OF_CONTENT, "콘텐츠가 부족해요");
+
+            // 1. 유저가 존재함
+            given(userRepository.existsById(userId)).willReturn(true);
+            // 2. 이전에 탈퇴 사유를 작성한 적이 없음
+            given(withdrawReasonRepository.existsByUserId(userId)).willReturn(false);
+
+            // ========= When =========
+            userService.saveWithdrawReason(userId, reqDto);
+
+            // ========= Then =========
+            // save 메서드가 정확히 1번 호출되었는지 검증
+            verify(withdrawReasonRepository, times(1)).save(any(WithdrawReason.class));
+        }
+
+        @Test
+        @DisplayName("[실패 1] 이미 존재하는 사용자의 탈퇴 정보 저장 시도")
+        void failAlreadyExistUserWithdrawReason() {
+            // ========= Given =========
+            Long userId = 1L;
+            WithdrawReasonReqDto reqDto = new WithdrawReasonReqDto(WithdrawReasonType.NOT_USED_OFTEN, null);
+
+            given(userRepository.existsById(userId)).willReturn(true);
+            // 이미 탈퇴 사유를 작성한 적이 있음 (true 반환)
+            given(withdrawReasonRepository.existsByUserId(userId)).willReturn(true);
+
+            // ========= When & Then =========
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                userService.saveWithdrawReason(userId, reqDto);
+            });
+
+            // 올바른 예외 코드가 반환되었는지 확인
+            assertThat(exception.getErrorCode()).isEqualTo(UserErrorCode.WITHDRAW_REASON_ALREADY_WRITTEN);
+
+            // save가 호출되지 않고 로직이 중단되었는지 확인
+            verify(withdrawReasonRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("[실패 2] 기타(OTHER) 선택 후 상세 내용을 빈칸으로 보냄")
+        void failSelectOtherAndNoText() {
+            // ========= Given =========
+            Long userId = 1L;
+            // OTHER를 선택했지만 text를 공백("   ")으로 보냄 (isBlank()에 걸림)
+            WithdrawReasonReqDto reqDto = new WithdrawReasonReqDto(WithdrawReasonType.OTHER, "   ");
+
+            given(userRepository.existsById(userId)).willReturn(true);
+            given(withdrawReasonRepository.existsByUserId(userId)).willReturn(false);
+
+            // ========= When & Then =========
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                userService.saveWithdrawReason(userId, reqDto);
+            });
+
+            assertThat(exception.getErrorCode()).isEqualTo(UserErrorCode.WITHDRAW_REASON_OTHER_TEXT_FIELD_EMPTY);
+            verify(withdrawReasonRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("[실패 3] 존재하지 않는 사용자의 탈퇴 정보 저장 시도")
+        void failUserNotFound() {
+            // ========= Given =========
+            Long invalidUserId = 999L;
+            WithdrawReasonReqDto reqDto = new WithdrawReasonReqDto(WithdrawReasonType.LACK_OF_CONTENT, null);
+
+            // DB에서 유저를 찾지 못함 (false 반환)
+            given(userRepository.existsById(invalidUserId)).willReturn(false);
+
+            // ========= When & Then =========
+            CustomException exception = assertThrows(CustomException.class, () -> {
+                userService.saveWithdrawReason(invalidUserId, reqDto);
+            });
+
+            assertThat(exception.getErrorCode()).isEqualTo(UserErrorCode.USER_NOT_FOUND);
+
+            // 이후 로직(존재 여부 확인 및 저장)이 실행되지 않았는지 검증
+            verify(withdrawReasonRepository, never()).existsByUserId(any());
+            verify(withdrawReasonRepository, never()).save(any());
         }
     }
 }

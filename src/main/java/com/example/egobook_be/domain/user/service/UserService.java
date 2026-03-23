@@ -20,12 +20,16 @@ import com.example.egobook_be.domain.terms.repository.UserTermRepository;
 import com.example.egobook_be.domain.user.dto.FcmTokenReqDto;
 import com.example.egobook_be.domain.user.dto.UserNicknameResDto;
 import com.example.egobook_be.domain.user.dto.UserNicknameUpdateReqDto;
+import com.example.egobook_be.domain.user.dto.WithdrawReasonReqDto;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.entity.WithdrawReason;
 import com.example.egobook_be.domain.user.enums.UserErrorCode;
 import com.example.egobook_be.domain.user.enums.UserStatus;
+import com.example.egobook_be.domain.user.enums.WithdrawReasonType;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
+import com.example.egobook_be.domain.user.repository.WithdrawReasonRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.util.AccountCodeGenerator;
 import com.example.egobook_be.global.util.RedisUtil;
@@ -54,6 +58,7 @@ public class UserService {
     private final UserItemRepository userItemRepository;
     private final AbilityRepository abilityRepository;
     private final RefreshTokenBackupRepository refreshTokenBackupRepository;
+    private final WithdrawReasonRepository withdrawReasonRepository;
     private final RedisUtil redisUtil;
     private final UserNicknameGenerator userNicknameGenerator;
 
@@ -203,6 +208,28 @@ public class UserService {
         user.updateNickname(reqDto.nickname());
 
         return UserNicknameResDto.builder().newNickname(user.getNickname()).build();
+    }
+
+    // 사용자가 전달해준 회원 탈퇴 이유를 저장하는 함수
+    @Transactional
+    public void saveWithdrawReason(Long userId, WithdrawReasonReqDto reqDto) {
+        // 1. User가 존재하는지 확인
+        if(!userRepository.existsById(userId)) {
+            throw new CustomException(UserErrorCode.USER_NOT_FOUND);
+        }
+
+        // 2. 사용자가 존재한다면, 해당 사용자의 탈퇴 정보가 WithdrawReason 테이블에 존재하는지 확인한다.
+        if(withdrawReasonRepository.existsByUserId(userId)){
+            throw new CustomException(UserErrorCode.WITHDRAW_REASON_ALREADY_WRITTEN);
+        }
+
+        // 3. 회원 탈퇴 이유가 "기타(Others)"인 경우, text 필드가 비어있다면 예외 발생 (기타인 경우에느 반드시 text 필드가 채워져있어야 함)
+        if(reqDto.reasonType().equals(WithdrawReasonType.OTHER) && reqDto.text() != null && reqDto.text().isBlank()){
+            throw new CustomException(UserErrorCode.WITHDRAW_REASON_OTHER_TEXT_FIELD_EMPTY);
+        }
+
+        // 4. 회원 탈퇴 이유 저장
+        withdrawReasonRepository.save(WithdrawReason.create(userId, reqDto.reasonType(), reqDto.text()));
     }
 
     /**

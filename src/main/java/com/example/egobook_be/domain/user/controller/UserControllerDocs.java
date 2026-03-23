@@ -5,6 +5,7 @@ import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
 import com.example.egobook_be.domain.user.dto.FcmTokenReqDto;
 import com.example.egobook_be.domain.user.dto.UserNicknameResDto;
 import com.example.egobook_be.domain.user.dto.UserNicknameUpdateReqDto;
+import com.example.egobook_be.domain.user.dto.WithdrawReasonReqDto;
 import com.example.egobook_be.global.response.GlobalResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -81,6 +82,37 @@ public interface UserControllerDocs {
             @RequestBody @Valid UserNicknameUpdateReqDto reqDto
     );
 
+    @Operation(summary = "회원 탈퇴 이유 저장", description = """
+            회원 탈퇴 이유를 전달 받아 저장합니다.
+            
+            - **기능**:
+                사용자에게 데이터를 전달받아 회원 탈퇴 이유를 저장합니다.
+            
+            - **전달받을 변수**:
+                1. ```reasonType```: 사용자의 탈퇴 이유 ENUM
+                     - **NOT_USED_OFTEN**: 자주 사용하지 않아요
+                     - **LACK_OF_CONTENT**: 콘텐츠나 기능이 부족해요
+                     - **INCONVENIENT_UI**: 앱 사용이 불편해요
+                     - **DIFFICULT_TO_COLLECT_INK**: 잉크를 모으기 어려워요
+                     - **OTHER**: 기타
+                2. ```text```: **OTHER**(기타) 선택 시 회원 탈퇴 이유를 입력합니다.
+            
+            - **주의**:
+                1. 이 API를 호출하기 이전에 회원 탈퇴 API를 먼저 호출하면, 이 API를 호출해도 사용자의 회원 탈퇴 이유를 저장할 수 없습니다.
+            """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "회원 탈퇴 이유 저장 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효하지 않은 ENUM 값 전달 또는 text 길이 초과)", content = @Content),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (유효하지 않은 토큰)", content = @Content),
+            @ApiResponse(responseCode = "409", description = "이미 탈퇴 이유를 제출한 사용자 (중복 저장 불가)", content = @Content)
+    })
+    @PostMapping("/withdraw/reason")
+    ResponseEntity<?> saveWithdrawReason(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestBody @Valid WithdrawReasonReqDto reqDto
+    );
+
+
     @Operation(summary = "사용자 회원 탈퇴", description = """
             현재 로그인된 사용자의 **계정을 삭제(탈퇴)** 처리합니다.
             
@@ -93,8 +125,8 @@ public interface UserControllerDocs {
               6. 탈퇴된 계정은 7일 뒤 완전히 정보가 삭제됩니다. 
             
             - **주의**: 
-            탈퇴 처리된 계정은 복구가 불가능하며, 동일한 소셜 계정으로 재가입 시 신규 사용자로 처리됩니다.
-            계정 복구를 원할 시, 고객센터로 연락해 복구해야합니다.
+                1. 반드시 "회원 탈퇴 이유 저장" API를 호출한 뒤에 호출해야합니다.
+                2. 탈퇴 처리된 계정은 복구가 불가능하며, 동일한 소셜 계정으로 재가입 시 신규 사용자로 처리됩니다. 계정 복구를 원할 시, 고객센터로 연락해 복구해야합니다.
             """)
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "회원 탈퇴 성공 (Resource Deleted)",
