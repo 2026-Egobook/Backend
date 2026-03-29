@@ -4,7 +4,7 @@ import com.example.egobook_be.domain.letters.entity.PlazaLetterMode;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
 import lombok.Builder;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Builder
 public record CreateLetterResponse(
@@ -14,6 +14,6 @@ public record CreateLetterResponse(
         PlazaLetterMode mode,
         String fromLabel,
         String backgroundColor,
-        OffsetDateTime createdAt,
+        LocalDateTime createdAt,
         String backgroundImageUrl
         ) {}

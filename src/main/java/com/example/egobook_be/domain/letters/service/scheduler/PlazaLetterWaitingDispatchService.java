@@ -8,7 +8,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -23,7 +23,7 @@ public class PlazaLetterWaitingDispatchService {
 
     @Transactional
     public int dispatchWaitingLetters() {
-        OffsetDateTime now = OffsetDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
 
         // 1) 수신 가능 유저 찾기 (포기 후 4시간 지난 유저)
         List<Long> candidateUserIds =

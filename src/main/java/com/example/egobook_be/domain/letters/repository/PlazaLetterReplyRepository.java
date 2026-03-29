@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,7 +39,7 @@ public interface PlazaLetterReplyRepository extends JpaRepository<PlazaLetterRep
             Pageable pageable
     );
 
-    boolean existsByReplierIdAndCreatedAtBetween(Long replierId, OffsetDateTime createdAtAfter, OffsetDateTime createdAtBefore);
+    boolean existsByReplierIdAndCreatedAtBetween(Long replierId, LocalDateTime createdAtAfter, LocalDateTime createdAtBefore);
 
     // 내가 쓴 답장의 작성자 ID를 NULL로 익명화
     @Modifying(clearAutomatically = true)

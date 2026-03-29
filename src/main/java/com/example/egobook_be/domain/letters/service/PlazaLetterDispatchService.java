@@ -9,7 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -28,7 +28,7 @@ public class PlazaLetterDispatchService {
      */
     @Transactional
     public void dispatchWaitingLetters() {
-        OffsetDateTime now = OffsetDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
 
         List<PlazaLetter> waitingLetters =
                 plazaLetterRepository.findWaitingLetters(PageRequest.of(0, BATCH_SIZE));

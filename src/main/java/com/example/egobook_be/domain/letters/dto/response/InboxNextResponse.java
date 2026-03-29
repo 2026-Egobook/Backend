@@ -5,7 +5,7 @@ import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -26,8 +26,8 @@ public class InboxNextResponse {
         private PlazaLetterMode mode;
         private String fromLabel;
         private String content;
-        private OffsetDateTime arrivedAt;
-        private OffsetDateTime replyDeadlineAt;
+        private LocalDateTime arrivedAt;
+        private LocalDateTime replyDeadlineAt;
         private String backgroundColor;
     }
 

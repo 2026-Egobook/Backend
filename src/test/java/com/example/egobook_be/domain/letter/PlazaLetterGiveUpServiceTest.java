@@ -14,7 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -74,9 +74,9 @@ class PlazaLetterGiveUpServiceTest {
                 .fromLabel("익명")
                 .content("편지")
                 .status(status)
-                .createdAt(OffsetDateTime.now().minusDays(1))
-                .arrivedAt(OffsetDateTime.now().minusHours(25))
-                .replyDeadlineAt(OffsetDateTime.now().minusHours(1))
+                .createdAt(LocalDateTime.now().minusDays(1))
+                .arrivedAt(LocalDateTime.now().minusHours(25))
+                .replyDeadlineAt(LocalDateTime.now().minusHours(1))
                 .build();
     }
 

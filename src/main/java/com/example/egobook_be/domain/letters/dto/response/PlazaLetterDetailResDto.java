@@ -5,7 +5,7 @@ import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -21,8 +21,8 @@ public class PlazaLetterDetailResDto {
     private String content;
     private String backgroundColor;
 
-    private OffsetDateTime createdAt;
-    private OffsetDateTime arrivedAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime arrivedAt;
 
     private String fromLabel;
 
@@ -38,6 +38,6 @@ public class PlazaLetterDetailResDto {
         private boolean aiGenerated;
         private boolean reported;
 
-        private OffsetDateTime createdAt;
+        private LocalDateTime createdAt;
     }
 }

@@ -11,7 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -23,7 +23,7 @@ public class PlazaLetterGiveUpService {
 
     @Transactional
     public int autoGiveUpExpiredLetters() {
-        OffsetDateTime now = OffsetDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
 
         PlazaLetterStatus arrived = PlazaLetterStatus.ARRIVED;
         PlazaLetterStatus deferred = PlazaLetterStatus.DEFERRED;

@@ -13,7 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -73,7 +73,7 @@ class PlazaLetterWaitingDispatchServiceTest {
                 .fromLabel("익명")
                 .content("대기 편지")
                 .status(PlazaLetterStatus.WAITING)
-                .createdAt(OffsetDateTime.now().minusHours(2))
+                .createdAt(LocalDateTime.now().minusHours(2))
                 .build();
     }
 }

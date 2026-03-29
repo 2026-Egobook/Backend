@@ -19,7 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -124,9 +124,9 @@ class ReplyReportServiceTest {
                 .fromLabel("익명")
                 .content("편지")
                 .status(PlazaLetterStatus.ARRIVED)
-                .createdAt(OffsetDateTime.now().minusHours(10))
-                .arrivedAt(OffsetDateTime.now().minusHours(9))
-                .replyDeadlineAt(OffsetDateTime.now().plusHours(15))
+                .createdAt(LocalDateTime.now().minusHours(10))
+                .arrivedAt(LocalDateTime.now().minusHours(9))
+                .replyDeadlineAt(LocalDateTime.now().plusHours(15))
                 .build();
     }
 
@@ -138,7 +138,7 @@ class ReplyReportServiceTest {
                 .replierId(replierId)
                 .text("답장")
                 .isAiGenerated(false)
-                .createdAt(OffsetDateTime.now())
+                .createdAt(LocalDateTime.now())
                 .status(PlazaLetterReply.ReplyStatus.SENT)
                 .build();
     }

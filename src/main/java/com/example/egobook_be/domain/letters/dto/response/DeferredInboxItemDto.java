@@ -5,7 +5,7 @@ import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -18,7 +18,7 @@ public class DeferredInboxItemDto {
     private String backgroundColor;
 
     private String contentPreview;      // 30자 미리보기
-    private OffsetDateTime arrivedAt;
-    private OffsetDateTime replyDeadlineAt;
+    private LocalDateTime arrivedAt;
+    private LocalDateTime replyDeadlineAt;
 }
 

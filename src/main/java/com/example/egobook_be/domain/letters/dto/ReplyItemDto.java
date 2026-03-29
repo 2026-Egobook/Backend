@@ -4,7 +4,7 @@ import com.example.egobook_be.domain.letters.entity.PlazaLetterMode;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -17,5 +17,5 @@ public class ReplyItemDto {
     private String backgroundColor;
 
     private String replyText;
-    private OffsetDateTime createdAt;
+    private LocalDateTime createdAt;
 }

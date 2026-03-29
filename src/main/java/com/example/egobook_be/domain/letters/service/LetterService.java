@@ -5,7 +5,7 @@ import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
 @Service
@@ -26,12 +26,12 @@ public class LetterService {
         PlazaLetter letter = plazaLetterRepository.findById(letterId)
                 .orElseThrow(() -> new IllegalArgumentException("편지를 찾을 수 없습니다."));
 
-        OffsetDateTime arrivedAt = letter.getArrivedAt();
+        LocalDateTime arrivedAt = letter.getArrivedAt();
         if (arrivedAt == null) {
             return false; // 편지가 도착하지 않았으면 AI 답장이 불필요
         }
 
         // 48시간이 경과했는지 확인
-        return arrivedAt.plus(48, ChronoUnit.HOURS).isBefore(OffsetDateTime.now());
+        return arrivedAt.plus(48, ChronoUnit.HOURS).isBefore(LocalDateTime.now());
     }
 }
