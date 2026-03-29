@@ -4,7 +4,7 @@ import com.example.egobook_be.domain.letters.enums.PlazaLetterColor;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -29,7 +29,7 @@ public class PlazaLetter {
 
 
     @Column(nullable = false)
-    private OffsetDateTime createdAt;
+    private LocalDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
@@ -51,14 +51,14 @@ public class PlazaLetter {
     private String content;
 
     @Column
-    private OffsetDateTime arrivedAt;
+    private LocalDateTime arrivedAt;
 
     @Column
-    private OffsetDateTime replyDeadlineAt;
+    private LocalDateTime replyDeadlineAt;
 
-    private OffsetDateTime repliedAt;
+    private LocalDateTime repliedAt;
 
-    public void markReplied(OffsetDateTime repliedAt) {
+    public void markReplied(LocalDateTime repliedAt) {
         this.status = PlazaLetterStatus.REPLIED;
         this.repliedAt = repliedAt;
     }
@@ -68,19 +68,19 @@ public class PlazaLetter {
     }
 
     @Column
-    private OffsetDateTime gaveUpAt;
+    private LocalDateTime gaveUpAt;
 
-    public void markGaveUp(OffsetDateTime gaveUpAt) {
+    public void markGaveUp(LocalDateTime gaveUpAt) {
         this.status = PlazaLetterStatus.GAVE_UP;
         this.gaveUpAt = gaveUpAt;
     }
 
-    public void markAiReplied(OffsetDateTime repliedAt) {
+    public void markAiReplied(LocalDateTime repliedAt) {
         this.status = PlazaLetterStatus.AI_REPLIED;
         this.repliedAt = repliedAt; // repliedAt 필드를 그대로 사용 (AI 답장)
     }
 
-    public void assignToReceiver(Long receiverId, OffsetDateTime arrivedAt, OffsetDateTime replyDeadlineAt) {
+    public void assignToReceiver(Long receiverId, LocalDateTime arrivedAt, LocalDateTime replyDeadlineAt) {
         this.receiverId = receiverId;
         this.arrivedAt = arrivedAt;
         this.replyDeadlineAt = replyDeadlineAt;
@@ -89,8 +89,8 @@ public class PlazaLetter {
 
     public void assignReceiver(
             Long receiverId,
-            OffsetDateTime arrivedAt,
-            OffsetDateTime replyDeadlineAt
+            LocalDateTime arrivedAt,
+            LocalDateTime replyDeadlineAt
     ) {
         this.receiverId = receiverId;
         this.arrivedAt = arrivedAt;
@@ -107,7 +107,7 @@ public class PlazaLetter {
 
 
     // arrivedAt에 대한 setter 메서드 추가
-    public void setArrivedAt(OffsetDateTime arrivedAt) {
+    public void setArrivedAt(LocalDateTime arrivedAt) {
         this.arrivedAt = arrivedAt;
     }
 
