@@ -13,7 +13,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static com.example.egobook_be.domain.letters.entity.QPlazaLetter.plazaLetter;
@@ -33,7 +33,7 @@ public class PlazaLetterAiReplyService {
 
     @Transactional
     public int generateAiReplies(int batchSize) {
-        OffsetDateTime cutoff = OffsetDateTime.now().minusHours(48);
+        LocalDateTime cutoff = LocalDateTime.now().minusHours(48);
 
 
         List<PlazaLetter> targets = plazaLetterRepository.findAiReplyTargets(
@@ -69,8 +69,8 @@ public class PlazaLetterAiReplyService {
         }
 
         // 48시간 지났는지 최종 확인 (스케줄러 지연/수동 호출 대비)
-        OffsetDateTime createdAt = letter.getCreatedAt();
-        if (createdAt == null || OffsetDateTime.now().isBefore(createdAt.plusHours(48))) {
+        LocalDateTime createdAt = letter.getCreatedAt();
+        if (createdAt == null || LocalDateTime.now().isBefore(createdAt.plusHours(48))) {
             return false;
         }
 
@@ -81,7 +81,7 @@ public class PlazaLetterAiReplyService {
         String raw = geminiClient.generateReply(nickname, letter.getContent());
         String normalized = normalizeAiReply(raw);
 
-        OffsetDateTime now = OffsetDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
 
         PlazaLetterReply aiReply = PlazaLetterReply.builder()
                 .threadId(letter.getThreadId())

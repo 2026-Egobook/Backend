@@ -18,7 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,7 +52,7 @@ class PlazaLetterAiReplyServiceTest {
     @Test
     @DisplayName("generateAiReplyIfEligible_이미 답장이 있으면 false를 반환한다")
     void generateAiReplyIfEligible_replyAlreadyExists_returnFalse() {
-        PlazaLetter letter = targetLetter(10L, OffsetDateTime.now().minusHours(49), PlazaLetterStatus.ARRIVED);
+        PlazaLetter letter = targetLetter(10L, LocalDateTime.now().minusHours(49), PlazaLetterStatus.ARRIVED);
         given(plazaLetterRepository.findById(10L)).willReturn(Optional.of(letter));
         given(plazaLetterReplyRepository.existsByLetter(letter)).willReturn(true);
 
@@ -65,7 +65,7 @@ class PlazaLetterAiReplyServiceTest {
     @Test
     @DisplayName("generateAiReplyIfEligible_48시간이 지나지 않았으면 false를 반환한다")
     void generateAiReplyIfEligible_notExpired48Hours_returnFalse() {
-        PlazaLetter letter = targetLetter(10L, OffsetDateTime.now().minusHours(47), PlazaLetterStatus.ARRIVED);
+        PlazaLetter letter = targetLetter(10L, LocalDateTime.now().minusHours(47), PlazaLetterStatus.ARRIVED);
         given(plazaLetterRepository.findById(10L)).willReturn(Optional.of(letter));
         given(plazaLetterReplyRepository.existsByLetter(letter)).willReturn(false);
 
@@ -78,7 +78,7 @@ class PlazaLetterAiReplyServiceTest {
     @Test
     @DisplayName("generateAiReplyIfEligible_조건을 만족하면 AI 답장을 저장하고 상태를 AI_REPLIED로 변경한다")
     void generateAiReplyIfEligible_eligibleLetter_success() {
-        PlazaLetter letter = targetLetter(10L, OffsetDateTime.now().minusHours(49), PlazaLetterStatus.ARRIVED);
+        PlazaLetter letter = targetLetter(10L, LocalDateTime.now().minusHours(49), PlazaLetterStatus.ARRIVED);
         User sender = User.builder()
                 .id(1L)
                 .accountCode("USER1234")
@@ -103,7 +103,7 @@ class PlazaLetterAiReplyServiceTest {
         verify(plazaLetterRepository).save(letter);
     }
 
-    private PlazaLetter targetLetter(Long letterId, OffsetDateTime createdAt, PlazaLetterStatus status) {
+    private PlazaLetter targetLetter(Long letterId, LocalDateTime createdAt, PlazaLetterStatus status) {
         return PlazaLetter.builder()
                 .letterId(letterId)
                 .threadId(500L)

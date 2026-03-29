@@ -89,7 +89,7 @@ public class User extends BaseTimeEntity {
 
     // 편지 전송 조건 저장
     @Column(name = "letter_receive_blocked_until")
-    private OffsetDateTime letterReceiveBlockedUntil;
+    private LocalDateTime letterReceiveBlockedUntil;
 
     // ========= 연관관계 매핑 ========= //
 
@@ -212,11 +212,11 @@ public class User extends BaseTimeEntity {
 
 
 
-    public void blockLetterReceiveUntil(OffsetDateTime until) {
+    public void blockLetterReceiveUntil(LocalDateTime until) {
         this.letterReceiveBlockedUntil = until;
     }
 
-    public boolean canReceiveLetterAt(OffsetDateTime now) {
+    public boolean canReceiveLetterAt(LocalDateTime now) {
         return letterReceiveBlockedUntil == null || !now.isBefore(letterReceiveBlockedUntil);
     }
 
@@ -227,11 +227,11 @@ public class User extends BaseTimeEntity {
 
     // 해당 시간까지 수신 차단된 상태인지 확인하는 메서드도 필요할 수 있음.
     public boolean canReceiveLetters() {
-        return letterReceiveBlockedUntil == null || OffsetDateTime.now().isAfter(letterReceiveBlockedUntil);
+        return letterReceiveBlockedUntil == null || LocalDateTime.now().isAfter(letterReceiveBlockedUntil);
     }
 
     // getter, setter
-    public OffsetDateTime getLetterReceiveBlockedUntil() {
+    public LocalDateTime getLetterReceiveBlockedUntil() {
         return letterReceiveBlockedUntil;
     }
 

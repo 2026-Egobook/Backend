@@ -6,7 +6,7 @@ import com.example.egobook_be.domain.letters.entity.PlazaLetterReply;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
 import org.springframework.stereotype.Component;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Component
 public class PlazaLetterMapper {
@@ -14,8 +14,8 @@ public class PlazaLetterMapper {
     private static final String AI_PREVIEW = "48시간 동안 답장이 없어 내가 대신...";
 
     public PlazaSentLetterResDto toDto(PlazaLetter letter) {
-        OffsetDateTime createdAt = letter.getCreatedAt();
-        OffsetDateTime aiReplaceAt = (createdAt == null) ? null : createdAt.plusHours(48);
+        LocalDateTime createdAt = letter.getCreatedAt();
+        LocalDateTime aiReplaceAt = (createdAt == null) ? null : createdAt.plusHours(48);
 
         String preview = (letter.getStatus() == PlazaLetterStatus.AI_REPLIED)
                 ? AI_PREVIEW

@@ -37,7 +37,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 
 
-import java.time.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -104,7 +106,7 @@ public class PlazaLetterService {
         validateCreateLetterRequest(request);
 
         // 3. 해당 사용자가 편지를 작성할 수 있는 상태인지(이미 오늘 편지를 작성하였는지) 여부 검증
-        OffsetDateTime now = OffsetDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         enforceDailyLimit(userId, now);
 
         enforceWordAiOrThrow(request.getText());
@@ -162,8 +164,8 @@ public class PlazaLetterService {
         // ===== 핵심: receiverId/status/도착시간은 모드에 따라 다르게 =====
         Long receiverId = null;
         PlazaLetterStatus status;
-        OffsetDateTime arrivedAt = null;
-        OffsetDateTime replyDeadlineAt = null;
+        LocalDateTime arrivedAt = null;
+        LocalDateTime replyDeadlineAt = null;
 
         if (request.getMode() == PlazaLetterMode.FRIEND) {
             // FRIEND 모드일 때 친구 관계 검증 후 진행
@@ -267,11 +269,11 @@ public class PlazaLetterService {
     }
 
 
-    private void enforceDailyLimit(Long userId, OffsetDateTime now) {
+    private void enforceDailyLimit(Long userId, LocalDateTime now) {
         ZoneId zoneId = ZoneId.of("Asia/Seoul");
         LocalDate today = LocalDate.now(zoneId);
-        OffsetDateTime start = today.atStartOfDay(zoneId).toOffsetDateTime();
-        OffsetDateTime end = today.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
+        LocalDateTime start = today.atStartOfDay(zoneId).toLocalDateTime();
+        LocalDateTime end = today.plusDays(1).atStartOfDay(zoneId).toLocalDateTime();
 
         if (plazaLetterRepository.existsBySenderIdAndCreatedAtBetween(userId, start, end)) {
             throw new CustomException(LettersErrorCode.DAILY_LETTER_LIMIT);
@@ -378,7 +380,7 @@ public class PlazaLetterService {
         validateOwnership(letter, userId);
 
         // 4. 답장 가능한 상태인지 검증
-        OffsetDateTime now = OffsetDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         validateReplyable(letter, now);
 
         // 5. 해당 편지에 대해 답장이 이미 되어있는 상태인지 확인
@@ -391,8 +393,8 @@ public class PlazaLetterService {
         // 6. plazaLetterReplyRepository로 PlazaLetterReply를 저장하기 전, 해당 사용자가 답장한 편지가 오늘 처음 답장한 편지인지 확인한다.
         ZoneId zoneId = ZoneId.of("Asia/Seoul");
         LocalDate today = LocalDate.now(zoneId);
-        OffsetDateTime startOfDay = today.atStartOfDay(zoneId).toOffsetDateTime();
-        OffsetDateTime endOfDay = today.plusDays(1).atStartOfDay(zoneId).toOffsetDateTime();
+        LocalDateTime startOfDay = today.atStartOfDay(zoneId).toLocalDateTime();
+        LocalDateTime endOfDay = today.plusDays(1).atStartOfDay(zoneId).toLocalDateTime();
         boolean isFirstReplyToday = !plazaLetterReplyRepository.existsByReplierIdAndCreatedAtBetween(userId, startOfDay, endOfDay);
 
         PlazaLetterReply reply = plazaLetterReplyRepository.save(PlazaLetterReply.builder()
@@ -479,7 +481,7 @@ public class PlazaLetterService {
         PlazaLetter letter = getLetterOrThrow(letterId);
         validateOwnership(letter, userId);
 
-        OffsetDateTime now = OffsetDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         validateDeferable(letter, now);
 
         if (letter.getStatus() == PlazaLetterStatus.ARRIVED) {
@@ -497,7 +499,7 @@ public class PlazaLetterService {
         PlazaLetter letter = getLetterOrThrow(letterId);
         validateOwnership(letter, userId);
 
-        OffsetDateTime now = OffsetDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         validateGiveUpable(letter, now);
 
         // 유저 가져오기
@@ -539,7 +541,7 @@ public class PlazaLetterService {
         }
     }
 
-    private void validateReplyable(PlazaLetter letter, OffsetDateTime now) {
+    private void validateReplyable(PlazaLetter letter, LocalDateTime now) {
         if (letter.getStatus() == PlazaLetterStatus.REPLIED || letter.getStatus() == PlazaLetterStatus.AI_REPLIED) {
             throw new CustomException(LettersErrorCode.ALREADY_REPLIED);
         }
@@ -548,7 +550,7 @@ public class PlazaLetterService {
         }
     }
 
-    private void validateDeferable(PlazaLetter letter, OffsetDateTime now) {
+    private void validateDeferable(PlazaLetter letter, LocalDateTime now) {
         if (letter.getStatus() == PlazaLetterStatus.REPLIED || letter.getStatus() == PlazaLetterStatus.AI_REPLIED) {
             throw new CustomException(LettersErrorCode.ALREADY_REPLIED);
         }
@@ -558,7 +560,7 @@ public class PlazaLetterService {
 
     }
 
-    private void validateGiveUpable(PlazaLetter letter, OffsetDateTime now) {
+    private void validateGiveUpable(PlazaLetter letter, LocalDateTime now) {
         if (letter.getStatus() == PlazaLetterStatus.REPLIED || letter.getStatus() == PlazaLetterStatus.AI_REPLIED) {
             throw new CustomException(LettersErrorCode.ALREADY_REPLIED);
         }
@@ -567,7 +569,7 @@ public class PlazaLetterService {
         }
     }
 
-    private boolean isDeadlinePassed(PlazaLetter letter, OffsetDateTime now) {
+    private boolean isDeadlinePassed(PlazaLetter letter, LocalDateTime now) {
         return letter.getReplyDeadlineAt() != null && now.isAfter(letter.getReplyDeadlineAt());
     }
 

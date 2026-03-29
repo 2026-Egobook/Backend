@@ -8,7 +8,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,13 +16,13 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
 
     Optional<PlazaLetter> findFirstByReceiverIdAndStatusOrderByArrivedAtDesc(Long receiverId, PlazaLetterStatus status);
 
-    boolean existsBySenderIdAndCreatedAtBetween(Long senderId, OffsetDateTime start, OffsetDateTime end);
+    boolean existsBySenderIdAndCreatedAtBetween(Long senderId, LocalDateTime start, LocalDateTime end);
 
     Optional<PlazaLetter> findByThreadId(Long threadId);
 
     void deleteByThreadId(Long threadId);
 
-    long countByReceiverIdAndArrivedAtBetween(Long receiverId, OffsetDateTime start, OffsetDateTime end);
+    long countByReceiverIdAndArrivedAtBetween(Long receiverId, LocalDateTime start, LocalDateTime end);
 
     List<PlazaLetter> findByLetterIdIn(List<Long> letterIds);
 
@@ -42,7 +42,7 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
     """)
     int bulkMarkAiReplied(
             @Param("senderId") Long senderId,
-            @Param("threshold") OffsetDateTime threshold,
+            @Param("threshold") LocalDateTime threshold,
             @Param("newStatus") PlazaLetterStatus newStatus,
             @Param("newFromLabel") String newFromLabel
     );
@@ -87,7 +87,7 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
         order by l.createdAt asc
     """)
     List<PlazaLetter> findAiReplyTargets(
-            @Param("cutoff") OffsetDateTime cutoff,
+            @Param("cutoff") LocalDateTime cutoff,
             @Param("replied") PlazaLetterStatus replied,
             @Param("aiReplied") PlazaLetterStatus aiReplied,
             Pageable pageable
@@ -102,7 +102,7 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
             ") " +
             "ORDER BY l.replyDeadlineAt ASC")
     List<PlazaLetter> findGiveUpTargets(
-            @Param("now") OffsetDateTime now,
+            @Param("now") LocalDateTime now,
             @Param("arrived") PlazaLetterStatus arrived,
             @Param("deferred") PlazaLetterStatus deferred,
             Pageable pageable

@@ -3,7 +3,7 @@ package com.example.egobook_be.domain.letters.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -18,11 +18,11 @@ public class PlazaLetterThread {
     private Long threadId;
 
     @Column(nullable = false)
-    private OffsetDateTime createdAt;
+    private LocalDateTime createdAt;
 
     public static PlazaLetterThread createNow() {
         return PlazaLetterThread.builder()
-                .createdAt(OffsetDateTime.now())
+                .createdAt(LocalDateTime.now())
                 .build();
     }
 }

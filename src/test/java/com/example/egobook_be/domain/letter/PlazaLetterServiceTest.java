@@ -35,7 +35,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -116,7 +116,7 @@ class PlazaLetterServiceTest {
 
         PlazaLetterThread savedThread = PlazaLetterThread.builder()
                 .threadId(10L)
-                .createdAt(OffsetDateTime.now())
+                .createdAt(LocalDateTime.now())
                 .build();
 
         given(userRepository.findById(userId)).willReturn(Optional.of(sender));
@@ -258,9 +258,9 @@ class PlazaLetterServiceTest {
                 .content("원본 편지")
                 .backgroundColor(PlazaLetterColor.WHITE)
                 .status(PlazaLetterStatus.ARRIVED)
-                .createdAt(OffsetDateTime.now().minusHours(1))
-                .arrivedAt(OffsetDateTime.now().minusMinutes(30))
-                .replyDeadlineAt(OffsetDateTime.now().plusHours(23))
+                .createdAt(LocalDateTime.now().minusHours(1))
+                .arrivedAt(LocalDateTime.now().minusMinutes(30))
+                .replyDeadlineAt(LocalDateTime.now().plusHours(23))
                 .build();
 
         given(userRepository.findById(userId)).willReturn(Optional.of(receiver));
@@ -298,7 +298,7 @@ class PlazaLetterServiceTest {
                 .content("편지 내용")
                 .backgroundColor(PlazaLetterColor.WHITE)
                 .status(PlazaLetterStatus.REPLIED)
-                .createdAt(OffsetDateTime.now())
+                .createdAt(LocalDateTime.now())
                 .build();
 
         given(plazaLetterThreadRepository.existsById(threadId)).willReturn(true);

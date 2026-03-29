@@ -4,13 +4,14 @@ import com.example.egobook_be.domain.letters.entity.*;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
+import com.example.egobook_be.global.enums.ReportStatus;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -51,8 +52,7 @@ public class ReplyReportService {
                 .replierId(reply.getReplierId())
                 .reason(reason)
                 .description(description)
-                .createdAt(OffsetDateTime.now())
-                .status(PlazaLetterReplyReport.ReportStatus.PENDING)
+                .status(ReportStatus.PENDING)
                 .build();
 
         replyReportRepository.save(report);

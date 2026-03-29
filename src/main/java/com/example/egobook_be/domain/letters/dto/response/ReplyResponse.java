@@ -3,7 +3,7 @@ package com.example.egobook_be.domain.letters.dto.response;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
 import lombok.*;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -14,7 +14,7 @@ public class ReplyResponse {
 
     private Long letterId;
     private PlazaLetterStatus status; // "REPLIED"
-    private OffsetDateTime repliedAt;
+    private LocalDateTime repliedAt;
     private List<RewardDto> rewards;
 
     @Getter

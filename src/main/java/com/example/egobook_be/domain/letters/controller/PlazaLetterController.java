@@ -254,8 +254,8 @@ public class PlazaLetterController {
             @RequestBody LetterReportRequest request
     ) {
         letterReportService.reportLetter(
-                userId,
                 letterId,
+                userId,
                 request.getReason(),
                 request.getDescription()
         );
