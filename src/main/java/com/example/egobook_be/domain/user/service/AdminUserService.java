@@ -11,12 +11,10 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-
-import java.util.List;
 
 @Service
 @Slf4j
@@ -48,7 +46,9 @@ public class AdminUserService {
         Pageable pageable = PageRequest.of(validPage, validSize, Sort.by(Sort.Direction.ASC, "id"));
 
         // 2. 해당 pageable 조건에 맞는 정보 Dto Projection으로 Slice 조회 및 반환
-        return SliceResponse.of(userRepository.findUsersByKeywordAndStatus(keyword, status, pageable));
+        Slice<SearchUserResDto> resDtos = userRepository.findUsersByKeywordAndStatus(keyword, status, pageable);
+        log.info("관리자 회원 리스트 조회 성공 - keyword: {}, status: {}, page: {}, size: {}", keyword, status, validPage, validSize);
+        return SliceResponse.of(resDtos);
     }
 
     private boolean isKeywordNullOrBlank(String keyword) {
