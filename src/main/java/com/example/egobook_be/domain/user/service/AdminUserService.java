@@ -24,7 +24,7 @@ public class AdminUserService {
 
     // 페이지 최대 크기 제한
     private static final int MAX_PAGE_SIZE = 10;
-    private static final int DEFAULT_PAGE_SIZE = 5;
+    private static final int DEFAULT_PAGE_SIZE = 3;
 
 
     @Transactional(readOnly = true)
