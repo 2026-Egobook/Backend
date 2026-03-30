@@ -106,7 +106,7 @@ public class SecurityConfig {
          */
         http.authorizeHttpRequests(requests -> requests
                 .requestMatchers(AUTH_WHITELIST).permitAll()
-                .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/admin/**").hasRole("ROLE_ADMIN")
                 .anyRequest().authenticated()
         );
 
