@@ -2,12 +2,20 @@ package com.example.egobook_be.domain.psychology.entity;
 
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import java.time.LocalDateTime;
 
-@Entity @Table(name = "psychology_knowledge") @Getter @NoArgsConstructor(access = AccessLevel.PROTECTED) public class PsychologyKnowledge {
+@Entity
+@Table(name = "psychology_knowledge")
+@Getter
+@Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
+public class PsychologyKnowledge {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,5 +28,18 @@ import java.time.LocalDateTime;
     private String source;
 
     @Column(name = "created_at", nullable = false)
+    @CreatedDate
     private LocalDateTime createdAt;
+
+    @Column(name = "deleted_at", nullable = true)
+    private LocalDateTime deletedAt;
+
+    public void delete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public void update(String content, String source) {
+        this.content = content;
+        this.source = source;
+    }
 }
