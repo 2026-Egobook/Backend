@@ -9,8 +9,10 @@ import com.example.egobook_be.domain.psychology.dto.AdminKnowledgeReqDto;
 import com.example.egobook_be.domain.psychology.dto.AdminKnowledgeResDto;
 import com.example.egobook_be.domain.psychology.dto.KnowledgeInfoResDto;
 import com.example.egobook_be.domain.psychology.entity.PsychologyKnowledge;
+import com.example.egobook_be.domain.psychology.exception.PsychologyErrorCode;
 import com.example.egobook_be.domain.psychology.repository.PsychologyKnowledgeRepository;
 import com.example.egobook_be.domain.user.entity.Ability;
+import com.example.egobook_be.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -70,22 +72,39 @@ public class AdminPsychologyService {
     @Transactional(readOnly = true)
     public AdminKnowledgeResDto getKnowledge(Long id) {
         PsychologyKnowledge knowledge = psychologyKnowledgeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("해당 지식을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(PsychologyErrorCode.KNOWLEDGE_NOT_FOUND));
         return new AdminKnowledgeResDto(knowledge.getId(), knowledge.getContent(), knowledge.getSource(), knowledge.getCreatedAt(),knowledge.getDeletedAt());
     }
 
     @Transactional
     public AdminKnowledgeResDto updateKnowledge(Long id, AdminKnowledgeReqDto reqDto) {
-        PsychologyKnowledge knowledge = psychologyKnowledgeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("해당 지식을 찾을 수 없습니다."));
-        knowledge.update(reqDto.content(), reqDto.source());
-        return new AdminKnowledgeResDto(knowledge.getId(), knowledge.getContent(), knowledge.getSource(), knowledge.getCreatedAt(),knowledge.getDeletedAt());
-    }
+        PsychologyKnowledge oldKnowledge = psychologyKnowledgeRepository.findById(id)
+                .orElseThrow(() -> new CustomException(PsychologyErrorCode.KNOWLEDGE_NOT_FOUND));
+
+        // 기존 지식을 소프트 딜리트 처리
+        oldKnowledge.delete();
+
+        // 새로운 지식 엔티티 생성 및 저장
+        PsychologyKnowledge newKnowledge = PsychologyKnowledge.builder()
+                .content(reqDto.content())
+                .source(reqDto.source())
+                .build();
+
+        PsychologyKnowledge saved = psychologyKnowledgeRepository.save(newKnowledge);
+
+        return new AdminKnowledgeResDto(
+                saved.getId(),
+                saved.getContent(),
+                saved.getSource(),
+                saved.getCreatedAt(),
+                saved.getDeletedAt()
+        );
+         }
 
     @Transactional
     public void deleteKnowledge(Long id) {
         PsychologyKnowledge knowledge = psychologyKnowledgeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("삭제할 지식이 존재하지 않습니다."));
+                .orElseThrow(() -> new CustomException(PsychologyErrorCode.KNOWLEDGE_NOT_FOUND));
 
         knowledge.delete();
     }

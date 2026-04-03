@@ -45,6 +45,7 @@ public class SecurityConfig {
             "/manage/health",  // AWS의 ALB 헬스 체크 경로
             "/ads/admob/callback", // AdMob의 광고 보상 수령 여부 확인 경로
 //            "/api/images", // 나중에 운영 단계에서 & JWT 구현을 한 뒤에는
+
             "/test-google-oauth.html" // google oauth 확인용 임시 경로
     };
 
@@ -106,7 +107,7 @@ public class SecurityConfig {
          */
         http.authorizeHttpRequests(requests -> requests
                 .requestMatchers(AUTH_WHITELIST).permitAll()
-                .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/admin/**").permitAll() //.hasAuthority("ROLE_ADMIN")
                 .anyRequest().authenticated()
         );
 
