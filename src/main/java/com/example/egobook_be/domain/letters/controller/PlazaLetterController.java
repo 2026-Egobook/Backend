@@ -399,5 +399,13 @@ public class PlazaLetterController {
         );
     }
 
-
+    @Operation(summary = "편지 AI 분석 취소")
+    @PostMapping("/{letterId}/cancel-analysis")
+    public GlobalResponse<String> cancelAnalysis(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @PathVariable Long letterId
+    ) {
+        plazaLetterService.cancelAnalysis(userId, letterId);
+        return GlobalResponse.success("분석이 취소되었습니다.");
+    }
 }

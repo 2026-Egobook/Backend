@@ -79,8 +79,6 @@ public class PlazaLetterService {
                 .orElseGet(InboxNextResponse::empty);
     }
 
-
-
     private void enforceWordAiOrThrow(String text) {
         try {
             WordDetectResponse res = wordClient.detect(text);
@@ -95,160 +93,100 @@ public class PlazaLetterService {
         }
     }
 
-
     @Transactional
     public CreateLetterResponse createLetter(Long userId, CreateLetterRequest request) {
-        // 1. User, Mission 객체 가져오기
-        User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(LettersErrorCode.USER_NOT_FOUND));
-        Mission userMission = missionRepository.findByUser(user).orElseThrow(() -> new CustomException(UserErrorCode.MISSION_NOT_FOUND));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(LettersErrorCode.USER_NOT_FOUND));
+        Mission userMission = missionRepository.findByUser(user)
+                .orElseThrow(() -> new CustomException(UserErrorCode.MISSION_NOT_FOUND));
 
-        // 2. 들어온 CreateLetterRequest 검증
         validateCreateLetterRequest(request);
 
-        // 3. 해당 사용자가 편지를 작성할 수 있는 상태인지(이미 오늘 편지를 작성하였는지) 여부 검증
         LocalDateTime now = LocalDateTime.now();
         enforceDailyLimit(userId, now);
 
-        enforceWordAiOrThrow(request.getText());
 
-        // 친구 관계 검증 추가
         if (request.getMode() == PlazaLetterMode.FRIEND) {
-            // 친구 관계가 없으면 예외 처리
             User receiver = userRepository.findById(request.getToFriendId())
                     .orElseThrow(() -> new CustomException(LettersErrorCode.USER_NOT_FOUND));
-
-            // 친구 관계가 아닌 경우 예외 발생
             if (!friendRepository.existsByUserAndFriend(user, receiver)) {
                 throw new CustomException(LettersErrorCode.NOT_FRIEND);
             }
         }
 
-        // =========================
-        // 편지지 색상/잉크 결제 로직
-        // - null 또는 WHITE => WHITE로 확정, price=0, 차감 없음
-        // - 유료 색상 => 잉크 부족 체크 + 차감 + 로그
-        // =========================
-        // 1. 색상 안전 처리
-        PlazaLetterColor color =
-                (request.getBackgroundColor() == null)
-                        ? PlazaLetterColor.WHITE
-                        : request.getBackgroundColor();
-
-// 2. 가격 조회
-        int price = color.getPrice(); // WHITE면 0
-
-// 3. 잉크 차감 (유료일 때만)
+        PlazaLetterColor color = (request.getBackgroundColor() == null)
+                ? PlazaLetterColor.WHITE : request.getBackgroundColor();
+        int price = color.getPrice();
         if (price > 0) {
-            user.useInk(price);   // 부족하면 여기서 예외 발생
-
-            InkLog inkLog = InkLog.builder()
-                    .user(user)
-                    .amount(-price)
-                    .reason(InkLogType.LETTER_COLOR_PURCHASE)
-                    .build();
-
-            inkLogRepository.save(inkLog);
+            user.useInk(price);
+            inkLogRepository.save(InkLog.builder()
+                    .user(user).amount(-price)
+                    .reason(InkLogType.LETTER_COLOR_PURCHASE).build());
         }
-
 
         PlazaLetterThread thread = plazaLetterThreadRepository.save(PlazaLetterThread.createNow());
 
         String fromLabel = "익명";
         if (request.getMode() == PlazaLetterMode.FRIEND) {
-            String nickname = userRepository.findById(userId)
-                    .orElseThrow(() -> new CustomException(LettersErrorCode.USER_NOT_FOUND))
-                    .getNickname();
+            String nickname = user.getNickname();
             fromLabel = (nickname == null || nickname.isBlank()) ? "친구" : nickname;
         }
 
-        // ===== 핵심: receiverId/status/도착시간은 모드에 따라 다르게 =====
         Long receiverId = null;
-        PlazaLetterStatus status;
         LocalDateTime arrivedAt = null;
         LocalDateTime replyDeadlineAt = null;
 
         if (request.getMode() == PlazaLetterMode.FRIEND) {
-            // FRIEND 모드일 때 친구 관계 검증 후 진행
             receiverId = request.getToFriendId();
-            status = PlazaLetterStatus.ARRIVED;
             arrivedAt = now;
             replyDeadlineAt = now.plusHours(24);
         } else {
-            // RANDOM 모드: 후보가 없으면 WAITING으로 적재
             List<Long> candidates = userRepository.findHighReplyRateCandidates(userId, 50);
-            if (candidates.isEmpty()) {
-                status = PlazaLetterStatus.WAITING;
-                // receiverId/arrivedAt/replyDeadlineAt = null 유지
-            } else {
+            if (!candidates.isEmpty()) {
                 receiverId = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
-                status = PlazaLetterStatus.ARRIVED;
                 arrivedAt = now;
                 replyDeadlineAt = now.plusHours(24);
             }
         }
 
+        // 처음엔 ANALYZING 상태로 저장
         PlazaLetter letter = PlazaLetter.builder()
                 .threadId(thread.getThreadId())
                 .senderId(userId)
-                .receiverId(receiverId)            // WAITING이면 null
+                .receiverId(receiverId)
                 .mode(request.getMode())
                 .fromLabel(fromLabel)
                 .content(request.getText())
                 .backgroundColor(color)
-                .status(status)
+                .status(PlazaLetterStatus.ANALYZING)
                 .createdAt(now)
                 .arrivedAt(arrivedAt)
                 .replyDeadlineAt(replyDeadlineAt)
                 .build();
 
-        // =================================================
-        // [ 보상 제공 로직 ] - 이미 enforceDailyLimit() 에서 오늘 편지를 썼는지 안썼는지 여부를 검사하였음 (하루에 1개의 편지 작성이 최대값임)
-        // =================================================
+        PlazaLetter saved = plazaLetterRepository.save(letter);
+
+
         List<InkLog> inkLogs = new ArrayList<>();
-        // 1. 잉크 제공 & 일일 미션 상태 업데이트
         inkLogUtil.addInkLogToList(inkLogs, user, 1, InkLogType.FIRST_LETTER_WRITE);
-        /*
-         * 1-1. 만약 이번이 처음 일일 미션을 수행한 경우일 때 (updateDailyLetterMissionStatus 함수가 true를 반환)
-         * - 잉크 +1
-         * - 잉크 로그 추가
-         */
-        if(userMission.updateDailyLetterMissionStatus(true)){
+        if (userMission.updateDailyLetterMissionStatus(true)) {
             inkLogUtil.addInkLogToList(inkLogs, user, 1, InkLogType.DAILY_MISSION_REWARD);
-            /*
-             * 1-2. 만약 오늘이 일일 미션을 7일째 완료한 날인 경우
-             * - 잉크 +2
-             * - 잉크 로그 추가
-             */
-            if(userMission.isWeeklyMissionCompleted()){
+            if (userMission.isWeeklyMissionCompleted()) {
                 inkLogUtil.addInkLogToList(inkLogs, user, 2, InkLogType.WEEKLY_MISSION_REWARD);
             }
         }
         inkLogRepository.saveAll(inkLogs);
 
-        PlazaLetter saved = plazaLetterRepository.save(letter);
-
-        // 작성 편지 수신자 알림 생성
-        try {
-            if (request.getMode() == PlazaLetterMode.FRIEND) {
-                notificationService.createNotification(
-                        receiverId,
-                        NotificationType.LETTER_NEW_FRIEND,
-                        saved.getLetterId(),
-                        user.getNickname()
+        //  AI 비동기 호출 시작
+        Long savedLetterId = saved.getLetterId();
+        Long finalReceiverId = receiverId;
+        wordClient.detectAsync(request.getText())
+                .subscribe(
+                        result -> handleAiResult(savedLetterId, result, finalReceiverId, now, request.getMode(), user),
+                        error  -> handleAiError(savedLetterId)
                 );
-            } else {
-                notificationService.createNotification(
-                        receiverId,
-                        NotificationType.LETTER_NEW,
-                        saved.getLetterId()
-                );
-            }
-        } catch (Exception e) {
-            log.error("새로운 편지 도착 알림 생성 실패. SenderId: {}, LetterId: {}",
-                    letter.getSenderId(), saved.getLetterId(), e);
-        }
 
-
+        // AI 기다리지 않고 바로 응답
         String imageUrl = null;
         if (saved.getBackgroundColor() != PlazaLetterColor.WHITE) {
             String fileName = saved.getBackgroundColor().name().substring(0, 1)
@@ -266,6 +204,75 @@ public class PlazaLetterService {
                 .backgroundImageUrl(imageUrl)
                 .createdAt(saved.getCreatedAt())
                 .build();
+    }
+
+    // AI 결과 수신 처리
+    @Transactional
+    public void handleAiResult(Long letterId, WordDetectResponse result,
+                               Long receiverId, LocalDateTime now,
+                               PlazaLetterMode mode, User sender) {
+        PlazaLetter letter = plazaLetterRepository.findById(letterId).orElse(null);
+        if (letter == null) return;
+
+        // 취소됐으면 결과 무시
+        if (letter.getStatus() == PlazaLetterStatus.CANCELLED) {
+            return;
+        }
+
+        if (wordClient.shouldBlock(result)) {
+            // 욕설 감지 → 편지 삭제 or BLOCKED 처리
+            plazaLetterRepository.delete(letter);
+            return;
+        }
+
+        // 정상 → 원래 status로 변경
+        PlazaLetterStatus finalStatus = (receiverId != null)
+                ? PlazaLetterStatus.ARRIVED
+                : PlazaLetterStatus.WAITING;
+        letter.setStatus(finalStatus);
+        plazaLetterRepository.save(letter);
+
+        // 알림 발송
+        try {
+            if (mode == PlazaLetterMode.FRIEND) {
+                notificationService.createNotification(
+                        receiverId, NotificationType.LETTER_NEW_FRIEND,
+                        letterId, sender.getNickname());
+            } else if (receiverId != null) {
+                notificationService.createNotification(
+                        receiverId, NotificationType.LETTER_NEW, letterId);
+            }
+        } catch (Exception e) {
+            log.error("편지 알림 생성 실패. LetterId: {}", letterId, e);
+        }
+    }
+
+    // AI 서버 오류 처리
+    @Transactional
+    public void handleAiError(Long letterId) {
+        PlazaLetter letter = plazaLetterRepository.findById(letterId).orElse(null);
+        if (letter == null) return;
+        if (letter.getStatus() == PlazaLetterStatus.CANCELLED) return;
+
+        // AI 오류 시 욕설 감지 실패와 동일하게 처리
+        plazaLetterRepository.delete(letter);
+    }
+
+    @Transactional
+    public void cancelAnalysis(Long userId, Long letterId) {
+        PlazaLetter letter = plazaLetterRepository.findById(letterId)
+                .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+
+        // 본인 편지인지 확인
+        if (!userId.equals(letter.getSenderId())) {
+            throw new CustomException(LettersErrorCode.FORBIDDEN);
+        }
+
+        // ANALYZING 상태일 때만 취소 가능
+        if (letter.getStatus() == PlazaLetterStatus.ANALYZING) {
+            letter.setStatus(PlazaLetterStatus.CANCELLED);
+            plazaLetterRepository.save(letter);
+        }
     }
 
 
