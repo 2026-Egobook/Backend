@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -20,7 +21,7 @@ class WordClientServiceTest {
     private WordClientService wordClientService;
 
     @Mock
-    private RestClient wordRestClient;
+    private WebClient wordRestClient;
 
     @Test
     @DisplayName("shouldBlock_응답이 없으면 차단한다")
