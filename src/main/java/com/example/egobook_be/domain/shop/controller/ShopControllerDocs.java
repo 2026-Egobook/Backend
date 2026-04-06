@@ -34,7 +34,7 @@ public interface ShopControllerDocs {
             - slice: 1 ~ n (page값은 1부터 시작합니다.)
             
             [**기능**:]
-            - 각 카테고리의 n slice의 데이터를 반환합니다.
+            - 각 카테고리의 n slice의 데이터를 반환합니다.D
             
             [**주의**]
              1. Page 값을 0을 넣지 않도록 주의하세요.
