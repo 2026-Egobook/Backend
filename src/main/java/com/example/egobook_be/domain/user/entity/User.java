@@ -101,7 +101,8 @@ public class User extends BaseTimeEntity {
     private Ability ability;
 
     @Enumerated(EnumType.STRING)
-    private CounselTone counselingTone;
+    @Builder.Default
+    private CounselTone counselingTone = CounselTone.SOFT;
 
     public void updateCounselingTone(CounselTone toneStyle) {
         this.counselingTone = toneStyle;
