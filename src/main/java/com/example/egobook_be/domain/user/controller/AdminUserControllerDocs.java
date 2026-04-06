@@ -1,5 +1,7 @@
 package com.example.egobook_be.domain.user.controller;
 
+import com.example.egobook_be.domain.user.dto.AdminUserInfoResDto;
+import com.example.egobook_be.domain.user.dto.AdminUserStatsResDto;
 import com.example.egobook_be.domain.user.dto.SearchUserResDto;
 import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.global.response.GlobalResponse;
@@ -13,8 +15,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -62,5 +64,82 @@ public interface AdminUserControllerDocs {
 
         @Parameter(description = "Page 크기", required = true)
         @RequestParam(value = "size", defaultValue = "5") Integer size
+    );
+
+    @Operation(summary = "회원 기본 정보 조회", description = """
+            특정 회원의 기본 정보를 조회하는 API입니다.
+
+            [**Path Variable**]
+            - userId: 조회할 ```ROLE_USER``` 권한을 가진 사용자의 ID
+
+            [**반환 정보**]
+            - ```userId```: 사용자 PK
+            - ```accountCode```: 사용자 계정 고유 코드
+            - ```email```: 사용자 이메일 (구글 연동된 계정일 경우만 존재)
+            - ```provider```: 가입 유형 (**GUEST** | **GOOGLE**)
+            - ```nickname```: 사용자 닉네임
+            - ```createdAt```: 계정 생성 일시
+            - ```lastLoginAt```: 마지막으로 로그인한 일시
+            - ```status```: 사용자 계정 상태 (**ACTIVE** | **DORMANT** | **WITHDRAW_PENDING** | **SUSPENDED**)
+            - ```deletedAt```: 사용자가 탈퇴 신청한 일시 (SOFT DELETE 신청한 일시)
+            - ```purgeAt```: 실제 사용자 데이터가 전부 삭제 예정인 일시
+            """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "회원 기본 정보 조회 성공",
+                    content = @Content(schema = @Schema(implementation = AdminUserInfoResDto.class))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요합니다.",
+                    content = @Content),
+            @ApiResponse(responseCode = "403", description = "관리자 권한이 필요합니다.",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "해당 사용자를 찾을 수 없습니다.",
+                    content = @Content)
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/{userId}")
+    ResponseEntity<GlobalResponse<AdminUserInfoResDto>> getUserInfo(
+            @Parameter(description = "조회할 사용자 ID", required = true)
+            @PathVariable Long userId
+    );
+
+    @Operation(summary = "회원 활동 통계 조회", description = """
+            특정 회원의 활동 통계를 조회하는 API입니다.
+
+            [**Path Variable**]
+            - userId: 조회할 ```ROLE_USER``` 권한을 가진 사용자의 ID
+
+            [**반환 정보**]
+            - ```userId```: 사용자 PK
+            - ```activityCount```: 카테고리별 활동 횟수
+                - ```diary```: 일기 작성 횟수
+                - ```letter```: 편지 작성 횟수
+                - ```letterReply```: 편지 답변 횟수
+                - ```questionAnswer```: 오늘의 질문 답변 횟수
+            - ```abilityLevel```: 능력치별 레벨
+                - ```empathy```: 공감성 레벨
+                - ```selfEsteem```: 자존감 레벨
+                - ```emotionRegulation```: 감정조절 레벨
+                - ```positiveThinking```: 긍정적 사고 레벨
+                - ```diligence```: 성실성 레벨
+            - ```letterReceiveBlockedUntil```: 편지 수신 차단 종료 일시 (차단 없으면 ```null```)
+            - ```notificationEnabled```: 알람 수신 여부 (```true```: 수신, ```false```: 비수신)
+            - ```isFirstAttendanceToday```: 오늘 첫 출석 여부 (```true```: 첫 출석 안함, ```false```: 첫 출석 함)
+            - ```weeklyAnalysisEnabled```: 주간 분석 보고서 수신 여부 (```true```: 수신, ```false```: 비수신)
+            - ```counselingTone```: 주간 분석 말투 (**SHARP** | **SOFT** | **OBJECTIVE**)
+            """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "회원 활동 통계 조회 성공",
+                    content = @Content(schema = @Schema(implementation = AdminUserStatsResDto.class))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요합니다.",
+                    content = @Content),
+            @ApiResponse(responseCode = "403", description = "관리자 권한이 필요합니다.",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "해당 사용자를 찾을 수 없습니다.",
+                    content = @Content)
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/{userId}/stats")
+    ResponseEntity<GlobalResponse<AdminUserStatsResDto>> getUserStats(
+            @Parameter(description = "조회할 사용자 ID", required = true)
+            @PathVariable Long userId
     );
 }

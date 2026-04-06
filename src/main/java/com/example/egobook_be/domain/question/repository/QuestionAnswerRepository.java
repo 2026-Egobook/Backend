@@ -20,6 +20,8 @@ import java.util.Optional;
 public interface QuestionAnswerRepository extends JpaRepository<QuestionAnswer, Long> {
     boolean existsByUserAndQuestion(User user, TodayQuestion question);
 
+    long countByUser(User user);
+
     Optional<QuestionAnswer> findByUserAndQuestion(User user, TodayQuestion question);
 
     List<QuestionAnswer> findByQuestionAndVisibility(

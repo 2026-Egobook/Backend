@@ -72,4 +72,6 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
 
     // 특정 기간 사이의 일기 목록 조회 (주간용)
     List<Diary> findByUserIdAndDateBetweenOrderByDateAsc(Long userId, LocalDate start, LocalDate end);
+
+    long countByUser(User user);
 }

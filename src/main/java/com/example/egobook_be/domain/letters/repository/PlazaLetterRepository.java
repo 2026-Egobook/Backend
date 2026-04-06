@@ -16,6 +16,8 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
 
     Optional<PlazaLetter> findFirstByReceiverIdAndStatusOrderByArrivedAtDesc(Long receiverId, PlazaLetterStatus status);
 
+    Integer countBySenderId(Long senderId);
+
     boolean existsBySenderIdAndCreatedAtBetween(Long senderId, LocalDateTime start, LocalDateTime end);
 
     Optional<PlazaLetter> findByThreadId(Long threadId);
