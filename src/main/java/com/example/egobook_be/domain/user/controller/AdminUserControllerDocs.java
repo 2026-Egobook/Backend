@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.user.controller;
 
+import com.example.egobook_be.domain.user.dto.AdminUserInfoResDto;
 import com.example.egobook_be.domain.user.dto.SearchUserResDto;
 import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.global.response.GlobalResponse;
@@ -13,8 +14,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -62,5 +63,34 @@ public interface AdminUserControllerDocs {
 
         @Parameter(description = "Page 크기", required = true)
         @RequestParam(value = "size", defaultValue = "5") Integer size
+    );
+
+    @Operation(summary = "회원 기본 정보 조회", description = """
+            특정 회원의 기본 정보를 조회하는 API입니다.
+
+            [**Path Variable**]
+            - userId: 조회할 ```ROLE_USER``` 권한을 가진 사용자의 ID
+
+            [**반환 정보**]
+            - userId, accountCode, email, nickname
+            - status (계정 상태), role (권한)
+            - level (레벨), ink (보유 잉크)
+            - lastLoginAt (마지막 로그인 시각), createdAt (가입 일시)
+            """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "회원 기본 정보 조회 성공",
+                    content = @Content(schema = @Schema(implementation = AdminUserInfoResDto.class))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요합니다.",
+                    content = @Content),
+            @ApiResponse(responseCode = "403", description = "관리자 권한이 필요합니다.",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "해당 사용자를 찾을 수 없습니다.",
+                    content = @Content)
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/{userId}")
+    ResponseEntity<GlobalResponse<AdminUserInfoResDto>> getUserInfo(
+            @Parameter(description = "조회할 사용자 ID", required = true)
+            @PathVariable Long userId
     );
 }

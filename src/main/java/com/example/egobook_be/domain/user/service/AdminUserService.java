@@ -1,6 +1,8 @@
 package com.example.egobook_be.domain.user.service;
 
+import com.example.egobook_be.domain.user.dto.AdminUserInfoResDto;
 import com.example.egobook_be.domain.user.dto.SearchUserResDto;
+import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.user.exception.AdminUserErrorCode;
 import com.example.egobook_be.domain.user.repository.UserRepository;
@@ -49,6 +51,14 @@ public class AdminUserService {
         Slice<SearchUserResDto> resDtos = userRepository.findUsersByKeywordAndStatus(keyword, status, pageable);
         log.info("관리자 회원 리스트 조회 성공 - keyword: {}, status: {}, page: {}, size: {}", keyword, status, validPage, validSize);
         return SliceResponse.of(resDtos);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminUserInfoResDto getUserInfo(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(AdminUserErrorCode.USER_NOT_FOUND));
+        log.info("관리자 회원 기본 정보 조회 성공 - userId: {}", userId);
+        return AdminUserInfoResDto.from(user);
     }
 
     private boolean isKeywordNullOrBlank(String keyword) {
