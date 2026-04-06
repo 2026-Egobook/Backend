@@ -72,10 +72,16 @@ public interface AdminUserControllerDocs {
             - userId: 조회할 ```ROLE_USER``` 권한을 가진 사용자의 ID
 
             [**반환 정보**]
-            - userId, accountCode, email, nickname
-            - status (계정 상태), role (권한)
-            - level (레벨), ink (보유 잉크)
-            - lastLoginAt (마지막 로그인 시각), createdAt (가입 일시)
+            - ```userId```: 사용자 PK
+            - ```accountCode```: 사용자 계정 고유 코드
+            - ```email```: 사용자 이메일 (구글 연동된 계정일 경우만 존재)
+            - ```provider```: 가입 유형 (**GUEST** | **GOOGLE**)
+            - ```nickname```: 사용자 닉네임
+            - ```createdAt```: 계정 생성 일시
+            - ```lastLoginAt```: 마지막으로 로그인한 일시
+            - ```status```: 사용자 계정 상태 (**ACTIVE** | **DORMANT** | **WITHDRAW_PENDING** | **SUSPENDED**)
+            - ```deletedAt```: 사용자가 탈퇴 신청한 일시 (SOFT DELETE 신청한 일시)
+            - ```purgeAt```: 실제 사용자 데이터가 전부 삭제 예정인 일시
             """)
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "회원 기본 정보 조회 성공",

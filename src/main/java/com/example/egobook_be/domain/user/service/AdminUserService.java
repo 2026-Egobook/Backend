@@ -1,10 +1,13 @@
 package com.example.egobook_be.domain.user.service;
 
+import com.example.egobook_be.domain.auth.entity.AuthAccount;
+import com.example.egobook_be.domain.auth.repository.AuthAccountRepository;
 import com.example.egobook_be.domain.user.dto.AdminUserInfoResDto;
 import com.example.egobook_be.domain.user.dto.SearchUserResDto;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.user.exception.AdminUserErrorCode;
+import com.example.egobook_be.domain.user.mapper.UserMapper;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
@@ -23,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AdminUserService {
     private final UserRepository userRepository;
+    private final AuthAccountRepository authAccountRepository;
+    private final UserMapper userMapper;
 
     // 페이지 최대 크기 제한
     private static final int MAX_PAGE_SIZE = 10;
@@ -55,10 +60,10 @@ public class AdminUserService {
 
     @Transactional(readOnly = true)
     public AdminUserInfoResDto getUserInfo(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(AdminUserErrorCode.USER_NOT_FOUND));
+        User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(AdminUserErrorCode.USER_NOT_FOUND));
+        AuthAccount authAccount = authAccountRepository.findByUser(user).orElseThrow(() -> new CustomException(AdminUserErrorCode.AUTH_ACCOUNT_NOT_FOUND));
         log.info("관리자 회원 기본 정보 조회 성공 - userId: {}", userId);
-        return AdminUserInfoResDto.from(user);
+        return userMapper.toAdminUserInfoResDto(user, authAccount);
     }
 
     private boolean isKeywordNullOrBlank(String keyword) {
