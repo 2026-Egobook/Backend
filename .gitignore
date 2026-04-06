@@ -47,3 +47,5 @@ src/test/resources/application-test.yml
 
 ### firebase access key ###
 src/main/resources/firebase-service-account.json
+
+CLAUDE.md
