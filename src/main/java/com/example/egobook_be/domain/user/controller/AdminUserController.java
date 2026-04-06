@@ -1,6 +1,7 @@
 package com.example.egobook_be.domain.user.controller;
 
 import com.example.egobook_be.domain.user.dto.AdminUserInfoResDto;
+import com.example.egobook_be.domain.user.dto.AdminUserStatsResDto;
 import com.example.egobook_be.domain.user.dto.SearchUserResDto;
 import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.user.service.AdminUserService;
@@ -36,5 +37,13 @@ public class AdminUserController implements AdminUserControllerDocs {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(GlobalResponse.success(200, "회원 기본 정보 조회 성공", response));
+    }
+
+    @Override
+    public ResponseEntity<GlobalResponse<AdminUserStatsResDto>> getUserStats(Long userId) {
+        AdminUserStatsResDto response = adminUserService.getUserStats(userId);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(GlobalResponse.success(200, "회원 활동 통계 조회 성공", response));
     }
 }
