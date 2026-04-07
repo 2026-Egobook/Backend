@@ -9,12 +9,11 @@ import com.example.egobook_be.domain.question.repository.AnswerReportRepository;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.UserRepository;
+import com.example.egobook_be.global.enums.ReportStatus;
 import com.example.egobook_be.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -30,18 +29,13 @@ public class AnswerReportService {
             Long answerId,
             AnswerReportReqDto reqDto
     ) {
-        User user = userRepository.findById(userId)
-                .orElseThrow();
+        User user = userRepository.findById(userId).orElseThrow();
 
         QuestionAnswer answer = questionAnswerRepository.findById(answerId)
-                .orElseThrow(() ->
-                        new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND)
-                );
+                .orElseThrow(() -> new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND));
 
         if (answerReportRepository.existsByUserAndAnswer(user, answer)) {
-            throw new CustomException(
-                    QuestionErrorCode.ALREADY_REPORTED
-            );
+            throw new CustomException(QuestionErrorCode.ALREADY_REPORTED);
         }
 
         AnswerReport report = answerReportRepository.save(
@@ -49,16 +43,18 @@ public class AnswerReportService {
                         .user(user)
                         .answer(answer)
                         .reason(reqDto.reason())
-                        .description(reqDto.description())
-                        .createdAt(LocalDateTime.now())
+                        .description(reqDto.description())  // BaseReportEntity 필드
+                        .status(ReportStatus.PENDING)       // BaseReportEntity 필드
+                        // createdAt → @CreatedDate 자동 주입
                         .build()
         );
 
+        // 응답값 기존과 동일하게 유지
         return new AnswerReportResDto(
                 report.getId(),
                 answer.getId(),
                 report.getReason(),
-                report.getCreatedAt()
+                report.getCreatedAt()  // BaseReportEntity 필드
         );
     }
 }

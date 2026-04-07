@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 @Component
 @RequiredArgsConstructor
@@ -13,20 +15,33 @@ public class WordClientService {
 
     private static final double BLOCK_THRESHOLD = 80.0;
 
-    private final RestClient wordRestClient;
+    private final WebClient wordRestClient;
+
 
     public WordDetectResponse detect(String text) {
         return wordRestClient.post()
                 .uri("/detect")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
-                .body(new WordDetectRequest(text))
+                .bodyValue(new WordDetectRequest(text))
                 .retrieve()
-                .body(WordDetectResponse.class);
+                .bodyToMono(WordDetectResponse.class)
+                .block();
+    }
+
+
+    public Mono<WordDetectResponse> detectAsync(String text) {
+        return wordRestClient.post()
+                .uri("/detect")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .bodyValue(new WordDetectRequest(text))
+                .retrieve()
+                .bodyToMono(WordDetectResponse.class);
     }
 
     public boolean shouldBlock(WordDetectResponse res) {
-        if (res == null) return true; // 응답 없으면 차단
+        if (res == null) return true;
         return res.isHarmful() && res.getPercentage() >= BLOCK_THRESHOLD;
     }
 }
