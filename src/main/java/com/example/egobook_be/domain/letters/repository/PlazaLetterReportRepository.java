@@ -1,6 +1,8 @@
 package com.example.egobook_be.domain.letters.repository;
 
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReport;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,5 +24,14 @@ public interface PlazaLetterReportRepository extends JpaRepository<PlazaLetterRe
 
     @Query("select count(r) from PlazaLetterReport r where r.letter.letterId = :letterId")
     long countByLetter_LetterId(@Param("letterId") Long letterId);
+
+    @Query("""
+        SELECT r
+        FROM PlazaLetterReport r
+        JOIN FETCH r.letter
+        ORDER BY r.createdAt DESC
+    """)
+    Slice<PlazaLetterReport> findAllWithLetter(Pageable pageable);
+
 }
 

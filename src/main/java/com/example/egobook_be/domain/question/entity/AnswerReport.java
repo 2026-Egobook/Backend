@@ -2,13 +2,12 @@ package com.example.egobook_be.domain.question.entity;
 
 import com.example.egobook_be.domain.question.enums.QuestionReportReason;
 import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.global.entity.BaseReportEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(
@@ -18,10 +17,10 @@ import java.time.LocalDateTime;
         }
 )
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(force = true)
 @AllArgsConstructor
-@Builder
-public class AnswerReport {
+@SuperBuilder
+public class AnswerReport extends BaseReportEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,9 +38,4 @@ public class AnswerReport {
     @Column(nullable = false)
     private QuestionReportReason reason;
 
-    @Column(length = 500)
-    private String description;
-
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
 }

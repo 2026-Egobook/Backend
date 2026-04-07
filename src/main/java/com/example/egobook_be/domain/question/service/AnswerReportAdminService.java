@@ -21,7 +21,7 @@ public class AnswerReportAdminService {
             int page,
             int size
     ) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page-1, size);
 
         return SliceResponse.of(
                 answerReportRepository.findAllWithAnswerAndUser(pageable),
