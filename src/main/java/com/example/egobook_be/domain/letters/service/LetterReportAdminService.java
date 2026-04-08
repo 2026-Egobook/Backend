@@ -31,7 +31,10 @@ public class LetterReportAdminService {
 
         Slice<PlazaLetterReport> slice = letterReportRepository.findAllWithLetter(pageable);
 
-        return SliceResponse.of(slice, report -> new PlazaLetterReportAdminResDto(
+        return SliceResponse.of(slice, report -> {
+            long reportCount = letterReportRepository.countByLetter_LetterId(report.getLetter().getLetterId());
+
+            return new PlazaLetterReportAdminResDto(
                 report.getReportId(),
                 report.getLetter().getLetterId(),
                 report.getLetter().getContent(),
@@ -39,8 +42,10 @@ public class LetterReportAdminService {
                 report.getReason(),
                 report.getDescription(),
                 report.getStatus(),
+                reportCount,
                 report.getCreatedAt()
-        ));
+            );
+        });
     }
 
     public SliceResponse<PlazaLetterReplyReportAdminResDto> getReportedReplies(int page, int size) {
@@ -50,7 +55,10 @@ public class LetterReportAdminService {
 
         Slice<PlazaLetterReplyReport> slice = replyReportRepository.findAllWithReply(pageable);
 
-        return SliceResponse.of(slice, report -> new PlazaLetterReplyReportAdminResDto(
+        return SliceResponse.of(slice, report -> {
+            long reportCount = replyReportRepository.countByReply_ReplyId(report.getReply().getReplyId());
+
+            return new PlazaLetterReplyReportAdminResDto(
                 report.getReportId(),
                 report.getReply().getReplyId(),
                 report.getReply().getText(),
@@ -58,8 +66,10 @@ public class LetterReportAdminService {
                 report.getReason(),
                 report.getDescription(),
                 report.getStatus(),
+                reportCount,
                 report.getCreatedAt()
-        ));
+            );
+        });
     }
 
     //상세 조회
@@ -67,15 +77,18 @@ public class LetterReportAdminService {
         PlazaLetterReport report = letterReportRepository.findByIdWithLetter(reportId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
 
+        long reportCount = letterReportRepository.countByLetter_LetterId(report.getLetter().getLetterId());
+
         return new PlazaLetterReportAdminResDto(
-                report.getReportId(),
-                report.getLetter().getLetterId(),
-                report.getLetter().getContent(),
-                report.getReporterId(),
-                report.getReason(),
-                report.getDescription(),
-                report.getStatus(),
-                report.getCreatedAt()
+            report.getReportId(),
+            report.getLetter().getLetterId(),
+            report.getLetter().getContent(),
+            report.getReporterId(),
+            report.getReason(),
+            report.getDescription(),
+            report.getStatus(),
+            reportCount,
+            report.getCreatedAt()
         );
     }
 
@@ -83,15 +96,18 @@ public class LetterReportAdminService {
         PlazaLetterReplyReport report = replyReportRepository.findByIdWithReply(reportId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
 
+        long reportCount = replyReportRepository.countByReply_ReplyId(report.getReply().getReplyId());
+
         return new PlazaLetterReplyReportAdminResDto(
-                report.getReportId(),
-                report.getReply().getReplyId(),
-                report.getReply().getText(),
-                report.getReporterId(),
-                report.getReason(),
-                report.getDescription(),
-                report.getStatus(),
-                report.getCreatedAt()
+            report.getReportId(),
+            report.getReply().getReplyId(),
+            report.getReply().getText(),
+            report.getReporterId(),
+            report.getReason(),
+            report.getDescription(),
+            report.getStatus(),
+            reportCount,
+            report.getCreatedAt()
         );
     }
 }
