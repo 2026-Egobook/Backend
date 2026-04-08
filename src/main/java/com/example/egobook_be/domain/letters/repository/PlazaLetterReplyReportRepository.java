@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PlazaLetterReplyReportRepository extends JpaRepository<PlazaLetterReplyReport, Long> {
@@ -50,4 +51,13 @@ public interface PlazaLetterReplyReportRepository extends JpaRepository<PlazaLet
         ORDER BY r.createdAt DESC
     """)
     Slice<PlazaLetterReplyReport> findAllWithReply(Pageable pageable);
+
+    //상세 조회
+    @Query("""
+        SELECT r
+        FROM PlazaLetterReplyReport r
+        JOIN FETCH r.reply
+        WHERE r.reportId = :reportId
+    """)
+    Optional<PlazaLetterReplyReport> findByIdWithReply(@Param("reportId") Long reportId);
 }

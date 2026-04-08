@@ -51,4 +51,34 @@ public class AdminReportController implements AdminReportControllerDocs {
                 GlobalResponse.success("신고된 답변 조회 성공", answerReportAdminService.getReportedAnswers(page, size))
         );
     }
+
+    @Override
+    @GetMapping("/letters/{reportId}")
+    public ResponseEntity<GlobalResponse<PlazaLetterReportAdminResDto>> getReportedLetterDetail(
+            @PathVariable Long reportId
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success("신고된 편지 상세 조회 성공", letterReportAdminService.getReportedLetterDetail(reportId))
+        );
+    }
+
+    @Override
+    @GetMapping("/replies/{reportId}")
+    public ResponseEntity<GlobalResponse<PlazaLetterReplyReportAdminResDto>> getReportedReplyDetail(
+            @PathVariable Long reportId
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success("신고된 답장 상세 조회 성공", letterReportAdminService.getReportedReplyDetail(reportId))
+        );
+    }
+
+    @Override
+    @GetMapping("/answers/{reportId}")
+    public ResponseEntity<GlobalResponse<AnswerReportAdminResDto>> getReportedAnswerDetail(
+            @PathVariable Long reportId
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success("신고된 답변 상세 조회 성공", answerReportAdminService.getReportedAnswerDetail(reportId))
+        );
+    }
 }

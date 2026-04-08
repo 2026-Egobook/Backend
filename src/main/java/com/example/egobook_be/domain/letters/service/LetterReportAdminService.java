@@ -4,8 +4,10 @@ import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReportAdmin
 import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReplyReportAdminResDto;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReport;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReplyReport;
+import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReportRepository;
+import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -58,5 +60,38 @@ public class LetterReportAdminService {
                 report.getStatus(),
                 report.getCreatedAt()
         ));
+    }
+
+    //상세 조회
+    public PlazaLetterReportAdminResDto getReportedLetterDetail(Long reportId) {
+        PlazaLetterReport report = letterReportRepository.findByIdWithLetter(reportId)
+                .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+
+        return new PlazaLetterReportAdminResDto(
+                report.getReportId(),
+                report.getLetter().getLetterId(),
+                report.getLetter().getContent(),
+                report.getReporterId(),
+                report.getReason(),
+                report.getDescription(),
+                report.getStatus(),
+                report.getCreatedAt()
+        );
+    }
+
+    public PlazaLetterReplyReportAdminResDto getReportedReplyDetail(Long reportId) {
+        PlazaLetterReplyReport report = replyReportRepository.findByIdWithReply(reportId)
+                .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+
+        return new PlazaLetterReplyReportAdminResDto(
+                report.getReportId(),
+                report.getReply().getReplyId(),
+                report.getReply().getText(),
+                report.getReporterId(),
+                report.getReason(),
+                report.getDescription(),
+                report.getStatus(),
+                report.getCreatedAt()
+        );
     }
 }
