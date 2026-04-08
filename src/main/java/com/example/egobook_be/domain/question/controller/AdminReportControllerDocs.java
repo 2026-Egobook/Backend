@@ -42,8 +42,23 @@ public interface AdminReportControllerDocs {
             @RequestParam(defaultValue = "20") int size
     );
 
-    @Operation(summary = "[관리자] 신고된 오늘의 질문 답변 상세 조회", description = "신고된 오늘의 질문 답변 1건을 상세 조회합니다.")
+    @Operation(summary = "[관리자] 오늘의 질문 답변 상세 조회", description = "신고된 오늘의 질문 답변 1건을 상세 조회합니다.")
     ResponseEntity<GlobalResponse<AnswerReportAdminResDto>> getReportedAnswerDetail(
             @PathVariable Long reportId
+    );
+
+    @Operation(summary = "[관리자] 편지 수동 삭제", description = "편지를 수동으로 삭제합니다.")
+    ResponseEntity<GlobalResponse<Void>> deleteLetter(
+            @PathVariable Long letterId
+    );
+
+    @Operation(summary = "[관리자] 편지 답장 수동 삭제", description = "편지 답장을 수동으로 삭제합니다.")
+    ResponseEntity<GlobalResponse<Void>> deleteReply(
+            @PathVariable Long replyId
+    );
+
+    @Operation(summary = "[관리자] 오늘의 질문 답변 수동 삭제", description = "오늘의 질문 답변을 수동으로 삭제합니다.")
+    ResponseEntity<GlobalResponse<Void>> deleteAnswer(
+            @PathVariable Long answerId
     );
 }

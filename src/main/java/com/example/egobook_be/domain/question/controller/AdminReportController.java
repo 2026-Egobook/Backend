@@ -81,4 +81,31 @@ public class AdminReportController implements AdminReportControllerDocs {
                 GlobalResponse.success("신고된 답변 상세 조회 성공", answerReportAdminService.getReportedAnswerDetail(reportId))
         );
     }
+
+    @Override
+    @DeleteMapping("/letters/{letterId}")
+    public ResponseEntity<GlobalResponse<Void>> deleteLetter(
+            @PathVariable Long letterId
+    ) {
+        letterReportAdminService.deleteLetter(letterId);
+        return ResponseEntity.ok(GlobalResponse.success("신고된 편지 수동 삭제 성공", null));
+    }
+
+    @Override
+    @DeleteMapping("/replies/{replyId}")
+    public ResponseEntity<GlobalResponse<Void>> deleteReply(
+            @PathVariable Long replyId
+    ) {
+        letterReportAdminService.deleteReply(replyId);
+        return ResponseEntity.ok(GlobalResponse.success("신고된 편지 답장 수동 삭제 성공", null));
+    }
+
+    @Override
+    @DeleteMapping("/answers/{answerId}")
+    public ResponseEntity<GlobalResponse<Void>> deleteAnswer(
+            @PathVariable Long answerId
+    ) {
+        answerReportAdminService.deleteAnswer(answerId);
+        return ResponseEntity.ok(GlobalResponse.success("신고된 오늘의 질문 답변 수동 삭제 성공", null));
+    }
 }

@@ -60,4 +60,9 @@ public interface PlazaLetterReplyReportRepository extends JpaRepository<PlazaLet
         WHERE r.reportId = :reportId
     """)
     Optional<PlazaLetterReplyReport> findByIdWithReply(@Param("reportId") Long reportId);
+
+    //수돌 삭제
+    @Modifying
+    @Query("DELETE FROM PlazaLetterReplyReport r WHERE r.reply.replyId = :replyId")
+    void deleteAllByReplyId(@Param("replyId") Long replyId);
 }

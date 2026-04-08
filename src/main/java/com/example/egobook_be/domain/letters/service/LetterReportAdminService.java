@@ -5,8 +5,10 @@ import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReplyReport
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReport;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReplyReport;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
+import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReportRepository;
+import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,8 @@ public class LetterReportAdminService {
 
     private final PlazaLetterReportRepository letterReportRepository;
     private final PlazaLetterReplyReportRepository replyReportRepository;
+    private final PlazaLetterRepository letterRepository;
+    private final PlazaLetterReplyRepository replyRepository;
 
     public SliceResponse<PlazaLetterReportAdminResDto> getReportedLetters(int page, int size) {
         int safePage = Math.max(page, 1);
@@ -109,5 +113,24 @@ public class LetterReportAdminService {
             reportCount,
             report.getCreatedAt()
         );
+    }
+
+    //수동 삭제
+    @Transactional
+    public void deleteLetter(Long letterId) {
+        if (!letterRepository.existsById(letterId)) {
+            throw new CustomException(LettersErrorCode.LETTER_NOT_FOUND);
+        }
+        letterReportRepository.deleteAllByLetterId(letterId);   // 신고 내역 먼저 삭제
+        letterRepository.deleteById(letterId);
+    }
+
+    @Transactional
+    public void deleteReply(Long replyId) {
+        if (!replyRepository.existsById(replyId)) {
+            throw new CustomException(LettersErrorCode.LETTER_NOT_FOUND);
+        }
+        replyReportRepository.deleteAllByReplyId(replyId);      // 신고 내역 먼저 삭제
+        replyRepository.deleteById(replyId);
     }
 }
