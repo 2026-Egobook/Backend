@@ -16,6 +16,8 @@ public interface AnswerReportRepository
 
     boolean existsByUserAndAnswer(User user, QuestionAnswer answer);
 
+    long countByAnswer(QuestionAnswer answer);
+
     @Query("""
         SELECT ar
         FROM AnswerReport ar
