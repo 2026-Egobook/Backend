@@ -5,9 +5,14 @@ import com.example.egobook_be.global.response.GlobalResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Map;
 
@@ -45,6 +50,55 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(GlobalResponse.error(400, e.getMessage()));
+    }
+
+    // MissingServletRequestParameterException: required=true 파라미터 누락
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<GlobalResponse<?>> handleMissingServletRequestParameterException(
+            MissingServletRequestParameterException e) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(GlobalResponse.error(400, e.getMessage()));
+    }
+
+    // 파라미터 타입 불일치 (enum에 없는 값 등)
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<GlobalResponse<?>> handleMethodArgumentTypeMismatchException(
+            MethodArgumentTypeMismatchException e) {
+        log.warn("파라미터 타입 불일치: {}", e.getMessage());
+        String message = String.format("'%s' 파라미터의 값 '%s'이(가) 올바르지 않습니다.", e.getName(), e.getValue());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(GlobalResponse.error(400, message));
+    }
+
+    // 지원하지 않는 HTTP 메서드 (GET인데 POST 요청 등)
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<GlobalResponse<?>> handleHttpRequestMethodNotSupportedException(
+            HttpRequestMethodNotSupportedException e) {
+        log.warn("지원하지 않는 HTTP 메서드: {}", e.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(GlobalResponse.error(405, "지원하지 않는 HTTP 메서드입니다: " + e.getMethod()));
+    }
+
+    // 지원하지 않는 Content-Type
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<GlobalResponse<?>> handleHttpMediaTypeNotSupportedException(
+            HttpMediaTypeNotSupportedException e) {
+        log.warn("지원하지 않는 Content-Type: {}", e.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(GlobalResponse.error(415, "지원하지 않는 Content-Type입니다: " + e.getContentType()));
+    }
+
+    // 존재하지 않는 URL
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<GlobalResponse<?>> handleNoResourceFoundException(NoResourceFoundException e) {
+        log.warn("존재하지 않는 URL: {}", e.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(GlobalResponse.error(404, "요청한 리소스를 찾을 수 없습니다."));
     }
 
     // Exception 최후의 보루 예외 처리
