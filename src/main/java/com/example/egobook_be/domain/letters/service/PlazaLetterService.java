@@ -11,6 +11,9 @@ import com.example.egobook_be.domain.letters.dto.response.WordDetectResponse;
 import com.example.egobook_be.domain.letters.dto.response.*;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.enums.PlazaLetterColor;
+import com.example.egobook_be.domain.letters.entity.BadWordBlockLog;
+import com.example.egobook_be.domain.letters.enums.BlockType;
+import com.example.egobook_be.domain.letters.repository.BadWordBlockLogRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterThreadRepository;
@@ -61,6 +64,7 @@ public class PlazaLetterService {
     private final MissionRepository missionRepository;
     private final AbilityRepository abilityRepository;
     private final WordClientService wordClient;
+    private final BadWordBlockLogRepository badWordBlockLogRepo;
     private final InkLogUtil inkLogUtil;
 
     private final PlazaLetterMapper plazaLetterMapper;
@@ -79,10 +83,18 @@ public class PlazaLetterService {
                 .orElseGet(InboxNextResponse::empty);
     }
 
-    private void enforceWordAiOrThrow(String text) {
+    private void enforceWordAiOrThrow(String text, Long userId, BlockType blockType) {
         try {
             WordDetectResponse res = wordClient.detect(text);
             if (wordClient.shouldBlock(res)) {
+                badWordBlockLogRepo.save(BadWordBlockLog.builder()
+                        .userId(userId)
+                        .type(blockType)
+                        .originalText(text)
+                        .badWords(res.getBadWords() != null ? res.getBadWords() : List.of())
+                        .score(res.getPercentage() / 100.0)
+                        .blockedAt(LocalDateTime.now())
+                        .build());
                 throw new CustomException(LettersErrorCode.AI_MODERATION_FAILED);
             }
         } catch (CustomException e) {
@@ -220,7 +232,15 @@ public class PlazaLetterService {
         }
 
         if (wordClient.shouldBlock(result)) {
-            // 욕설 감지 → 편지 삭제 or BLOCKED 처리
+            // 욕설 감지 → 차단 로그 저장 후 편지 삭제
+            badWordBlockLogRepo.save(BadWordBlockLog.builder()
+                    .userId(letter.getSenderId())
+                    .type(BlockType.LETTER)
+                    .originalText(result.getText())
+                    .badWords(result.getBadWords() != null ? result.getBadWords() : List.of())
+                    .score(result.getPercentage() / 100.0)
+                    .blockedAt(LocalDateTime.now())
+                    .build());
             plazaLetterRepository.delete(letter);
             return;
         }
@@ -395,7 +415,7 @@ public class PlazaLetterService {
             throw new CustomException(LettersErrorCode.ALREADY_REPLIED);
         }
 
-        enforceWordAiOrThrow(text);
+        enforceWordAiOrThrow(text, userId, BlockType.REPLY);
 
         // 6. plazaLetterReplyRepository로 PlazaLetterReply를 저장하기 전, 해당 사용자가 답장한 편지가 오늘 처음 답장한 편지인지 확인한다.
         ZoneId zoneId = ZoneId.of("Asia/Seoul");
