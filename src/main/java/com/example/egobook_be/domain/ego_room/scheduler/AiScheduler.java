@@ -1,5 +1,9 @@
 package com.example.egobook_be.domain.ego_room.scheduler;
 
+import com.example.egobook_be.domain.ego_room.entity.DailyPraiseSendFailLog;
+import com.example.egobook_be.domain.ego_room.entity.WeeklyReportSendFailLog;
+import com.example.egobook_be.domain.ego_room.repository.DailyPraiseSendFailLogRepository;
+import com.example.egobook_be.domain.ego_room.repository.WeeklyReportSendFailLogRepository;
 import com.example.egobook_be.domain.ego_room.service.EgoRoomService;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.UserRepository;
@@ -9,6 +13,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
@@ -18,6 +23,8 @@ public class AiScheduler {
 
     private final UserRepository userRepository;
     private final EgoRoomService egoRoomService;
+    private final DailyPraiseSendFailLogRepository dailyPraiseFailLogRepo;    // ← 추가
+    private final WeeklyReportSendFailLogRepository weeklyReportFailLogRepo;  // ← 추가
 
 
     //0시 1분마다 실행
@@ -36,6 +43,14 @@ public class AiScheduler {
                 egoRoomService.createDailyPraise(user.getId(), yesterday);
             } catch (Exception e) {
                 log.error("[스케줄러 오류] 유저 {}의 일간 칭찬 생성 중 실패: {}", user.getId(), e.getMessage());
+
+                // 실패 로그 저장
+                dailyPraiseFailLogRepo.save(DailyPraiseSendFailLog.builder()
+                        .userId(user.getId())
+                        .targetDate(yesterday)
+                        .reason(resolveReason(e))
+                        .failedAt(LocalDateTime.now())
+                        .build());
             }
         }
 
@@ -57,9 +72,25 @@ public class AiScheduler {
                 egoRoomService.createWeeklyAnalysis(user.getId(), lastMonday);
             } catch (Exception e) {
                 log.error("[스케줄러 오류] 유저 {}의 주간 분석 생성 중 실패: {}", user.getId(), e.getMessage());
+
+                // 실패 로그 저장
+                weeklyReportFailLogRepo.save(WeeklyReportSendFailLog.builder()
+                        .userId(user.getId())
+                        .weekStartDate(lastMonday)
+                        .reason(resolveReason(e))
+                        .failedAt(LocalDateTime.now())
+                        .build());
             }
         }
 
         log.info("[스케줄러 종료] 주간 분석 생성이 완료되었습니다.");
+    }
+
+    private String resolveReason(Exception e) {
+        String msg = e.getMessage() != null ? e.getMessage().toUpperCase() : "";
+        if (msg.contains("FCM") || msg.contains("TOKEN")) return "FCM_TOKEN_NOT_FOUND";
+        if (msg.contains("TIMEOUT") || msg.contains("AI"))  return "AI_RESPONSE_TIMEOUT";
+        if (msg.contains("USER"))                            return "USER_NOT_FOUND";
+        return "UNKNOWN_ERROR";
     }
 }
