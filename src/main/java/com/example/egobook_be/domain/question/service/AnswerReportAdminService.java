@@ -32,6 +32,8 @@ public class AnswerReportAdminService {
     }
 
     private AnswerReportAdminResDto toDto(AnswerReport report) {
+        long reportCount = answerReportRepository.countByAnswerId(report.getAnswer().getId());
+
         return new AnswerReportAdminResDto(
                 report.getId(),
                 report.getAnswer().getId(),
@@ -40,6 +42,7 @@ public class AnswerReportAdminService {
                 report.getUser().getNickname(),
                 report.getReason(),
                 report.getDescription(),
+                reportCount,
                 report.getCreatedAt()
         );
     }

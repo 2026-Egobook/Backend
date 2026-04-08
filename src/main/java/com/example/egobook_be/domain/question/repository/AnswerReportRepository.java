@@ -35,4 +35,7 @@ public interface AnswerReportRepository
         WHERE ar.id = :reportId
     """)
     Optional<AnswerReport> findByIdWithAnswerAndUser(@Param("reportId") Long reportId);
+
+    @Query("SELECT COUNT(ar) FROM AnswerReport ar WHERE ar.answer.id = :answerId")
+    long countByAnswerId(@Param("answerId") Long answerId);
 }
