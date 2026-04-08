@@ -4,6 +4,7 @@ import com.example.egobook_be.domain.question.dto.AnswerReportReqDto;
 import com.example.egobook_be.domain.question.dto.AnswerReportResDto;
 import com.example.egobook_be.domain.question.entity.AnswerReport;
 import com.example.egobook_be.domain.question.entity.QuestionAnswer;
+import com.example.egobook_be.domain.question.enums.AnswerVisibility;
 import com.example.egobook_be.domain.question.exception.QuestionErrorCode;
 import com.example.egobook_be.domain.question.repository.AnswerReportRepository;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
@@ -43,18 +44,22 @@ public class AnswerReportService {
                         .user(user)
                         .answer(answer)
                         .reason(reqDto.reason())
-                        .description(reqDto.description())  // BaseReportEntity 필드
-                        .status(ReportStatus.PENDING)       // BaseReportEntity 필드
-                        // createdAt → @CreatedDate 자동 주입
+                        .description(reqDto.description())
+                        .status(ReportStatus.PENDING)
                         .build()
         );
 
-        // 응답값 기존과 동일하게 유지
+        // 3회 누적 신고 시 visibility → PRIVATE으로 변경
+        long reportCount = answerReportRepository.countByAnswer(answer);
+        if (reportCount >= 3) {
+            answer.update(answer.getContent(), AnswerVisibility.PRIVATE);
+        }
+
         return new AnswerReportResDto(
                 report.getId(),
                 answer.getId(),
                 report.getReason(),
-                report.getCreatedAt()  // BaseReportEntity 필드
+                report.getCreatedAt()
         );
     }
 }

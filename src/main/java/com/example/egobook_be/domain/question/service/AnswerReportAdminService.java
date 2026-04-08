@@ -2,7 +2,9 @@ package com.example.egobook_be.domain.question.service;
 
 import com.example.egobook_be.domain.question.dto.AnswerReportAdminResDto;
 import com.example.egobook_be.domain.question.entity.AnswerReport;
+import com.example.egobook_be.domain.question.exception.QuestionErrorCode;
 import com.example.egobook_be.domain.question.repository.AnswerReportRepository;
+import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -40,5 +42,13 @@ public class AnswerReportAdminService {
                 report.getDescription(),
                 report.getCreatedAt()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public AnswerReportAdminResDto getReportedAnswerDetail(Long reportId) {
+        AnswerReport report = answerReportRepository.findByIdWithAnswerAndUser(reportId)
+                .orElseThrow(() -> new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND));
+
+        return toDto(report);
     }
 }
