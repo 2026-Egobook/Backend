@@ -146,7 +146,7 @@ public class NotificationService {
                 type == NotificationType.LETTER_REPLY_FRIEND) {
             PlazaLetterReply reply = plazaLetterReplyRepository.findById(letterId)
                     .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
-            content = reply.getText();
+            content = reply.getContent();
         } else {
             PlazaLetter letter = plazaLetterRepository.findById(letterId)
                     .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
