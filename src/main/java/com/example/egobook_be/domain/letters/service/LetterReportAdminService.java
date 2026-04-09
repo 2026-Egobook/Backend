@@ -51,7 +51,7 @@ public class LetterReportAdminService {
         return SliceResponse.of(slice, report -> new PlazaLetterReplyReportAdminResDto(
                 report.getReportId(),
                 report.getReply().getReplyId(),
-                report.getReply().getText(),
+                report.getReply().getContent(),
                 report.getReporterId(),
                 report.getReason(),
                 report.getDescription(),

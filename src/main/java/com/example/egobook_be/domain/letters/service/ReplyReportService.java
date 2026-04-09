@@ -4,6 +4,7 @@ import com.example.egobook_be.domain.letters.entity.*;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
+import com.example.egobook_be.global.enums.ReportReason;
 import com.example.egobook_be.global.enums.ReportStatus;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
@@ -22,9 +23,9 @@ public class ReplyReportService {
     private final PlazaLetterRepository plazaLetterRepository;
 
     @Transactional
-    public void reportReply(Long userId, Long replyId, ReplyReportReason reason, String description) {
+    public void reportReply(Long userId, Long replyId, ReportReason reason, String description) {
         // "기타"일 경우 사유 입력 값이 있어야 함
-        if (reason == ReplyReportReason.OTHER && (description == null || description.isBlank())) {
+        if (reason == ReportReason.OTHER && (description == null || description.isBlank())) {
             throw new CustomException(LettersErrorCode.INVALID_REPORT_REASON);
         }
 
