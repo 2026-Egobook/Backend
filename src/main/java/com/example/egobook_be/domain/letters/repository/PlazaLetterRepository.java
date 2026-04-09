@@ -163,5 +163,28 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
             @Param("userId") Long userId
     );
 
-}
+    // ── 관리자 API용 - 날짜 범위 + status 집계 ──────────────────────────────
 
+    @Query("""
+        SELECT COUNT(l) FROM PlazaLetter l
+        WHERE l.createdAt BETWEEN :start AND :end
+          AND l.status = :status
+    """)
+    long countByCreatedAtBetweenAndStatus(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("status") PlazaLetterStatus status
+    );
+
+    @Query("""
+        SELECT COUNT(l) FROM PlazaLetter l
+        WHERE l.createdAt BETWEEN :start AND :end
+          AND l.status IN :statuses
+    """)
+    long countByCreatedAtBetweenAndStatuses(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("statuses") List<PlazaLetterStatus> statuses
+    );
+
+}

@@ -180,11 +180,9 @@ public class EgoRoomService {
                     .build();
         }
 
-        // 잠금이 풀려있으면 읽음 처리 후 전체 데이터 반환
         counsel.markAsRead();
         return WeeklyCounselDetailResDto.from(counsel, false);
     }
-
 
     @Transactional
     public CounselToneResDto updateNextWeekTone(Long userId, CounselTone toneStyle) {
@@ -206,7 +204,6 @@ public class EgoRoomService {
         Optional<DailyPraise> existingPraise = dailyPraiseRepository.findByUserIdAndPraiseDate(userId, date);
         if (existingPraise.isPresent()) {
             log.info("이미 생성된 칭찬이 있어 스킵합니다. (유저: {}, 날짜: {})", userId, date);
-            existingPraise.get();
             return;
         }
 
@@ -247,7 +244,45 @@ public class EgoRoomService {
         }
     }
 
-    // 주간 분석서 생성 로직
+    // ── 일간 칭찬서 재발송 (관리자 수동 재발송용) ─────────────────────────────
+    // createDailyPraise와 동일한 로직, 중복 체크 없이 강제 재생성
+    @Transactional
+    public void resendDailyPraise(Long userId, LocalDate date) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다. ID: " + userId));
+        List<Diary> diaries = diaryRepository.findByUserIdAndDate(userId, date);
+
+        if (diaries.isEmpty()) return;
+
+        String combinedContent = diaries.stream()
+                .map(Diary::getContent)
+                .collect(Collectors.joining("\n"));
+
+        String praiseContent = dailyPraiseAiService.getPraise(combinedContent);
+
+        DailyPraise dailyPraise = DailyPraise.builder()
+                .user(user)
+                .praiseDate(date)
+                .content(praiseContent)
+                .build();
+
+        dailyPraiseRepository.save(dailyPraise);
+
+        try {
+            notificationService.createNotification(
+                    userId,
+                    NotificationType.PRAISE,
+                    dailyPraise.getId(),
+                    dailyPraise.getPraiseDate().format(DateTimeFormatter.ofPattern("M.d"))
+            );
+        } catch (Exception e) {
+            log.error("일간 칭찬서 재발송 알림 생성 실패. UserId: {}, dailyPraiseId: {}",
+                    userId, dailyPraise.getId(), e);
+        }
+    }
+
+    // ── 주간 분석서 생성 (스케줄러용) ────────────────────────────────────────
     @Transactional
     public void createWeeklyAnalysis(Long userId, LocalDate startDate) {
 
@@ -258,7 +293,8 @@ public class EgoRoomService {
             return;
         }
 
-        String lastSummary = weeklyCounselRepository.findTopByUserAndStartDateLessThanOrderByStartDateDesc(user, startDate)
+        String lastSummary = weeklyCounselRepository
+                .findTopByUserAndStartDateLessThanOrderByStartDateDesc(user, startDate)
                 .map(WeeklyCounsel::getSummary)
                 .orElse("첫 주 분석입니다. 이전 데이터가 없습니다.");
 
@@ -311,6 +347,69 @@ public class EgoRoomService {
             );
         } catch (Exception e) {
             log.error("주간 리포트 도착 알림 생성 실패. UserId: {}, CounselId: {}",
+                    userId, counsel.getId(), e);
+        }
+    }
+
+    // ── 주간 분석서 재발송 (관리자 수동 재발송용) ─────────────────────────────
+    // createWeeklyAnalysis와 동일한 로직, 중복 체크 없이 강제 재생성
+    @Transactional
+    public void resendWeeklyAnalysis(Long userId, LocalDate startDate) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
+
+        String lastSummary = weeklyCounselRepository
+                .findTopByUserAndStartDateLessThanOrderByStartDateDesc(user, startDate)
+                .map(WeeklyCounsel::getSummary)
+                .orElse("첫 주 분석입니다. 이전 데이터가 없습니다.");
+
+        String userTone = (user.getCounselingTone() != null) ? user.getCounselingTone().name() : "SOFT";
+
+        LocalDate endDate = startDate.plusDays(6);
+
+        List<Diary> diaries = diaryRepository.findByUserIdAndDateBetweenOrderByDateAsc(userId, startDate, endDate);
+        if (diaries.isEmpty()) return;
+
+        String formattedDiaries = diaries.stream()
+                .collect(Collectors.groupingBy(
+                        diary -> diary.getCreatedAt().toLocalDate(),
+                        TreeMap::new,
+                        Collectors.mapping(diary -> {
+                            String scoreInfo = (diary.getEmotionLevel() != null)
+                                    ? String.format("[%d점/5점]", diary.getEmotionLevel())
+                                    : "[점수 미기록]";
+                            return String.format("%s %s", scoreInfo, diary.getContent());
+                        }, Collectors.joining("\n- "))
+                ))
+                .entrySet().stream()
+                .map(entry -> String.format("[%s]\n- %s", entry.getKey(), entry.getValue()))
+                .collect(Collectors.joining("\n\n"));
+
+        WeeklyCounselResDto aiResponse = weeklyAnalysisAiService.getAnalysis(
+                user.getNickname(), formattedDiaries, lastSummary, userTone);
+
+        WeeklyCounsel counsel = WeeklyCounsel.builder()
+                .user(user)
+                .startDate(startDate)
+                .endDate(endDate)
+                .summary(aiResponse.summary())
+                .praisePoints(aiResponse.praisePoints())
+                .improvementPoints(aiResponse.improvementPoints())
+                .managementAdvice(aiResponse.managementAdvice())
+                .supportMessage(aiResponse.supportMessage())
+                .build();
+
+        weeklyCounselRepository.save(counsel);
+
+        try {
+            notificationService.createNotification(
+                    userId,
+                    NotificationType.REPORT,
+                    counsel.getId()
+            );
+        } catch (Exception e) {
+            log.error("주간 리포트 재발송 알림 생성 실패. UserId: {}, CounselId: {}",
                     userId, counsel.getId(), e);
         }
     }

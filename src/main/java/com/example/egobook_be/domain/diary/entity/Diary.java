@@ -41,6 +41,7 @@ public class Diary extends BaseTimeEntity {
     @CollectionTable(name = "diary_type", joinColumns = @JoinColumn(name = "diary_id"))
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private Set<DiaryType> type = EnumSet.noneOf(DiaryType.class);
     private LocalDateTime writtenAt;
 
