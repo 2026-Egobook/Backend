@@ -41,7 +41,7 @@ public interface AnswerReportRepository
     long countByAnswerId(@Param("answerId") Long answerId);
 
     //수동 삭제
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("DELETE FROM AnswerReport ar WHERE ar.answer.id = :answerId")
     void deleteAllByAnswerId(@Param("answerId") Long answerId);
 }
