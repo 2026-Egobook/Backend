@@ -216,48 +216,6 @@ public class TodayQuestionService {
     }
 
     /** 친구 답변 조회 **/
-//    @Transactional(readOnly = true)
-//    public List<FriendAnswerResDto> getFriendsAnswers(Long userId) {
-//
-//        User me = userRepository.findById(userId)
-//                .orElseThrow(() ->
-//                        new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
-//                );
-//
-//        TodayQuestion todayQuestion = todayQuestionRepository
-//                .findByQuestionDate(LocalDate.now())
-//                .orElseThrow(() ->
-//                        new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND)
-//                );
-//
-//        // 내 친구 목록 조회
-//        List<User> friends = friendRepository.findByUser(me)
-//                .stream()
-//                .map(Friend::getFriend)
-//                .toList();
-//
-//        if (friends.isEmpty()) {
-//            return List.of();
-//        }
-//
-//        // 친구들의 FRIENDS 공개 답변 조회
-//        return questionAnswerRepository
-//                .findByQuestionAndVisibilityAndUserIn(
-//                        todayQuestion,
-//                        AnswerVisibility.FRIEND,
-//                        friends
-//                )
-//                .stream()
-//                .map(answer -> FriendAnswerResDto.builder()
-//                        .answerId(answer.getId())
-//                        .userId(answer.getUser().getId())
-//                        .nickname(answer.getUser().getNickname())
-//                        .content(answer.getContent())
-//                        .createdAt(answer.getCreatedAt())
-//                        .build()
-//                )
-//                .toList();
-//    }
     @Transactional(readOnly = true)
     public SliceResponse<FriendAnswerResDto> getFriendsAnswers(
             Long userId,
@@ -307,32 +265,6 @@ public class TodayQuestionService {
     }
 
     /** 내가 지금까지 작성한 모든 답변 조회 **/
-//    @Transactional(readOnly = true)
-//    public List<MyAnswerHistoryResDto> getMyAnswerHistory(Long userId) {
-//
-//        User user = userRepository.findById(userId)
-//                .orElseThrow(() ->
-//                        new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
-//                );
-//
-//        return questionAnswerRepository
-//                .findByUserOrderByCreatedAtDesc(user)
-//                .stream()
-//                .map(answer -> {
-//                    TodayQuestion question = answer.getQuestion();
-//
-//                    return MyAnswerHistoryResDto.builder()
-//                            .questionId(question.getId())
-//                            .questionDate(question.getQuestionDate())
-//                            .questionContent(question.getContent())
-//                            .answerId(answer.getId())
-//                            .answerContent(answer.getContent())
-//                            .visibility(answer.getVisibility())
-//                            .answeredAt(answer.getCreatedAt())
-//                            .build();
-//                })
-//                .toList();
-//    }
     @Transactional(readOnly = true)
     public SliceResponse<MyAnswerHistoryResDto> getMyAnswerHistory(
             Long userId,

@@ -1,0 +1,84 @@
+package com.example.egobook_be.domain.question.controller;
+
+import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReplyReportAdminResDto;
+import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReportAdminResDto;
+import com.example.egobook_be.domain.letters.service.LetterReportAdminService;
+import com.example.egobook_be.domain.question.dto.*;
+import com.example.egobook_be.domain.question.service.AnswerReportAdminService;
+import com.example.egobook_be.global.response.GlobalResponse;
+import com.example.egobook_be.global.response.SliceResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/admin/reports")
+public class AdminReportController implements AdminReportControllerDocs {
+
+    private final AnswerReportAdminService answerReportAdminService;
+    private final LetterReportAdminService letterReportAdminService;
+
+    @Override
+    @GetMapping("/letters")
+    public ResponseEntity<GlobalResponse<SliceResponse<PlazaLetterReportAdminResDto>>> getReportedLetters(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success("신고된 편지 조회 성공", letterReportAdminService.getReportedLetters(page, size))
+        );
+    }
+
+    @Override
+    @GetMapping("/replies")
+    public ResponseEntity<GlobalResponse<SliceResponse<PlazaLetterReplyReportAdminResDto>>> getReportedReplies(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success("신고된 답장 조회 성공", letterReportAdminService.getReportedReplies(page, size))
+        );
+    }
+
+    @Override
+    @GetMapping("/answers")
+    public ResponseEntity<GlobalResponse<SliceResponse<AnswerReportAdminResDto>>> getReportedAnswers(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success("신고된 답변 조회 성공", answerReportAdminService.getReportedAnswers(page, size))
+        );
+    }
+
+    @Override
+    @GetMapping("/letters/{reportId}")
+    public ResponseEntity<GlobalResponse<PlazaLetterReportAdminResDto>> getReportedLetterDetail(
+            @PathVariable Long reportId
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success("신고된 편지 상세 조회 성공", letterReportAdminService.getReportedLetterDetail(reportId))
+        );
+    }
+
+    @Override
+    @GetMapping("/replies/{reportId}")
+    public ResponseEntity<GlobalResponse<PlazaLetterReplyReportAdminResDto>> getReportedReplyDetail(
+            @PathVariable Long reportId
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success("신고된 답장 상세 조회 성공", letterReportAdminService.getReportedReplyDetail(reportId))
+        );
+    }
+
+    @Override
+    @GetMapping("/answers/{reportId}")
+    public ResponseEntity<GlobalResponse<AnswerReportAdminResDto>> getReportedAnswerDetail(
+            @PathVariable Long reportId
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success("신고된 답변 상세 조회 성공", answerReportAdminService.getReportedAnswerDetail(reportId))
+        );
+    }
+}
