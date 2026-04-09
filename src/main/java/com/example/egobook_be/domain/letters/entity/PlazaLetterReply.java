@@ -31,7 +31,7 @@ public class PlazaLetterReply {
     private Long threadId;
 
     @Column(nullable = false, length = 350)
-    private String text;
+    private String content;
 
     @Column(nullable = false)
     private boolean isAiGenerated;
