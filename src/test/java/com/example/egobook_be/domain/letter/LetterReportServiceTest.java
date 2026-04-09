@@ -4,11 +4,11 @@ import com.example.egobook_be.domain.letters.entity.PlazaLetter;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterMode;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReport;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
-import com.example.egobook_be.domain.letters.enums.LetterReportReason;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.letters.service.LetterReportService;
+import com.example.egobook_be.global.enums.ReportReason;
 import com.example.egobook_be.global.exception.CustomException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,7 +20,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -42,7 +41,7 @@ class LetterReportServiceTest {
     @Test
     @DisplayName("reportLetter_OTHER 사유인데 설명이 없으면 예외가 발생한다")
     void reportLetter_otherReasonWithoutDescription_fail() {
-        assertThatThrownBy(() -> letterReportService.reportLetter(1L, 10L, LetterReportReason.OTHER, " "))
+        assertThatThrownBy(() -> letterReportService.reportLetter(1L, 10L, ReportReason.OTHER, " "))
                 .isInstanceOf(CustomException.class)
                 .extracting(e -> ((CustomException) e).getErrorCode())
                 .isEqualTo(LettersErrorCode.INVALID_REPORT_REASON);
@@ -53,7 +52,7 @@ class LetterReportServiceTest {
     void reportLetter_alreadyReported_fail() {
         given(letterReportRepository.existsByLetter_LetterIdAndReporterId(1L, 10L)).willReturn(true); // letterId=1L, userId=10L
 
-        assertThatThrownBy(() -> letterReportService.reportLetter(1L, 10L, LetterReportReason.ABUSE, "신고"))
+        assertThatThrownBy(() -> letterReportService.reportLetter(1L, 10L, ReportReason.ABUSE, "신고"))
                 .isInstanceOf(CustomException.class)
                 .extracting(e -> ((CustomException) e).getErrorCode())
                 .isEqualTo(LettersErrorCode.ALREADY_REPORTED);
@@ -68,7 +67,7 @@ class LetterReportServiceTest {
         given(letterReportRepository.existsByLetter_LetterIdAndReporterId(1L, 10L)).willReturn(false);
         given(plazaLetterRepository.findById(1L)).willReturn(Optional.of(letter));
 
-        assertThatThrownBy(() -> letterReportService.reportLetter(1L, 10L, LetterReportReason.ABUSE, "신고"))
+        assertThatThrownBy(() -> letterReportService.reportLetter(1L, 10L, ReportReason.ABUSE, "신고"))
                 .isInstanceOf(CustomException.class)
                 .extracting(e -> ((CustomException) e).getErrorCode())
                 .isEqualTo(LettersErrorCode.FORBIDDEN);
@@ -82,7 +81,7 @@ class LetterReportServiceTest {
         given(plazaLetterRepository.findById(1L)).willReturn(Optional.of(letter));
         given(letterReportRepository.countByLetter_LetterId(1L)).willReturn(3L);
 
-        letterReportService.reportLetter(1L, 10L, LetterReportReason.ABUSE, "신고 사유");
+        letterReportService.reportLetter(1L, 10L, ReportReason.ABUSE, "신고 사유");
 
         verify(letterReportRepository).save(any(PlazaLetterReport.class));
         verify(plazaLetterRepository).deleteById(1L);
@@ -96,7 +95,7 @@ class LetterReportServiceTest {
         given(plazaLetterRepository.findById(1L)).willReturn(Optional.of(letter));
         given(letterReportRepository.countByLetter_LetterId(1L)).willReturn(1L);
 
-        letterReportService.reportLetter(1L, 10L, LetterReportReason.SPAM, "광고 같아요");
+        letterReportService.reportLetter(1L, 10L, ReportReason.SPAM, "광고 같아요");
 
         verify(letterReportRepository).save(any(PlazaLetterReport.class));
         verify(plazaLetterRepository, never()).deleteById(any());
