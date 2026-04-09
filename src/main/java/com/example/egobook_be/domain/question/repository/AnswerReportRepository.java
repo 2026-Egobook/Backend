@@ -6,6 +6,7 @@ import com.example.egobook_be.domain.user.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -35,4 +36,12 @@ public interface AnswerReportRepository
         WHERE ar.id = :reportId
     """)
     Optional<AnswerReport> findByIdWithAnswerAndUser(@Param("reportId") Long reportId);
+
+    @Query("SELECT COUNT(ar) FROM AnswerReport ar WHERE ar.answer.id = :answerId")
+    long countByAnswerId(@Param("answerId") Long answerId);
+
+    //수동 삭제
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM AnswerReport ar WHERE ar.answer.id = :answerId")
+    void deleteAllByAnswerId(@Param("answerId") Long answerId);
 }
