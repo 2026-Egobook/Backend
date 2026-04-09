@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(find C:UsersnahjjIntelliJ_ProjectsEgobook_BE/src/main -type f -path *user*dto* -name *.java)"
-    ]
-  }
-}
