@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.ego_room.entity;
 
+import com.example.egobook_be.domain.ego_room.enums.SendFailReason;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -29,8 +30,9 @@ public class WeeklyReportSendFailLog {
     @Column(nullable = false)
     private LocalDate weekStartDate;
 
-    @Column(nullable = false, length = 100)
-    private String reason;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private SendFailReason reason;
 
     @Column(nullable = false)
     private LocalDateTime failedAt;

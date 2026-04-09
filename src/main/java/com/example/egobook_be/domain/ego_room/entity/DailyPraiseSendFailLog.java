@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.ego_room.entity;
 
+import com.example.egobook_be.domain.ego_room.enums.SendFailReason;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,8 +31,9 @@ public class DailyPraiseSendFailLog {
     private LocalDate targetDate;
 
     /** 실패 사유 (FCM_TOKEN_NOT_FOUND, AI_RESPONSE_TIMEOUT 등) */
-    @Column(nullable = false, length = 100)
-    private String reason;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private SendFailReason reason;
 
     @Column(nullable = false)
     private LocalDateTime failedAt;

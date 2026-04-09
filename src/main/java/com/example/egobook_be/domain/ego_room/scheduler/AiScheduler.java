@@ -2,6 +2,7 @@ package com.example.egobook_be.domain.ego_room.scheduler;
 
 import com.example.egobook_be.domain.ego_room.entity.DailyPraiseSendFailLog;
 import com.example.egobook_be.domain.ego_room.entity.WeeklyReportSendFailLog;
+import com.example.egobook_be.domain.ego_room.enums.SendFailReason;
 import com.example.egobook_be.domain.ego_room.repository.DailyPraiseSendFailLogRepository;
 import com.example.egobook_be.domain.ego_room.repository.WeeklyReportSendFailLogRepository;
 import com.example.egobook_be.domain.ego_room.service.EgoRoomService;
@@ -86,11 +87,11 @@ public class AiScheduler {
         log.info("[스케줄러 종료] 주간 분석 생성이 완료되었습니다.");
     }
 
-    private String resolveReason(Exception e) {
+    private SendFailReason resolveReason(Exception e) {
         String msg = e.getMessage() != null ? e.getMessage().toUpperCase() : "";
-        if (msg.contains("FCM") || msg.contains("TOKEN")) return "FCM_TOKEN_NOT_FOUND";
-        if (msg.contains("TIMEOUT") || msg.contains("AI"))  return "AI_RESPONSE_TIMEOUT";
-        if (msg.contains("USER"))                            return "USER_NOT_FOUND";
-        return "UNKNOWN_ERROR";
+        if (msg.contains("FCM") || msg.contains("TOKEN")) return SendFailReason.FCM_TOKEN_NOT_FOUND;
+        if (msg.contains("TIMEOUT") || msg.contains("AI"))  return SendFailReason.AI_RESPONSE_TIMEOUT;
+        if (msg.contains("USER"))                            return SendFailReason.USER_NOT_FOUND;
+        return SendFailReason.UNKNOWN_ERROR;
     }
 }
