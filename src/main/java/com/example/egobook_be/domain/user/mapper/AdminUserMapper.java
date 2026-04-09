@@ -1,14 +1,25 @@
 package com.example.egobook_be.domain.user.mapper;
 
 import com.example.egobook_be.domain.auth.entity.AuthAccount;
+import com.example.egobook_be.domain.letters.entity.PlazaLetter;
+import com.example.egobook_be.domain.letters.entity.PlazaLetterReply;
+import com.example.egobook_be.domain.letters.entity.PlazaLetterReplyReport;
+import com.example.egobook_be.domain.letters.entity.PlazaLetterReport;
+import com.example.egobook_be.domain.question.entity.AnswerReport;
+import com.example.egobook_be.domain.question.entity.QuestionAnswer;
 import com.example.egobook_be.domain.user.dto.AdminUserInfoResDto;
+import com.example.egobook_be.domain.user.dto.AdminUserReportHistoryResDto;
 import com.example.egobook_be.domain.user.dto.AdminUserStatsResDto;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.global.enums.ReportDomainType;
+import com.example.egobook_be.global.enums.ReportType;
+import com.example.egobook_be.global.response.SliceResponse;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Component;
 
 @Component
-public class UserMapper {
+public class AdminUserMapper {
     public AdminUserInfoResDto toAdminUserInfoResDto(User user, AuthAccount authAccount) {
         return AdminUserInfoResDto.builder()
                 .userId(user.getId())
@@ -47,6 +58,58 @@ public class UserMapper {
                 .isFirstAttendanceToday(user.isFirstAttendanceToday())
                 .weeklyAnalysisEnabled(user.getWeeklyAnalysisEnabled())
                 .counselingTone(user.getCounselingTone())
+                .build();
+    }
+
+    public AdminUserReportHistoryResDto toAdminUserReportHistoryResDto(AdminUserReportHistoryResDto.Summary summary, SliceResponse<AdminUserReportHistoryResDto.ReportContent> reportList) {
+        return AdminUserReportHistoryResDto.builder()
+                .summary(summary)
+                .reportList(reportList)
+                .build();
+    }
+
+    public AdminUserReportHistoryResDto.ReportContent toReportContent(PlazaLetterReport report, PlazaLetter letter, ReportDomainType reportDomainType, ReportType reportType) {
+        return AdminUserReportHistoryResDto.ReportContent.builder()
+                .reportId(report.getReportId())
+                .reportDomainType(reportDomainType)
+                .reportType(reportType)
+                .reportReason(report.getReason())
+                .reportStatus(report.getStatus())
+                .createdAt(report.getCreatedAt())
+                .targetId(letter.getLetterId())
+                .content(letter.getContent())
+                .build();
+    }
+
+    public AdminUserReportHistoryResDto.ReportContent toReportContentFromLetterReply(
+            PlazaLetterReplyReport report, PlazaLetterReply letterReply,
+            ReportDomainType reportDomainType, ReportType reportType
+    ) {
+        return AdminUserReportHistoryResDto.ReportContent.builder()
+                .reportId(report.getReportId())
+                .reportDomainType(reportDomainType)
+                .reportType(reportType)
+                .reportReason(report.getReason())
+                .reportStatus(report.getStatus())
+                .createdAt(report.getCreatedAt())
+                .targetId(letterReply.getReplyId())
+                .content(letterReply.getContent())
+                .build();
+    }
+
+    public AdminUserReportHistoryResDto.ReportContent toReportContentFromQuestionAnswer(
+            AnswerReport report, QuestionAnswer questionAnswer,
+            ReportDomainType reportDomainType, ReportType reportType
+    ) {
+        return AdminUserReportHistoryResDto.ReportContent.builder()
+                .reportId(report.getId())
+                .reportDomainType(reportDomainType)
+                .reportType(reportType)
+                .reportReason(report.getReason())
+                .reportStatus(report.getStatus())
+                .createdAt(report.getCreatedAt())
+                .targetId(questionAnswer.getId())
+                .content(questionAnswer.getContent())
                 .build();
     }
 }

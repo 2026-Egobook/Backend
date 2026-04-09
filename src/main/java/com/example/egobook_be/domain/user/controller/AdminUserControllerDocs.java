@@ -1,9 +1,14 @@
 package com.example.egobook_be.domain.user.controller;
 
 import com.example.egobook_be.domain.user.dto.AdminUserInfoResDto;
+import com.example.egobook_be.domain.user.dto.AdminUserReportHistoryResDto;
 import com.example.egobook_be.domain.user.dto.AdminUserStatsResDto;
 import com.example.egobook_be.domain.user.dto.SearchUserResDto;
 import com.example.egobook_be.domain.user.enums.UserStatus;
+import com.example.egobook_be.global.enums.ReportDomainType;
+import com.example.egobook_be.global.enums.ReportReason;
+import com.example.egobook_be.global.enums.ReportStatus;
+import com.example.egobook_be.global.enums.ReportType;
 import com.example.egobook_be.global.response.GlobalResponse;
 import com.example.egobook_be.global.response.SliceResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -141,5 +146,94 @@ public interface AdminUserControllerDocs {
     ResponseEntity<GlobalResponse<AdminUserStatsResDto>> getUserStats(
             @Parameter(description = "조회할 사용자 ID", required = true)
             @PathVariable Long userId
+    );
+
+    @Operation(summary = "회원 신고 이력 조회", description = """
+        특정 회원의 신고 이력 및 제재 요약 정보를 조회하는 API입니다.
+
+        [**Path Variable**]
+        - userId: 조회할 ```ROLE_USER``` 권한을 가진 사용자의 ID
+
+        [**Query Parameter**]
+        **NOT NULL**
+        - page: 페이지 번호 (1 ~ n)
+        - size: 페이지 크기
+        - reportDomainType: 신고 도메인 타입 필터
+            (필터링할 수 있는 요소)
+                1. ```LETTER``` (편지)
+                2. ```LETTER_REPLY``` (편지 답장)
+                3. ```QUESTION_ANSWER``` (오늘의 질문 답장)
+        **NULL**
+        - reportType: 신고 타입 필터
+            (필터링할 수 있는 요소)
+                1. ```REPORTER``` (신고한 내역)
+                2. ```REPORTED``` (신고당한 내역)
+        - reportReason: 신고 사유 필터
+            (필터링할 수 있는 요소)
+                1. ```ABUSE``` (비속어/욕설/모욕)
+                2. ```SPAM``` (광고/스팸)
+                3. ```INAPPROPRIATE``` (부적절한 콘텐츠)
+                4. ```OTHER``` (기타)
+        - reportStatus: 신고 처리 상태 필터
+            (필터링할 수 있는 요소)
+                1. ```PENDING``` (대기중)
+                2. ```RESOLVED``` (처리 완료)
+                3. ```REFUSED``` (처리 반려)
+
+        [**반환 정보**]
+        - ```userId```: 사용자 PK
+        - ```summary```: 사용자 신고 관련 요약 정보 (REPORT_TYPE을 지정해주지 않으면 totalReportCount,totalReportedCount의 개수는 총합으로 나옵니다.) 
+            - ```totalReportCount```: 지금까지 신고한 누적 횟수
+            - ```totalReportedCount```: 지금까지 신고당한 누적 횟수
+            - ```pastSuspendedCount```: 과거 계정 정지 횟수
+        - ```reportList```: 신고 이력 페이지 정보
+            - ```content```: 신고 이력 리스트
+                - ```reportId```: 신고 PK (domainType별로 적용되는 엔티티가 달라짐)
+                - ```reportDomainType```: 신고 도메인 타입 (**LETTER** | **LETTER_REPLY** | **QUESTION_ANSWER**)
+                - ```reportType```: 신고 타입 (**REPORTER** | **REPORTED**)
+                - ```reportReason```: 신고 사유 (**ABUSE** | **SPAM** | **INAPPROPRIATE** | **OTHER**)
+                - ```reportStatus```: 신고 처리 상태 (**PENDING** | **RESOLVED** | **REFUSED**)
+                - ```createdAt```: 신고 일자
+                - ```targetId```: 신고 대상의 PK
+                - ```content```: 신고 받은 내용
+            - ```page```: 현재 페이지 번호
+            - ```size```: 한 페이지 최대 개수
+            - ```hasNext```: 다음 페이지 존재 여부
+        """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "회원 신고 이력 조회 성공",
+                    content = @Content(schema = @Schema(implementation = AdminUserReportHistoryResDto.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 필터 값을 보냈습니다.",
+                    content = @Content),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요합니다.",
+                    content = @Content),
+            @ApiResponse(responseCode = "403", description = "관리자 권한이 필요합니다.",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "해당 사용자를 찾을 수 없습니다.",
+                    content = @Content)
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/{userId}/report-history")
+    ResponseEntity<GlobalResponse<AdminUserReportHistoryResDto>> getUserReportHistory(
+            @Parameter(description = "조회할 사용자 ID", required = true)
+            @PathVariable Long userId,
+
+            @Parameter(description = "신고 도메인 타입 필터 (LETTER | LETTER_REPLY | QUESTION_ANSWER)")
+            @RequestParam(value = "reportDomainType", required = true) ReportDomainType reportDomainType,
+
+            @Parameter(description = "신고 타입 필터 (REPORTER | REPORTED)")
+            @RequestParam(value = "reportType", required = false) ReportType reportType,
+
+            @Parameter(description = "신고 사유 필터 (ABUSE | SPAM | INAPPROPRIATE | OTHER)")
+            @RequestParam(value = "reportReason", required = false) ReportReason reportReason,
+
+            @Parameter(description = "신고 처리 상태 필터 (PENDING | RESOLVED | REFUSED)")
+            @RequestParam(value = "reportStatus", required = false) ReportStatus reportStatus,
+
+            @Parameter(description = "Page 번호 (1 ~ N)", required = true)
+            @RequestParam(value = "page", defaultValue = "1") Integer page,
+
+            @Parameter(description = "Page 크기", required = true)
+            @RequestParam(value = "size", defaultValue = "10") Integer size
     );
 }
