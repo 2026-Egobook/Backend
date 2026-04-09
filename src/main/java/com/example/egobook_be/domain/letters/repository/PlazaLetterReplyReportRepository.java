@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface PlazaLetterReplyReportRepository extends JpaRepository<PlazaLetterReplyReport, Long> {
+public interface PlazaLetterReplyReportRepository extends JpaRepository<PlazaLetterReplyReport, Long>, PlazaLetterReplyReportRepositoryCustom {
 
     boolean existsByReply_ReplyIdAndReporterId(Long replyId, Long reporterId);
 

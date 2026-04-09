@@ -1,6 +1,9 @@
 package com.example.egobook_be.domain.letters.repository;
 
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReport;
+import com.example.egobook_be.domain.user.dto.AdminUserReportHistoryResDto;
+import com.example.egobook_be.global.enums.ReportReason;
+import com.example.egobook_be.global.enums.ReportStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,7 +12,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface PlazaLetterReportRepository extends JpaRepository<PlazaLetterReport, Long> {
+public interface PlazaLetterReportRepository extends JpaRepository<PlazaLetterReport, Long>, PlazaLetterReportRepositoryCustom {
 
     boolean existsByLetter_LetterIdAndReporterId(Long letterId, Long reporterId);
 
@@ -32,6 +35,5 @@ public interface PlazaLetterReportRepository extends JpaRepository<PlazaLetterRe
         ORDER BY r.createdAt DESC
     """)
     Slice<PlazaLetterReport> findAllWithLetter(Pageable pageable);
-
 }
 
