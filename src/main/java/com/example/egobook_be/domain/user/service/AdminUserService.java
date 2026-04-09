@@ -426,7 +426,7 @@ public class AdminUserService {
         return switch (reportType) {
             case ReportType.REPORTER -> {
                 Slice<AnswerReport> slice = questionAnswerReportRepository
-                        .findAnswerReportsByAnswererId(userId, reportReason, reportStatus, pageable);
+                        .findAnswerReportsByReporterId(userId, reportReason, reportStatus, pageable);
                 yield SliceResponse.of(slice, report ->
                         adminUserMapper.toReportContentFromQuestionAnswer(report, report.getAnswer(), ReportDomainType.QUESTION_ANSWER, ReportType.REPORTER));
             }

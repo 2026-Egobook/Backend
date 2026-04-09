@@ -182,7 +182,7 @@ public interface AdminUserControllerDocs {
 
         [**반환 정보**]
         - ```userId```: 사용자 PK
-        - ```summary```: 사용자 신고 관련 요약 정보 (REPORT_TYPE을 지정해주지 않으면 totalReportCount,totalReportedCount의 개수는 총합으로 나옵니다.) 
+        - ```summary```: 사용자 신고 관련 요약 정보 **(REPORT_TYPE을 지정해주지 않으면 totalReportCount,totalReportedCount의 개수는 총합으로 나옵니다.)**
             - ```totalReportCount```: 지금까지 신고한 누적 횟수
             - ```totalReportedCount```: 지금까지 신고당한 누적 횟수
             - ```pastSuspendedCount```: 과거 계정 정지 횟수
