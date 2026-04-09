@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.user.dto;
 
+import com.example.egobook_be.domain.ego_room.enums.SendFailReason;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -42,7 +43,7 @@ public class AdminContentResDto {
         private Long failId;
         private Long userId;
         private LocalDateTime failedAt;
-        private String reason;
+        private SendFailReason reason;
     }
 
     // ── B2. 주간 리포트 발송 현황 ────────────────────────────────────────────
@@ -68,7 +69,7 @@ public class AdminContentResDto {
         private Long failId;
         private Long userId;
         private LocalDateTime failedAt;
-        private String reason;
+        private SendFailReason reason;
     }
 
     // ── B3. 편지 운영 현황 ───────────────────────────────────────────────────

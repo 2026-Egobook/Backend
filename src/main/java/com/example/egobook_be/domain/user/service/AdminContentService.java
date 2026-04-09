@@ -11,11 +11,11 @@ import com.example.egobook_be.domain.letters.entity.BadWordBlockLog;
 import com.example.egobook_be.domain.letters.entity.LetterSendFailLog;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
 import com.example.egobook_be.domain.letters.enums.BlockType;
+import com.example.egobook_be.domain.letters.repository.AiRequestCountLogRepository;
 import com.example.egobook_be.domain.letters.repository.BadWordBlockLogRepository;
 import com.example.egobook_be.domain.letters.repository.LetterSendFailLogRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.user.dto.ResendReqDto;
-import com.example.egobook_be.domain.user.dto.AdminContentResDto;
 import com.example.egobook_be.domain.user.dto.AdminContentResDto.*;
 import com.example.egobook_be.domain.user.exception.AdminContentErrorCode;
 import com.example.egobook_be.domain.user.repository.UserRepository;
@@ -44,6 +44,7 @@ public class AdminContentService {
     private final PlazaLetterRepository plazaLetterRepo;
     private final UserRepository userRepository;
     private final EgoRoomService egoRoomService;
+    private final AiRequestCountLogRepository aiRequestCountLogRepo;
 
     // ─────────────────────────────────────────────────────────────────────────
     // B1. AI 일간 칭찬서
@@ -125,7 +126,8 @@ public class AdminContentService {
             }
 
             try {
-                egoRoomService.createDailyPraise(failLog.getUserId(), failLog.getTargetDate());
+                // createDailyPraise와 로직은 동일하되 재발송 전용 메서드 호출 (중복 체크 없이 강제 재생성)
+                egoRoomService.resendDailyPraise(failLog.getUserId(), failLog.getTargetDate());
                 failLog.markResent();
                 results.add(successResult(failId));
                 successCount++;
@@ -202,7 +204,8 @@ public class AdminContentService {
             }
 
             try {
-                egoRoomService.createWeeklyAnalysis(failLog.getUserId(), failLog.getWeekStartDate());
+                // createWeeklyAnalysis와 로직은 동일하되 재발송 전용 메서드 호출 (중복 체크 없이 강제 재생성)
+                egoRoomService.resendWeeklyAnalysis(failLog.getUserId(), failLog.getWeekStartDate());
                 failLog.markResent();
                 results.add(successResult(failId));
                 successCount++;
@@ -280,9 +283,17 @@ public class AdminContentService {
                 ? badWordBlockLogRepo.findByBlockedAtBetweenOrderByBlockedAtDesc(start, end)
                 : badWordBlockLogRepo.findByBlockedAtBetweenAndTypeOrderByBlockedAtDesc(start, end, type);
 
+        // AiRequestCountLog 기반 전체 요청 수로 차단율 계산
+        long totalCount = (type == null || type == BlockType.ALL)
+                ? aiRequestCountLogRepo.countByRequestedAtBetween(start, end)
+                : aiRequestCountLogRepo.countByRequestedAtBetweenAndType(start, end, type);
+
+        double blockRate = totalCount == 0 ? 0.0
+                : Math.round((double) blockedLogs.size() / totalCount * 1000) / 10.0; // 소수점 1자리 %
+
         BadWordSummary summary = BadWordSummary.builder()
                 .blockedCount(blockedLogs.size())
-                .blockRate(0.0) // 전체 요청 수 카운팅 테이블 추가 시 수정
+                .blockRate(blockRate)
                 .build();
 
         List<BlockedLog> logDtos = blockedLogs.stream()

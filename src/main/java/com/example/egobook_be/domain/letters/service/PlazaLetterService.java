@@ -13,10 +13,7 @@ import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.enums.PlazaLetterColor;
 import com.example.egobook_be.domain.letters.entity.BadWordBlockLog;
 import com.example.egobook_be.domain.letters.enums.BlockType;
-import com.example.egobook_be.domain.letters.repository.BadWordBlockLogRepository;
-import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
-import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
-import com.example.egobook_be.domain.letters.repository.PlazaLetterThreadRepository;
+import com.example.egobook_be.domain.letters.repository.*;
 import com.example.egobook_be.domain.notification.enums.NotificationType;
 import com.example.egobook_be.domain.notification.service.NotificationService;
 import com.example.egobook_be.domain.user.entity.Ability;
@@ -71,6 +68,8 @@ public class PlazaLetterService {
 
     private final NotificationService notificationService;
 
+    private final AiRequestCountLogRepository aiRequestCountLogRepo;
+
     @Value("${spring.cloud.aws.cloudfront.domain}")
     private String cloudfrontDomain;
 
@@ -84,6 +83,11 @@ public class PlazaLetterService {
     }
 
     private void enforceWordAiOrThrow(String text, Long userId, BlockType blockType) {
+        // AI 요청 수 카운트 저장
+        aiRequestCountLogRepo.save(AiRequestCountLog.builder()
+                .type(blockType)
+                .requestedAt(LocalDateTime.now())
+                .build());
         try {
             WordDetectResponse res = wordClient.detect(text);
             if (wordClient.shouldBlock(res)) {
@@ -223,6 +227,11 @@ public class PlazaLetterService {
     public void handleAiResult(Long letterId, WordDetectResponse result,
                                Long receiverId, LocalDateTime now,
                                PlazaLetterMode mode, User sender) {
+        aiRequestCountLogRepo.save(AiRequestCountLog.builder()
+                .type(BlockType.LETTER)
+                .requestedAt(LocalDateTime.now())
+                .build());
+
         PlazaLetter letter = plazaLetterRepository.findById(letterId).orElse(null);
         if (letter == null) return;
 
