@@ -187,4 +187,7 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
             @Param("statuses") List<PlazaLetterStatus> statuses
     );
 
+    Long countByCreatedAtGreaterThanEqualAndCreatedAtBefore(LocalDateTime start, LocalDateTime end);
+
+    Long countByGaveUpAtIsNotNullAndCreatedAtGreaterThanEqualAndCreatedAtBefore(LocalDateTime start, LocalDateTime end);
 }

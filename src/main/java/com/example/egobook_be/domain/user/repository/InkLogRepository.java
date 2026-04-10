@@ -20,4 +20,41 @@ public interface InkLogRepository extends JpaRepository<InkLog, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM InkLog i WHERE i.user IN :users")
     void bulkDeleteByUserIn(@Param("users") List<User> users);
+
+    @Query(value = """
+    SELECT DATE_FORMAT(created_at, :format) AS period,
+           COALESCE(SUM(amount), 0) AS amount
+    FROM ink_log i
+    WHERE created_at >= :start
+      AND created_at < :end
+      AND reason NOT IN ('WEEKLY_UNLOCK', 'LETTER_COLOR_PURCHASE')
+    GROUP BY period
+    ORDER BY period
+    """, nativeQuery = true)
+    List<InkStatAmount> sumIssued(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("format") String format
+    );
+
+    @Query(value = """
+    SELECT DATE_FORMAT(created_at, :format) AS period,
+           COALESCE(SUM(amount), 0) AS amount
+    FROM ink_log
+    WHERE created_at >= :start
+      AND created_at < :end
+      AND reason IN ('WEEKLY_UNLOCK', 'LETTER_COLOR_PURCHASE')
+    GROUP BY period
+    ORDER BY period
+    """, nativeQuery = true)
+    List<InkStatAmount> sumConsumed(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("format") String format
+    );
+
+    interface InkStatAmount {
+        String getPeriod();
+        Long getAmount();
+    }
 }

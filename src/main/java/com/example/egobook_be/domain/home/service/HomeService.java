@@ -8,15 +8,12 @@ import com.example.egobook_be.domain.home.entity.Mission;
 import com.example.egobook_be.domain.home.mapper.HomeMapper;
 import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.notification.repository.NotificationRepository;
-import com.example.egobook_be.domain.psychology.repository.UserKnowledgeRepository;
-import com.example.egobook_be.domain.user.entity.Ability;
-import com.example.egobook_be.domain.user.entity.InkLog;
-import com.example.egobook_be.domain.user.entity.InkLogType;
-import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.entity.*;
 import com.example.egobook_be.domain.user.enums.UserErrorCode;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
+import com.example.egobook_be.domain.user.service.UserActivityService;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.util.InkLogUtil;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +34,7 @@ public class HomeService {
     private final InkLogRepository inkLogRepository;
     private final HomeMapper homeMapper;
     private final InkLogUtil inkLogUtil;
+    private final UserActivityService userActivityService;
 
     private final Integer ATTENDANCE_REWARD_INK = 3;
 
@@ -76,6 +74,9 @@ public class HomeService {
         }
         else attendanceRewardInk = 0;
         HomeResDto resDto = homeMapper.toHomeResDto(user, unReadNotificationCount, hasUnopenedPsychology, attendanceRewardInk);
+
+        // 홈 집입 시 활성 기록
+        userActivityService.recordDailyActivity(userId);
 
         return resDto;
     }
