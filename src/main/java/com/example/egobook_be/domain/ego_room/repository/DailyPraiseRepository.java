@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public interface DailyPraiseRepository extends JpaRepository<DailyPraise, Long> {
@@ -16,5 +17,19 @@ public interface DailyPraiseRepository extends JpaRepository<DailyPraise, Long> 
 
     Optional<DailyPraise> findByUserIdAndPraiseDate(Long userId, LocalDate praiseDate);
 
+    // 날짜별 발송 성공 건수 집계 (관리자 API용)
+    @Query("""
+        SELECT dp.praiseDate, COUNT(dp)
+        FROM DailyPraise dp
+        WHERE dp.praiseDate BETWEEN :startDate AND :endDate
+        GROUP BY dp.praiseDate
+        ORDER BY dp.praiseDate ASC
+    """)
+    List<Object[]> countSuccessByDateRange(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    long countByPraiseDateBetween(LocalDate startDate, LocalDate endDate);
 
 }

@@ -12,5 +12,6 @@ public record AnswerReportAdminResDto(
         String reporterNickname,
         ReportReason reason,
         String description,
+        long reportCount,
         LocalDateTime reportedAt
 ) {}

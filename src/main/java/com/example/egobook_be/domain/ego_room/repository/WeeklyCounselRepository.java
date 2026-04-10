@@ -33,4 +33,7 @@ public interface WeeklyCounselRepository extends JpaRepository<WeeklyCounsel, Lo
     Optional<WeeklyCounsel> findByIdAndUser(Long id, User user);
     Optional<WeeklyCounsel> findTopByUserAndStartDateLessThanOrderByStartDateDesc(User user, LocalDate startDate);
 
+    // 날짜 범위 내 생성된 WeeklyCounsel 수 (관리자 API용 - 주간 리포트 발송 성공 건수)
+    long countByStartDateBetween(LocalDate startDate, LocalDate endDate);
+
 }

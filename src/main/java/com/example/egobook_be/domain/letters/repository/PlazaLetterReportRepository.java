@@ -4,6 +4,7 @@ import com.example.egobook_be.domain.letters.entity.PlazaLetterReport;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -43,5 +44,9 @@ public interface PlazaLetterReportRepository extends JpaRepository<PlazaLetterRe
     """)
     Optional<PlazaLetterReport> findByIdWithLetter(@Param("reportId") Long reportId);
 
+    //수동 삭제
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM PlazaLetterReport r WHERE r.letter.letterId = :letterId")
+    void deleteAllByLetterId(@Param("letterId") Long letterId);
 }
 

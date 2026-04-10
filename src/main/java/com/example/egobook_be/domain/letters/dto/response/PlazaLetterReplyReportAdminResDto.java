@@ -13,5 +13,6 @@ public record PlazaLetterReplyReportAdminResDto(
         ReportReason reason,
         String description,
         ReportStatus status,
+        long reportCount,
         LocalDateTime createdAt
 ) {}
