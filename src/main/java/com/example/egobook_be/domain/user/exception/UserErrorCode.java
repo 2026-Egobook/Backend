@@ -1,4 +1,4 @@
-package com.example.egobook_be.domain.user.enums;
+package com.example.egobook_be.domain.user.exception;
 
 import com.example.egobook_be.global.exception.model.BaseErrorCode;
 import lombok.Getter;

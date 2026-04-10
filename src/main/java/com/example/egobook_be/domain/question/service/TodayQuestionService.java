@@ -16,7 +16,7 @@ import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.InkLog;
 import com.example.egobook_be.domain.user.entity.InkLogType;
 import com.example.egobook_be.domain.user.entity.User;
-import com.example.egobook_be.domain.user.enums.UserErrorCode;
+import com.example.egobook_be.domain.user.exception.UserErrorCode;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;

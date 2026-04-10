@@ -12,7 +12,7 @@ import com.example.egobook_be.domain.question.repository.TodayQuestionRepository
 import com.example.egobook_be.domain.question.service.TodayQuestionService;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.User;
-import com.example.egobook_be.domain.user.enums.UserErrorCode;
+import com.example.egobook_be.domain.user.exception.UserErrorCode;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
