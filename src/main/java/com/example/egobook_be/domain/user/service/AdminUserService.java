@@ -22,6 +22,7 @@ import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.user.exception.AdminUserErrorCode;
 import com.example.egobook_be.domain.user.mapper.AdminUserMapper;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
+import com.example.egobook_be.domain.restriction.repository.RestrictionRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.enums.ReportDomainType;
 import com.example.egobook_be.global.enums.ReportReason;
@@ -54,6 +55,7 @@ public class AdminUserService {
     private final PlazaLetterReplyReportRepository plazaLetterReplyReportRepository;
     private final AnswerReportRepository questionAnswerReportRepository;
     private final AdminUserMapper adminUserMapper;
+    private final RestrictionRepository restrictionRepository;
 
     // 페이지 최대 크기 제한
     private static final int MAX_PAGE_SIZE = 10;
@@ -245,8 +247,7 @@ public class AdminUserService {
         }
 
         // 2. 해당 사용자가 과거에 계정을 정지받은 횟수
-        // TODO: 제재 도메인 개발 후 적용
-        long pastSuspendedCount = 0;
+        long pastSuspendedCount = restrictionRepository.countAllByUserId(userId);
         return AdminUserReportHistoryResDto.Summary.builder()
                 .totalReportCount(totalReportCount)
                 .totalReportedCount(totalReportedCount)
@@ -320,8 +321,7 @@ public class AdminUserService {
             totalReportedCount = plazaLetterReplyReportRepository.countByReplierId(userId, reportReason, reportStatus);
         }
 
-        // TODO: 제재 도메인 개발 후 적용
-        long pastSuspendedCount = 0;
+        long pastSuspendedCount = restrictionRepository.countAllByUserId(userId);
 
         return AdminUserReportHistoryResDto.Summary.builder()
                 .totalReportCount(totalReportCount)
@@ -401,8 +401,7 @@ public class AdminUserService {
             totalReportedCount = questionAnswerReportRepository.countByAnswererId(userId, reportReason, reportStatus);
         }
 
-        // TODO: 제재 도메인 개발 후 적용
-        long pastSuspendedCount = 0;
+        long pastSuspendedCount = restrictionRepository.countAllByUserId(userId);
 
         return AdminUserReportHistoryResDto.Summary.builder()
                 .totalReportCount(totalReportCount)
