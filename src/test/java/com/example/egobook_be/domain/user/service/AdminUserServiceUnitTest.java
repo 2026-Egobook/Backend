@@ -575,9 +575,12 @@ public class AdminUserServiceUnitTest {
                 given(userRepository.existsById(USER_ID)).willReturn(true);
                 given(answerReportRepository.countByReporterId(eq(USER_ID), any(), any())).willReturn(2L);
                 given(answerReportRepository.countByAnswererId(eq(USER_ID), any(), any())).willReturn(1L);
-                given(answerReportRepository.findAnswerReportsByAnswererId(
+
+                // REPORTER 분기에서 실제로 호출되는 메서드로 수정
+                given(answerReportRepository.findAnswerReportsByReporterId(
                         eq(USER_ID), any(), any(), any(Pageable.class)))
                         .willReturn(new SliceImpl<>(Collections.emptyList()));
+
                 given(adminUserMapper.toAdminUserReportHistoryResDto(any(), any()))
                         .willReturn(mock(AdminUserReportHistoryResDto.class));
 
@@ -586,10 +589,13 @@ public class AdminUserServiceUnitTest {
                         USER_ID, ReportDomainType.QUESTION_ANSWER, ReportType.REPORTER, null, null, 1, 5);
 
                 // ============ Then =================
-                // NOTE: 원본 코드에서 REPORTER 분기에 findAnswerReportsByAnswererId 가 사용되고 있음 (버그 의심)
-                // 수정 전까지는 현재 동작 기준으로 검증
-                verify(answerReportRepository).findAnswerReportsByAnswererId(
+                verify(answerReportRepository).countByReporterId(eq(USER_ID), any(), any());
+                verify(answerReportRepository).findAnswerReportsByReporterId(
                         eq(USER_ID), any(), any(), any(Pageable.class));
+
+                // REPORTED 관련 메서드는 호출되지 않아야 함
+                verify(answerReportRepository, never()).findAnswerReportsByAnswererId(
+                        any(), any(), any(), any(Pageable.class));
             }
 
             @Test
