@@ -1,0 +1,242 @@
+package com.example.egobook_be.domain.restriction.service;
+
+import com.example.egobook_be.domain.restriction.dto.RestrictionItemResDto;
+import com.example.egobook_be.domain.restriction.entity.Restriction;
+import com.example.egobook_be.domain.restriction.enums.RestrictionDomainType;
+import com.example.egobook_be.domain.restriction.enums.RestrictionStatus;
+import com.example.egobook_be.domain.restriction.mapper.RestrictionMapper;
+import com.example.egobook_be.domain.restriction.repository.RestrictionRepository;
+import com.example.egobook_be.domain.user.repository.UserRepository;
+import com.example.egobook_be.global.enums.ReportReason;
+import com.example.egobook_be.global.exception.CustomException;
+import com.example.egobook_be.global.response.SliceResponse;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
+import org.springframework.data.domain.Sort;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.*;
+
+// [AI-GEN] AdminRestrictionService Unit Test
+@ExtendWith(MockitoExtension.class)
+public class AdminRestrictionServiceUnitTest {
+
+    @InjectMocks
+    private AdminRestrictionService adminRestrictionService;
+
+    @Mock private UserRepository userRepository;
+    @Mock private RestrictionRepository restrictionRepository;
+    @Mock private RestrictionMapper restrictionMapper;
+
+    // =========================================================================
+    // getRestrictionList
+    // =========================================================================
+    @Nested
+    class GetRestrictionListTest {
+
+        @Test
+        @DisplayName("[실패] page가 1 미만이면 INVALID_SLICE_VALUE 예외 발생")
+        void failWhenPageIsLessThanOne() {
+            // ============ When & Then =================
+            assertThatThrownBy(() -> adminRestrictionService.getRestrictionList(1L, 0, 10, null))
+                    .isInstanceOf(CustomException.class);
+
+            assertThatThrownBy(() -> adminRestrictionService.getRestrictionList(1L, -1, 10, null))
+                    .isInstanceOf(CustomException.class);
+        }
+
+        @Test
+        @DisplayName("[실패] size가 1 미만이면 INVALID_SIZE_VALUE 예외 발생")
+        void failWhenSizeIsLessThanOne() {
+            // ============ When & Then =================
+            assertThatThrownBy(() -> adminRestrictionService.getRestrictionList(1L, 1, 0, null))
+                    .isInstanceOf(CustomException.class);
+        }
+
+        @Test
+        @DisplayName("[실패] size가 100 초과이면 INVALID_SIZE_VALUE 예외 발생")
+        void failWhenSizeExceedsMax() {
+            // ============ When & Then =================
+            assertThatThrownBy(() -> adminRestrictionService.getRestrictionList(1L, 1, 101, null))
+                    .isInstanceOf(CustomException.class);
+        }
+
+        @Test
+        @DisplayName("[실패] 존재하지 않는 userId이면 USER_NOT_FOUND 예외 발생")
+        void failWhenUserNotFound() {
+            // ============ Given =================
+            given(userRepository.findById(999L)).willReturn(Optional.empty());
+
+            // ============ When & Then =================
+            assertThatThrownBy(() -> adminRestrictionService.getRestrictionList(999L, 1, 10, null))
+                    .isInstanceOf(CustomException.class);
+        }
+
+        @Test
+        @DisplayName("[성공] status=null이면 findAllByUserId 호출, findAllByUserIdAndStatus 미호출")
+        void successWhenStatusIsNull() {
+            // ============ Given =================
+            Long userId = 1L;
+            Restriction mockRestriction = mockRestriction(userId, RestrictionStatus.ACTIVE);
+            Slice<Restriction> mockSlice = new SliceImpl<>(List.of(mockRestriction));
+            RestrictionItemResDto mockDto = mockItemResDto();
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(mock(com.example.egobook_be.domain.user.entity.User.class)));
+            given(restrictionRepository.findAllByUserId(eq(userId), any(Pageable.class))).willReturn(mockSlice);
+            given(restrictionMapper.toItemResDto(any())).willReturn(mockDto);
+
+            // ============ When =================
+            SliceResponse<RestrictionItemResDto> result =
+                    adminRestrictionService.getRestrictionList(userId, 1, 10, null);
+
+            // ============ Then =================
+            assertThat(result).isNotNull();
+            verify(restrictionRepository, times(1)).findAllByUserId(eq(userId), any(Pageable.class));
+            verify(restrictionRepository, never()).findAllByUserIdAndStatus(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("[성공] status=ACTIVE이면 findAllByUserIdAndStatus(userId, ACTIVE) 호출")
+        void successWhenStatusIsActive() {
+            // ============ Given =================
+            Long userId = 1L;
+            Restriction mockRestriction = mockRestriction(userId, RestrictionStatus.ACTIVE);
+            Slice<Restriction> mockSlice = new SliceImpl<>(List.of(mockRestriction));
+            RestrictionItemResDto mockDto = mockItemResDto();
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(mock(com.example.egobook_be.domain.user.entity.User.class)));
+            given(restrictionRepository.findAllByUserIdAndStatus(eq(userId), eq(RestrictionStatus.ACTIVE), any(Pageable.class)))
+                    .willReturn(mockSlice);
+            given(restrictionMapper.toItemResDto(any())).willReturn(mockDto);
+
+            // ============ When =================
+            SliceResponse<RestrictionItemResDto> result =
+                    adminRestrictionService.getRestrictionList(userId, 1, 10, RestrictionStatus.ACTIVE);
+
+            // ============ Then =================
+            assertThat(result).isNotNull();
+            verify(restrictionRepository, times(1))
+                    .findAllByUserIdAndStatus(eq(userId), eq(RestrictionStatus.ACTIVE), any(Pageable.class));
+            verify(restrictionRepository, never()).findAllByUserId(any(), any());
+        }
+
+        @Test
+        @DisplayName("[성공] status=CANCELED이면 findAllByUserIdAndStatus(userId, CANCELED) 호출")
+        void successWhenStatusIsCanceled() {
+            // ============ Given =================
+            Long userId = 1L;
+            Restriction mockRestriction = mockRestriction(userId, RestrictionStatus.CANCELED);
+            Slice<Restriction> mockSlice = new SliceImpl<>(List.of(mockRestriction));
+            RestrictionItemResDto mockDto = mockItemResDto();
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(mock(com.example.egobook_be.domain.user.entity.User.class)));
+            given(restrictionRepository.findAllByUserIdAndStatus(eq(userId), eq(RestrictionStatus.CANCELED), any(Pageable.class)))
+                    .willReturn(mockSlice);
+            given(restrictionMapper.toItemResDto(any())).willReturn(mockDto);
+
+            // ============ When =================
+            SliceResponse<RestrictionItemResDto> result =
+                    adminRestrictionService.getRestrictionList(userId, 1, 10, RestrictionStatus.CANCELED);
+
+            // ============ Then =================
+            assertThat(result).isNotNull();
+            verify(restrictionRepository, times(1))
+                    .findAllByUserIdAndStatus(eq(userId), eq(RestrictionStatus.CANCELED), any(Pageable.class));
+        }
+
+        @Test
+        @DisplayName("[성공] page=3, size=5일 때 Pageable의 pageNumber=2, pageSize=5, Sort=createdAt DESC")
+        void successVerifyPageableArguments() {
+            // ============ Given =================
+            Long userId = 1L;
+            Slice<Restriction> mockSlice = new SliceImpl<>(List.of());
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(mock(com.example.egobook_be.domain.user.entity.User.class)));
+            given(restrictionRepository.findAllByUserId(eq(userId), any(Pageable.class))).willReturn(mockSlice);
+
+            // ============ When =================
+            adminRestrictionService.getRestrictionList(userId, 3, 5, null);
+
+            // ============ Then =================
+            ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+            verify(restrictionRepository).findAllByUserId(eq(userId), pageableCaptor.capture());
+
+            Pageable captured = pageableCaptor.getValue();
+            assertThat(captured.getPageNumber()).isEqualTo(2);  // 3 - 1
+            assertThat(captured.getPageSize()).isEqualTo(5);
+            assertThat(captured.getSort().getOrderFor("createdAt").getDirection())
+                    .isEqualTo(Sort.Direction.DESC);
+        }
+
+        @Test
+        @DisplayName("[성공] SliceResponse의 content, page, size, hasNext가 올바르게 반환됨")
+        void successVerifySliceResponse() {
+            // ============ Given =================
+            Long userId = 1L;
+            RestrictionItemResDto mockDto = mockItemResDto();
+            Restriction mockRestriction = mockRestriction(userId, RestrictionStatus.ACTIVE);
+            Slice<Restriction> mockSlice = new SliceImpl<>(List.of(mockRestriction), org.springframework.data.domain.PageRequest.of(0, 10), false);
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(mock(com.example.egobook_be.domain.user.entity.User.class)));
+            given(restrictionRepository.findAllByUserId(eq(userId), any(Pageable.class))).willReturn(mockSlice);
+            given(restrictionMapper.toItemResDto(any())).willReturn(mockDto);
+
+            // ============ When =================
+            SliceResponse<RestrictionItemResDto> result =
+                    adminRestrictionService.getRestrictionList(userId, 1, 10, null);
+
+            // ============ Then =================
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.content().get(0)).isEqualTo(mockDto);
+            assertThat(result.page()).isEqualTo(1);
+            assertThat(result.size()).isEqualTo(10);
+            assertThat(result.hasNext()).isFalse();
+        }
+    }
+
+    // =========================================================================
+    // Helper methods
+    // =========================================================================
+
+    private Restriction mockRestriction(Long userId, RestrictionStatus status) {
+        Restriction restriction = mock(Restriction.class);
+        given(restriction.getRestrictionId()).willReturn(1L);
+        given(restriction.getUserId()).willReturn(userId);
+        given(restriction.getDomainType()).willReturn(RestrictionDomainType.LETTER);
+        given(restriction.getReason()).willReturn(ReportReason.ABUSE);
+        given(restriction.getDescription()).willReturn("테스트 제재 사유");
+        given(restriction.getStatus()).willReturn(status);
+        given(restriction.getCreatedAt()).willReturn(LocalDateTime.now());
+        given(restriction.getRestrictionUntil()).willReturn(LocalDateTime.now().plusDays(7));
+        return restriction;
+    }
+
+    private RestrictionItemResDto mockItemResDto() {
+        return RestrictionItemResDto.builder()
+                .restrictionId(1L)
+                .domainType(RestrictionDomainType.LETTER)
+                .reason(ReportReason.ABUSE)
+                .description("테스트 제재 사유")
+                .restrictionStatus(RestrictionStatus.ACTIVE)
+                .createdAt(LocalDateTime.now())
+                .restrictionUntil(LocalDateTime.now().plusDays(7))
+                .build();
+    }
+}
