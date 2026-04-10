@@ -16,7 +16,7 @@ public class RestrictionMapper {
                 .build();
     }
 
-    // [AI-GEN] Restriction -> RestrictionItemResDto 변환
+    // Restriction -> RestrictionItemResDto 변환
     public RestrictionItemResDto toItemResDto(Restriction restriction) {
         return RestrictionItemResDto.builder()
                 .restrictionId(restriction.getRestrictionId())

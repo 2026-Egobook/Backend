@@ -64,6 +64,7 @@ com.example.project
 | `DTO`, `Entity`, `Mapper` 생성 또는 수정 | `references/dto-entity-mapper.md` |
 | `ErrorCode`, 예외 처리, `GlobalResponse`, `SliceResponse` 관련 | `references/exception-response.md` |
 | 테스트 코드 생성 또는 수정 | `references/test.md` |
+| AI 주석 삽입 및 작업 완료 후 변경 요약 | `references/ai-authorship-tracking.md` |
 
 > 여러 계층에 걸친 작업(예: "User CRUD 전체 만들어줘")은 해당하는 파일을 모두 읽고 작성하세요.
 
@@ -84,3 +85,5 @@ com.example.project
 - [ ] Entity의 Enum 필드에 `@Enumerated(EnumType.STRING)`이 있는가
 - [ ] ErrorCode가 `BaseErrorCode`를 implements 하는가
 - [ ] global 하위 파일들을 임의로 수정하지 않았는가
+- [ ] AI가 작성/수정한 논리 블록에 `[AI-GEN]` 또는 `[AI-MOD]` 주석이 있는가
+- [ ] 모든 작업 완료 후 변경 요약 테이블을 출력했는가

@@ -2,6 +2,7 @@ package com.example.egobook_be.domain.letters.service;
 
 import com.example.egobook_be.domain.letters.dto.response.*;
 import com.example.egobook_be.domain.letters.entity.PlazaLetter;
+import com.example.egobook_be.domain.restriction.service.RestrictionGuardService;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterMode;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReply;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
@@ -34,6 +35,7 @@ public class PlazaLetterQueryService {
     private final PlazaLetterReplyReportRepository replyReportRepository;
     private final PlazaLetterMapper plazaLetterMapper;
     private final UserRepository userRepository;
+    private final RestrictionGuardService restrictionGuardService;
 
 
     @Transactional(readOnly = true)
@@ -167,6 +169,7 @@ public class PlazaLetterQueryService {
 
     @Transactional(readOnly = true)
     public InboxNextResponse getInboxLetterDetail(Long userId, Long letterId) {
+        restrictionGuardService.checkLetterRestriction(userId);
 
         PlazaLetter letter = plazaLetterRepository
                 .findInboxLetterForReply(letterId, userId)

@@ -30,7 +30,7 @@ public class AdminRestrictionController implements AdminRestrictionControllerDoc
                 .body(GlobalResponse.success(201, "사용자 제재 적용 성공", response));
     }
 
-    // [AI-GEN] 사용자 제재 기록 목록 조회
+    // 사용자 제재 기록 목록 조회
     @Override
     public ResponseEntity<GlobalResponse<SliceResponse<RestrictionItemResDto>>> getRestrictionList(
             Long userId, int page, int size, RestrictionStatus status) {

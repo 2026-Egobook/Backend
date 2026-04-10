@@ -8,7 +8,7 @@ import lombok.Builder;
 
 import java.time.LocalDateTime;
 
-// [AI-GEN] 사용자 제재 기록 목록 조회 응답 DTO
+// 사용자 제재 기록 목록 조회 응답 DTO
 @Builder
 public record RestrictionItemResDto(
 

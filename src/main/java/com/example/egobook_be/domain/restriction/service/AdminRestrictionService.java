@@ -71,24 +71,23 @@ public class AdminRestrictionService {
      * @param status 제재 상태 필터 (null 허용 시 전체 조회)
      * @return SliceResponse<RestrictionItemResDto>
      */
-    // [AI-GEN] 사용자 제재 기록 목록 조회 메서드
     @Transactional(readOnly = true)
     public SliceResponse<RestrictionItemResDto> getRestrictionList(
             Long userId, int page, int size, RestrictionStatus status) {
         log.info("[AdminRestrictionService] getRestrictionList() - START | userId: {}, page: {}, size: {}, status: {}",
                 userId, page, size, status);
 
-        // [AI-GEN] page/size 입력값 검증
+        // 1. page/size 입력값 검증
         if (page < 1) throw new CustomException(GlobalErrorCode.INVALID_SLICE_VALUE);
         if (size < 1 || size > 100) throw new CustomException(GlobalErrorCode.INVALID_SIZE_VALUE);
 
-        // [AI-GEN] 대상 사용자 존재 확인
+        // 2. 대상 사용자 존재 확인
         userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(RestrictionErrorCode.USER_NOT_FOUND));
 
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        // [AI-GEN] status nullable 분기 조회
+        // 3. status nullable 분기 조회
         Slice<Restriction> slice = (status == null)
                 ? restrictionRepository.findAllByUserId(userId, pageable)
                 : restrictionRepository.findAllByUserIdAndStatus(userId, status, pageable);

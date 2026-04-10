@@ -76,7 +76,7 @@ public interface AdminRestrictionControllerDocs {
             @RequestBody @Valid RestrictionCreateReqDto reqDto
     );
 
-    // [AI-GEN] 사용자 제재 기록 목록 조회 API Swagger 문서
+    // 사용자 제재 기록 목록 조회 API Swagger 문서
     @Operation(summary = "사용자 제재 기록 목록 조회", description = """
             특정 사용자의 제재 기록 목록을 조회하는 API입니다.
 

@@ -16,6 +16,8 @@ import com.example.egobook_be.domain.user.exception.UserErrorCode;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
+import com.example.egobook_be.domain.restriction.exception.RestrictionErrorCode;
+import com.example.egobook_be.domain.restriction.service.RestrictionGuardService;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.util.InkLogUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +36,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,6 +55,7 @@ class TodayQuestionCreateAnswerServiceTest {
     @Mock private AbilityRepository abilityRepository;
     @Mock private InkLogUtil inkLogUtil;
     @Mock private com.example.egobook_be.domain.friend.repository.FriendRepository friendRepository;
+    @Mock private RestrictionGuardService restrictionGuardService;
 
     private User user;
     private TodayQuestion todayQuestion;
@@ -205,5 +210,29 @@ class TodayQuestionCreateAnswerServiceTest {
         todayQuestionService.createAnswer(1L, reqDto);
 
         verify(inkLogUtil, atLeast(2)).addInkLogToList(any(), eq(user), anyInt(), any());
+    }
+
+    // [AI-GEN] RestrictionGuardService 적용 이후 추가된 제재 관련 테스트 케이스
+
+    @Test
+    @DisplayName("createAnswer_QUESTION_ANSWER 제재 중_예외")
+    void createAnswer_questionAnswerRestricted_fail() {
+        // given
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(missionRepository.findByUser(user)).willReturn(Optional.of(mission));
+        given(abilityRepository.findByUser(user)).willReturn(Optional.of(ability));
+        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+                .willReturn(Optional.of(todayQuestion));
+        given(questionAnswerRepository.existsByUserAndQuestion(user, todayQuestion)).willReturn(false);
+        willThrow(new CustomException(RestrictionErrorCode.QUESTION_ANSWER_RESTRICTED))
+                .given(restrictionGuardService).checkQuestionAnswerRestriction(1L);
+
+        // when & then
+        assertThatThrownBy(() -> todayQuestionService.createAnswer(1L, reqDto))
+                .isInstanceOf(CustomException.class)
+                .extracting(e -> ((CustomException) e).getErrorCode())
+                .isEqualTo(RestrictionErrorCode.QUESTION_ANSWER_RESTRICTED);
+
+        verify(questionAnswerRepository, never()).save(any());
     }
 }

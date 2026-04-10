@@ -16,6 +16,7 @@ import com.example.egobook_be.domain.user.dto.SearchUserResDto;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.enums.UserStatus;
+import com.example.egobook_be.domain.restriction.repository.RestrictionRepository;
 import com.example.egobook_be.domain.user.mapper.AdminUserMapper;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
@@ -64,6 +65,7 @@ public class AdminUserServiceUnitTest {
     @Mock private PlazaLetterReplyReportRepository plazaLetterReplyReportRepository;
     @Mock private AnswerReportRepository answerReportRepository;
     @Mock private AdminUserMapper adminUserMapper;
+    @Mock private RestrictionRepository restrictionRepository;
 
     // =========================================================================
     // searchUserList
