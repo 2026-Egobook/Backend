@@ -1,7 +1,7 @@
 package com.example.egobook_be.domain.letters.entity;
 
-import com.example.egobook_be.domain.letters.enums.LetterReportReason;
 import com.example.egobook_be.global.entity.BaseReportEntity;
+import com.example.egobook_be.global.enums.ReportReason;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -31,5 +31,5 @@ public class PlazaLetterReport extends BaseReportEntity {
     private Long senderId;
 
     @Enumerated(EnumType.STRING)
-    private LetterReportReason reason;
+    private ReportReason reason;
 }

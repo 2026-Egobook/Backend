@@ -11,7 +11,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface PlazaLetterReportRepository extends JpaRepository<PlazaLetterReport, Long> {
+public interface PlazaLetterReportRepository extends JpaRepository<PlazaLetterReport, Long>, PlazaLetterReportRepositoryCustom {
 
     boolean existsByLetter_LetterIdAndReporterId(Long letterId, Long reporterId);
 

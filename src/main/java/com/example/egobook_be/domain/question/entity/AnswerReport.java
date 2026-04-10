@@ -1,8 +1,8 @@
 package com.example.egobook_be.domain.question.entity;
 
-import com.example.egobook_be.domain.question.enums.QuestionReportReason;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.global.entity.BaseReportEntity;
+import com.example.egobook_be.global.enums.ReportReason;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -36,6 +36,6 @@ public class AnswerReport extends BaseReportEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private QuestionReportReason reason;
+    private ReportReason reason;
 
 }

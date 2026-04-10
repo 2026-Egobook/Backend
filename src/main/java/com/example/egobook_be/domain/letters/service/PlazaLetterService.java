@@ -401,13 +401,13 @@ public class PlazaLetterService {
     }
 
     @Transactional
-    public ReplyResponse replyToLetter(Long userId, Long letterId, String text) {
+    public ReplyResponse replyToLetter(Long userId, Long letterId, String content) {
         // 1. User, Ability 가져오기
         User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
         Ability userAbility = abilityRepository.findByUser(user).orElseThrow(() -> new CustomException(UserErrorCode.ABILITY_NOT_FOUND));
 
         // 2. 답장할 텍스트 검증
-        validateReplyText(text);
+        validateReplyText(content);
 
         PlazaLetter letter = plazaLetterRepository.findById(letterId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
@@ -424,7 +424,7 @@ public class PlazaLetterService {
             throw new CustomException(LettersErrorCode.ALREADY_REPLIED);
         }
 
-        enforceWordAiOrThrow(text, userId, BlockType.REPLY);
+        enforceWordAiOrThrow(content, userId, BlockType.REPLY);
 
         // 6. plazaLetterReplyRepository로 PlazaLetterReply를 저장하기 전, 해당 사용자가 답장한 편지가 오늘 처음 답장한 편지인지 확인한다.
         ZoneId zoneId = ZoneId.of("Asia/Seoul");
@@ -437,7 +437,7 @@ public class PlazaLetterService {
                 .threadId(letter.getThreadId())
                 .letter(letter)
                 .replierId(userId)
-                .text(text)
+                .content(content)
                 .isAiGenerated(false)
                 .createdAt(now)
                 .build());
@@ -636,7 +636,7 @@ public class PlazaLetterService {
                 .threadId(reply.getThreadId())
                 .mode(letter.getMode())
                 .backgroundColor(letter.getBackgroundColor().name())
-                .replyText(reply.getText())
+                .replyText(reply.getContent())
                 .createdAt(reply.getCreatedAt())
                 .build();
     }

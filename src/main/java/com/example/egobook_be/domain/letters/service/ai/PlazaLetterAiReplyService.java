@@ -87,7 +87,7 @@ public class PlazaLetterAiReplyService {
                 .threadId(letter.getThreadId())
                 .letter(letter)
                 .replierId(letter.getSenderId())
-                .text(normalized)
+                .content(normalized)
                 .isAiGenerated(true)
                 .createdAt(now)
                 .build();

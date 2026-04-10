@@ -65,7 +65,7 @@ public class LetterReportAdminService {
             return new PlazaLetterReplyReportAdminResDto(
                 report.getReportId(),
                 report.getReply().getReplyId(),
-                report.getReply().getText(),
+                report.getReply().getContent(),
                 report.getReporterId(),
                 report.getReason(),
                 report.getDescription(),
@@ -105,7 +105,7 @@ public class LetterReportAdminService {
         return new PlazaLetterReplyReportAdminResDto(
             report.getReportId(),
             report.getReply().getReplyId(),
-            report.getReply().getText(),
+            report.getReply().getContent(),
             report.getReporterId(),
             report.getReason(),
             report.getDescription(),

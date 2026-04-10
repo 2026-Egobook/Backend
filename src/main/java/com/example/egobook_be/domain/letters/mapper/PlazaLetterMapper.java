@@ -65,7 +65,7 @@ public class PlazaLetterMapper {
                 .replyId(reply.getReplyId())
                 .threadId(letter.getThreadId())
 
-                .replyText(reply.getText())
+                .replyText(reply.getContent())
                 .repliedAt(reply.getCreatedAt())
 
                 .aiGenerated(reply.isAiGenerated())
@@ -88,7 +88,7 @@ public class PlazaLetterMapper {
         if (reply != null) {
             replyDto = PlazaLetterDetailResDto.ReplyDto.builder()
                     .replyId(reply.getReplyId())
-                    .text(reply.getText())
+                    .text(reply.getContent())
                     .aiGenerated(reply.isAiGenerated())
                     .reported(reported)
                     .createdAt(reply.getCreatedAt())

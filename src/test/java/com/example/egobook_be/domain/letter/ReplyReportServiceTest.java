@@ -5,12 +5,12 @@ import com.example.egobook_be.domain.letters.entity.PlazaLetterMode;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReply;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReplyReport;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
-import com.example.egobook_be.domain.letters.entity.ReplyReportReason;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.letters.service.ReplyReportService;
+import com.example.egobook_be.global.enums.ReportReason;
 import com.example.egobook_be.global.exception.CustomException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,7 +46,7 @@ class ReplyReportServiceTest {
     @Test
     @DisplayName("reportReply_OTHER 사유인데 설명이 없으면 예외가 발생한다")
     void reportReply_otherReasonWithoutDescription_fail() {
-        assertThatThrownBy(() -> replyReportService.reportReply(1L, 10L, ReplyReportReason.OTHER, " "))
+        assertThatThrownBy(() -> replyReportService.reportReply(1L, 10L, ReportReason.OTHER, " "))
                 .isInstanceOf(CustomException.class)
                 .extracting(e -> ((CustomException) e).getErrorCode())
                 .isEqualTo(LettersErrorCode.INVALID_REPORT_REASON);
@@ -57,7 +57,7 @@ class ReplyReportServiceTest {
     void reportReply_alreadyReported_fail() {
         given(replyReportRepository.existsByReply_ReplyIdAndReporterId(10L, 1L)).willReturn(true);
 
-        assertThatThrownBy(() -> replyReportService.reportReply(1L, 10L, ReplyReportReason.ABUSE, "신고"))
+        assertThatThrownBy(() -> replyReportService.reportReply(1L, 10L, ReportReason.ABUSE, "신고"))
                 .isInstanceOf(CustomException.class)
                 .extracting(e -> ((CustomException) e).getErrorCode())
                 .isEqualTo(LettersErrorCode.ALREADY_REPORTED);
@@ -74,7 +74,7 @@ class ReplyReportServiceTest {
         given(replyReportRepository.existsByReply_ReplyIdAndReporterId(10L, 1L)).willReturn(false);
         given(plazaLetterReplyRepository.findByIdWithLetter(10L)).willReturn(Optional.of(reply));
 
-        assertThatThrownBy(() -> replyReportService.reportReply(1L, 10L, ReplyReportReason.ABUSE, "신고"))
+        assertThatThrownBy(() -> replyReportService.reportReply(1L, 10L, ReportReason.ABUSE, "신고"))
                 .isInstanceOf(CustomException.class)
                 .extracting(e -> ((CustomException) e).getErrorCode())
                 .isEqualTo(LettersErrorCode.FORBIDDEN);
@@ -90,7 +90,7 @@ class ReplyReportServiceTest {
         given(plazaLetterReplyRepository.findByIdWithLetter(10L)).willReturn(Optional.of(reply));
         given(replyReportRepository.countByReply_ReplyId(10L)).willReturn(3L);
 
-        replyReportService.reportReply(1L, 10L, ReplyReportReason.ABUSE, "신고");
+        replyReportService.reportReply(1L, 10L, ReportReason.ABUSE, "신고");
 
         verify(replyReportRepository).save(any(PlazaLetterReplyReport.class));
         verify(replyReportRepository).moveReplyToReportDbAndDelete(10L, PlazaLetterReply.ReplyStatus.DELETED);
@@ -107,7 +107,7 @@ class ReplyReportServiceTest {
         given(plazaLetterReplyRepository.findByIdWithLetter(10L)).willReturn(Optional.of(reply));
         given(replyReportRepository.countByReply_ReplyId(10L)).willReturn(1L);
 
-        replyReportService.reportReply(1L, 10L, ReplyReportReason.SPAM, "도배 답장");
+        replyReportService.reportReply(1L, 10L, ReportReason.SPAM, "도배 답장");
 
         verify(replyReportRepository).save(any(PlazaLetterReplyReport.class));
         verify(replyReportRepository, never()).moveReplyToReportDbAndDelete(any(), any());
@@ -136,7 +136,7 @@ class ReplyReportServiceTest {
                 .threadId(letter.getThreadId())
                 .letter(letter)
                 .replierId(replierId)
-                .text("답장")
+                .content("답장")
                 .isAiGenerated(false)
                 .createdAt(LocalDateTime.now())
                 .status(PlazaLetterReply.ReplyStatus.SENT)

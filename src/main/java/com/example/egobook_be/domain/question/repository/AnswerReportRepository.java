@@ -13,7 +13,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface AnswerReportRepository
-        extends JpaRepository<AnswerReport, Long> {
+        extends JpaRepository<AnswerReport, Long>, AnswerReportRepositoryCustom{
 
     boolean existsByUserAndAnswer(User user, QuestionAnswer answer);
 

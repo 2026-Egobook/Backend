@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface PlazaLetterReplyReportRepository extends JpaRepository<PlazaLetterReplyReport, Long> {
+public interface PlazaLetterReplyReportRepository extends JpaRepository<PlazaLetterReplyReport, Long>, PlazaLetterReplyReportRepositoryCustom {
 
     boolean existsByReply_ReplyIdAndReporterId(Long replyId, Long reporterId);
 
