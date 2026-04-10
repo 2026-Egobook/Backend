@@ -52,3 +52,6 @@ src/main/resources/firebase-service-account.json
 CLAUDE.md
 .claude/settings.local.json.
 .claude
+
+### CODEX ###
+AGENTS.md
