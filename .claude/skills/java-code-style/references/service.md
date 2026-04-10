@@ -3,7 +3,7 @@
 ## XXXService.java
 
 - 클래스 레벨: `@Service`, `@RequiredArgsConstructor`, `@Slf4j`
-- **모든 함수**에 아래 3가지 규칙 필수 적용:
+- **모든 함수**에 아래 4가지 규칙 필수 적용:
 
 ### 규칙 1: JavaDoc 주석
 함수 목적, 동작 상세 설명, `@param`, `@return` 기술
@@ -17,6 +17,8 @@ log.info("[XXXService] functionName() - START | param: {}", param);
 ```java
 log.info("[XXXService] functionName() - END | result: {}", result);
 ```
+
+### 규칙 4: Service 클래스는 Interface 적용 X
 
 ---
 
