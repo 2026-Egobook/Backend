@@ -43,7 +43,7 @@ public class PlazaLetterReportRepositoryCustomImpl implements PlazaLetterReportR
     @Override
     public long countBySenderId(Long senderId, ReportReason reportReason, ReportStatus reportStatus) {
         BooleanBuilder builder = new BooleanBuilder();
-        builder.and(qPlazaLetterReport.letter.senderId.eq(senderId));
+        builder.and(qPlazaLetterReport.senderId.eq(senderId));
         if (reportReason != null) builder.and(qPlazaLetterReport.reason.eq(reportReason));
         if (reportStatus != null) builder.and(qPlazaLetterReport.status.eq(reportStatus));
 
@@ -62,7 +62,7 @@ public class PlazaLetterReportRepositoryCustomImpl implements PlazaLetterReportR
     public long countByUserId(Long userId, ReportReason reportReason, ReportStatus reportStatus) {
         BooleanBuilder builder = new BooleanBuilder();
         builder.and(qPlazaLetterReport.reporterId.eq(userId)
-                .or(qPlazaLetterReport.letter.senderId.eq(userId)));
+                .or(qPlazaLetterReport.senderId.eq(userId)));
         if (reportReason != null) builder.and(qPlazaLetterReport.reason.eq(reportReason));
         if (reportStatus != null) builder.and(qPlazaLetterReport.status.eq(reportStatus));
 
@@ -147,7 +147,7 @@ public class PlazaLetterReportRepositoryCustomImpl implements PlazaLetterReportR
 
         // reporterId가 userId이거나 letter의 senderId가 userId인 경우 모두 조회
         builder.and(qPlazaLetterReport.reporterId.eq(userId)
-                .or(qPlazaLetterReport.letter.senderId.eq(userId)));
+                .or(qPlazaLetterReport.senderId.eq(userId)));
         if (reportReason != null) builder.and(qPlazaLetterReport.reason.eq(reportReason));
         if (reportStatus != null) builder.and(qPlazaLetterReport.status.eq(reportStatus));
 

@@ -21,21 +21,21 @@ import java.util.List;
 public class AnswerReportRepositoryCustomImpl implements AnswerReportRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
-    private final QAnswerReport qReport = QAnswerReport.answerReport;
+    private final QAnswerReport qAnswerReport = QAnswerReport.answerReport;
 
     // AnswerReport는 reporterId 필드 없이 user 연관관계로 신고자를 참조
     // → qReport.user.id 로 신고자 접근
     @Override
     public long countByReporterId(Long reporterId, ReportReason reportReason, ReportStatus reportStatus) {
         BooleanBuilder builder = new BooleanBuilder();
-        builder.and(qReport.user.id.eq(reporterId)); // reporterId 필드 X → user 연관관계로 접근
-        if (reportReason != null) builder.and(qReport.reason.eq(reportReason));
-        if (reportStatus != null) builder.and(qReport.status.eq(reportStatus));
+        builder.and(qAnswerReport.user.id.eq(reporterId)); // reporterId 필드 X → user 연관관계로 접근
+        if (reportReason != null) builder.and(qAnswerReport.reason.eq(reportReason));
+        if (reportStatus != null) builder.and(qAnswerReport.status.eq(reportStatus));
 
         Long count = queryFactory
-                .select(qReport.count())
-                .from(qReport)
-                .join(qReport.user)  // user join 필요
+                .select(qAnswerReport.count())
+                .from(qAnswerReport)
+                .join(qAnswerReport.user)  // user join 필요
                 .where(builder)
                 .fetchOne();
 
@@ -47,15 +47,15 @@ public class AnswerReportRepositoryCustomImpl implements AnswerReportRepositoryC
     @Override
     public long countByAnswererId(Long answererId, ReportReason reportReason, ReportStatus reportStatus) {
         BooleanBuilder builder = new BooleanBuilder();
-        builder.and(qReport.answer.user.id.eq(answererId)); // answer → user 로 피신고자 접근
-        if (reportReason != null) builder.and(qReport.reason.eq(reportReason));
-        if (reportStatus != null) builder.and(qReport.status.eq(reportStatus));
+        builder.and(qAnswerReport.answer.user.id.eq(answererId)); // answer → user 로 피신고자 접근
+        if (reportReason != null) builder.and(qAnswerReport.reason.eq(reportReason));
+        if (reportStatus != null) builder.and(qAnswerReport.status.eq(reportStatus));
 
         Long count = queryFactory
-                .select(qReport.count())
-                .from(qReport)
-                .join(qReport.answer)
-                .join(qReport.answer.user) // 피신고자 접근을 위한 answer.user join
+                .select(qAnswerReport.count())
+                .from(qAnswerReport)
+                .join(qAnswerReport.answer)
+                .join(qAnswerReport.answer.user) // 피신고자 접근을 위한 answer.user join
                 .where(builder)
                 .fetchOne();
 
@@ -68,19 +68,19 @@ public class AnswerReportRepositoryCustomImpl implements AnswerReportRepositoryC
     public long countByUserId(Long userId, ReportReason reportReason, ReportStatus reportStatus) {
         BooleanBuilder builder = new BooleanBuilder();
         builder.and(
-                qReport.user.id.eq(userId)
-                        .or(qReport.answer.user.id.eq(userId))
+                qAnswerReport.user.id.eq(userId)
+                        .or(qAnswerReport.answer.user.id.eq(userId))
         );
-        if (reportReason != null) builder.and(qReport.reason.eq(reportReason));
-        if (reportStatus != null) builder.and(qReport.status.eq(reportStatus));
+        if (reportReason != null) builder.and(qAnswerReport.reason.eq(reportReason));
+        if (reportStatus != null) builder.and(qAnswerReport.status.eq(reportStatus));
 
         Long count = queryFactory
-                .select(qReport.count())
-                .from(qReport)
-                .join(qReport.user) // count 쿼리는 n+1 문제가 발생하지 않는다
+                .select(qAnswerReport.count())
+                .from(qAnswerReport)
+                .join(qAnswerReport.user) // count 쿼리는 n+1 문제가 발생하지 않는다
 
-                .join(qReport.answer)
-                .join(qReport.answer.user)
+                .join(qAnswerReport.answer)
+                .join(qAnswerReport.answer.user)
                 .where(builder)
                 .fetchOne();
 
@@ -93,14 +93,14 @@ public class AnswerReportRepositoryCustomImpl implements AnswerReportRepositoryC
             Long reporterId, ReportReason reportReason, ReportStatus reportStatus, Pageable pageable
     ) {
         BooleanBuilder builder = new BooleanBuilder();
-        builder.and(qReport.user.id.eq(reporterId));
-        if (reportReason != null) builder.and(qReport.reason.eq(reportReason));
-        if (reportStatus != null) builder.and(qReport.status.eq(reportStatus));
+        builder.and(qAnswerReport.user.id.eq(reporterId));
+        if (reportReason != null) builder.and(qAnswerReport.reason.eq(reportReason));
+        if (reportStatus != null) builder.and(qAnswerReport.status.eq(reportStatus));
 
         List<AnswerReport> content = queryFactory
-                .selectFrom(qReport)
-                .join(qReport.user).fetchJoin()
-                .join(qReport.answer).fetchJoin()
+                .selectFrom(qAnswerReport)
+                .join(qAnswerReport.user).fetchJoin()
+                .join(qAnswerReport.answer).fetchJoin()
                 .where(builder)
                 .orderBy(getOrderSpecifiers(pageable.getSort()))
                 .offset(pageable.getOffset())
@@ -118,15 +118,15 @@ public class AnswerReportRepositoryCustomImpl implements AnswerReportRepositoryC
             Long answererId, ReportReason reportReason, ReportStatus reportStatus, Pageable pageable
     ) {
         BooleanBuilder builder = new BooleanBuilder();
-        builder.and(qReport.answer.user.id.eq(answererId));
-        if (reportReason != null) builder.and(qReport.reason.eq(reportReason));
-        if (reportStatus != null) builder.and(qReport.status.eq(reportStatus));
+        builder.and(qAnswerReport.answer.user.id.eq(answererId));
+        if (reportReason != null) builder.and(qAnswerReport.reason.eq(reportReason));
+        if (reportStatus != null) builder.and(qAnswerReport.status.eq(reportStatus));
 
         List<AnswerReport> content = queryFactory
-                .selectFrom(qReport)
-                .join(qReport.user).fetchJoin()
-                .join(qReport.answer).fetchJoin()
-                .join(qReport.answer.user).fetchJoin() // 피신고자 접근을 위해 answer.user도 fetchJoin
+                .selectFrom(qAnswerReport)
+                .join(qAnswerReport.user).fetchJoin()
+                .join(qAnswerReport.answer).fetchJoin()
+                .join(qAnswerReport.answer.user).fetchJoin() // 피신고자 접근을 위해 answer.user도 fetchJoin
                 .where(builder)
                 .orderBy(getOrderSpecifiers(pageable.getSort()))
                 .offset(pageable.getOffset())
@@ -145,17 +145,17 @@ public class AnswerReportRepositoryCustomImpl implements AnswerReportRepositoryC
     ) {
         BooleanBuilder builder = new BooleanBuilder();
         builder.and(
-                qReport.user.id.eq(userId)
-                        .or(qReport.answer.user.id.eq(userId))
+                qAnswerReport.user.id.eq(userId)
+                        .or(qAnswerReport.answer.user.id.eq(userId))
         );
-        if (reportReason != null) builder.and(qReport.reason.eq(reportReason));
-        if (reportStatus != null) builder.and(qReport.status.eq(reportStatus));
+        if (reportReason != null) builder.and(qAnswerReport.reason.eq(reportReason));
+        if (reportStatus != null) builder.and(qAnswerReport.status.eq(reportStatus));
 
         List<AnswerReport> content = queryFactory
-                .selectFrom(qReport)
-                .join(qReport.user).fetchJoin()
-                .join(qReport.answer).fetchJoin()
-                .join(qReport.answer.user).fetchJoin()
+                .selectFrom(qAnswerReport)
+                .join(qAnswerReport.user).fetchJoin()
+                .join(qAnswerReport.answer).fetchJoin()
+                .join(qAnswerReport.answer.user).fetchJoin()
                 .where(builder)
                 .orderBy(getOrderSpecifiers(pageable.getSort()))
                 .offset(pageable.getOffset())

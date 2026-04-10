@@ -21,20 +21,20 @@ import java.util.List;
 public class PlazaLetterReplyReportRepositoryCustomImpl implements PlazaLetterReplyReportRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
-    private final QPlazaLetterReplyReport qReport = QPlazaLetterReplyReport.plazaLetterReplyReport;
+    private final QPlazaLetterReplyReport qPlazaLetterReplyReport = QPlazaLetterReplyReport.plazaLetterReplyReport;
 
     // 신고자 PK로 신고한 누적 횟수 카운트
     // Letter와 동일하게 reporterId 필드를 직접 보유
     @Override
     public long countByReporterId(Long reporterId, ReportReason reportReason, ReportStatus reportStatus) {
         BooleanBuilder builder = new BooleanBuilder();
-        builder.and(qReport.reporterId.eq(reporterId));
-        if (reportReason != null) builder.and(qReport.reason.eq(reportReason));
-        if (reportStatus != null) builder.and(qReport.status.eq(reportStatus));
+        builder.and(qPlazaLetterReplyReport.reporterId.eq(reporterId));
+        if (reportReason != null) builder.and(qPlazaLetterReplyReport.reason.eq(reportReason));
+        if (reportStatus != null) builder.and(qPlazaLetterReplyReport.status.eq(reportStatus));
 
         Long count = queryFactory
-                .select(qReport.count())
-                .from(qReport)
+                .select(qPlazaLetterReplyReport.count())
+                .from(qPlazaLetterReplyReport)
                 .where(builder)
                 .fetchOne();
 
@@ -46,14 +46,14 @@ public class PlazaLetterReplyReportRepositoryCustomImpl implements PlazaLetterRe
     @Override
     public long countByReplierId(Long replierId, ReportReason reportReason, ReportStatus reportStatus) {
         BooleanBuilder builder = new BooleanBuilder();
-        builder.and(qReport.reply.replierId.eq(replierId));
-        if (reportReason != null) builder.and(qReport.reason.eq(reportReason));
-        if (reportStatus != null) builder.and(qReport.status.eq(reportStatus));
+        builder.and(qPlazaLetterReplyReport.replierId.eq(replierId));
+        if (reportReason != null) builder.and(qPlazaLetterReplyReport.reason.eq(reportReason));
+        if (reportStatus != null) builder.and(qPlazaLetterReplyReport.status.eq(reportStatus));
 
         Long count = queryFactory
-                .select(qReport.count())
-                .from(qReport)
-                .join(qReport.reply)
+                .select(qPlazaLetterReplyReport.count())
+                .from(qPlazaLetterReplyReport)
+                .join(qPlazaLetterReplyReport.reply)
                 .where(builder)
                 .fetchOne();
 
@@ -65,16 +65,16 @@ public class PlazaLetterReplyReportRepositoryCustomImpl implements PlazaLetterRe
     public long countByUserId(Long userId, ReportReason reportReason, ReportStatus reportStatus) {
         BooleanBuilder builder = new BooleanBuilder();
         builder.and(
-                qReport.reporterId.eq(userId)
-                        .or(qReport.reply.replierId.eq(userId))
+                qPlazaLetterReplyReport.reporterId.eq(userId)
+                        .or(qPlazaLetterReplyReport.replierId.eq(userId))
         );
-        if (reportReason != null) builder.and(qReport.reason.eq(reportReason));
-        if (reportStatus != null) builder.and(qReport.status.eq(reportStatus));
+        if (reportReason != null) builder.and(qPlazaLetterReplyReport.reason.eq(reportReason));
+        if (reportStatus != null) builder.and(qPlazaLetterReplyReport.status.eq(reportStatus));
 
         Long count = queryFactory
-                .select(qReport.count())
-                .from(qReport)
-                .join(qReport.reply)
+                .select(qPlazaLetterReplyReport.count())
+                .from(qPlazaLetterReplyReport)
+                .join(qPlazaLetterReplyReport.reply)
                 .where(builder)
                 .fetchOne();
 
@@ -87,13 +87,13 @@ public class PlazaLetterReplyReportRepositoryCustomImpl implements PlazaLetterRe
             Long reporterId, ReportReason reportReason, ReportStatus reportStatus, Pageable pageable
     ) {
         BooleanBuilder builder = new BooleanBuilder();
-        builder.and(qReport.reporterId.eq(reporterId));
-        if (reportReason != null) builder.and(qReport.reason.eq(reportReason));
-        if (reportStatus != null) builder.and(qReport.status.eq(reportStatus));
+        builder.and(qPlazaLetterReplyReport.reporterId.eq(reporterId));
+        if (reportReason != null) builder.and(qPlazaLetterReplyReport.reason.eq(reportReason));
+        if (reportStatus != null) builder.and(qPlazaLetterReplyReport.status.eq(reportStatus));
 
         List<PlazaLetterReplyReport> content = queryFactory
-                .selectFrom(qReport)
-                .join(qReport.reply).fetchJoin()
+                .selectFrom(qPlazaLetterReplyReport)
+                .join(qPlazaLetterReplyReport.reply).fetchJoin()
                 .where(builder)
                 .orderBy(getOrderSpecifiers(pageable.getSort()))
                 .offset(pageable.getOffset())
@@ -111,13 +111,13 @@ public class PlazaLetterReplyReportRepositoryCustomImpl implements PlazaLetterRe
             Long replierId, ReportReason reportReason, ReportStatus reportStatus, Pageable pageable
     ) {
         BooleanBuilder builder = new BooleanBuilder();
-        builder.and(qReport.reply.replierId.eq(replierId));
-        if (reportReason != null) builder.and(qReport.reason.eq(reportReason));
-        if (reportStatus != null) builder.and(qReport.status.eq(reportStatus));
+        builder.and(qPlazaLetterReplyReport.replierId.eq(replierId));
+        if (reportReason != null) builder.and(qPlazaLetterReplyReport.reason.eq(reportReason));
+        if (reportStatus != null) builder.and(qPlazaLetterReplyReport.status.eq(reportStatus));
 
         List<PlazaLetterReplyReport> content = queryFactory
-                .selectFrom(qReport)
-                .join(qReport.reply).fetchJoin()
+                .selectFrom(qPlazaLetterReplyReport)
+                .join(qPlazaLetterReplyReport.reply).fetchJoin()
                 .where(builder)
                 .orderBy(getOrderSpecifiers(pageable.getSort()))
                 .offset(pageable.getOffset())
@@ -136,15 +136,15 @@ public class PlazaLetterReplyReportRepositoryCustomImpl implements PlazaLetterRe
     ) {
         BooleanBuilder builder = new BooleanBuilder();
         builder.and(
-                qReport.reporterId.eq(userId)
-                        .or(qReport.reply.replierId.eq(userId))
+                qPlazaLetterReplyReport.reporterId.eq(userId)
+                        .or(qPlazaLetterReplyReport.replierId.eq(userId))
         );
-        if (reportReason != null) builder.and(qReport.reason.eq(reportReason));
-        if (reportStatus != null) builder.and(qReport.status.eq(reportStatus));
+        if (reportReason != null) builder.and(qPlazaLetterReplyReport.reason.eq(reportReason));
+        if (reportStatus != null) builder.and(qPlazaLetterReplyReport.status.eq(reportStatus));
 
         List<PlazaLetterReplyReport> content = queryFactory
-                .selectFrom(qReport)
-                .join(qReport.reply).fetchJoin()
+                .selectFrom(qPlazaLetterReplyReport)
+                .join(qPlazaLetterReplyReport.reply).fetchJoin()
                 .where(builder)
                 .orderBy(getOrderSpecifiers(pageable.getSort()))
                 .offset(pageable.getOffset())
