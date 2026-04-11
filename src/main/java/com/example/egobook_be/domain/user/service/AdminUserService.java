@@ -238,7 +238,7 @@ public class AdminUserService {
             long total = plazaLetterReportRepository.countByUserId(userId, reportReason, reportStatus);
             totalReportCount = total;
             totalReportedCount = total;
-        } 
+        }
         // 1. reportType이 null이 아닌 경우
         else {
             // reportType 구분해서 전체 카운트

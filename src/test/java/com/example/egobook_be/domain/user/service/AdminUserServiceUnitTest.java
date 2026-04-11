@@ -171,7 +171,7 @@ public class AdminUserServiceUnitTest {
             String keyword = "test";
             UserStatus status = UserStatus.ACTIVE;
             Integer invalidPage = 0; // 1보다 작은 값
-            Integer invalidSize = 2; // MIN_PAGE_SIZE(1) 보다 작은 값
+            Integer invalidSize = 2; // DEFAULT_PAGE_SIZE(5) 보다 작은 값
 
             given(userRepository.findUsersByKeywordAndStatus(eq(keyword), eq(status), any(Pageable.class)))
                     .willReturn(new SliceImpl<>(Collections.emptyList()));
