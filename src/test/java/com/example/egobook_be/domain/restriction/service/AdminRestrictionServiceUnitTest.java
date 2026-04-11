@@ -34,7 +34,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
-// [AI-GEN] AdminRestrictionService Unit Test
+// AdminRestrictionService Unit Test
 @ExtendWith(MockitoExtension.class)
 public class AdminRestrictionServiceUnitTest {
 
@@ -217,14 +217,17 @@ public class AdminRestrictionServiceUnitTest {
 
     private Restriction mockRestriction(Long userId, RestrictionStatus status) {
         Restriction restriction = mock(Restriction.class);
-        given(restriction.getRestrictionId()).willReturn(1L);
-        given(restriction.getUserId()).willReturn(userId);
-        given(restriction.getDomainType()).willReturn(RestrictionDomainType.LETTER);
-        given(restriction.getReason()).willReturn(ReportReason.ABUSE);
-        given(restriction.getDescription()).willReturn("테스트 제재 사유");
-        given(restriction.getStatus()).willReturn(status);
-        given(restriction.getCreatedAt()).willReturn(LocalDateTime.now());
-        given(restriction.getRestrictionUntil()).willReturn(LocalDateTime.now().plusDays(7));
+
+        // 여러 테스트에서 공통으로 사용되나 일부 테스트에서는 호출되지 않을 수 있으므로 lenient() 적용
+        lenient().when(restriction.getRestrictionId()).thenReturn(1L);
+        lenient().when(restriction.getUserId()).thenReturn(userId);
+        lenient().when(restriction.getDomainType()).thenReturn(RestrictionDomainType.LETTER);
+        lenient().when(restriction.getReason()).thenReturn(ReportReason.ABUSE);
+        lenient().when(restriction.getDescription()).thenReturn("테스트 제재 사유");
+        lenient().when(restriction.getStatus()).thenReturn(status);
+        lenient().when(restriction.getCreatedAt()).thenReturn(LocalDateTime.now());
+        lenient().when(restriction.getRestrictionUntil()).thenReturn(LocalDateTime.now().plusDays(7));
+
         return restriction;
     }
 
@@ -238,5 +241,104 @@ public class AdminRestrictionServiceUnitTest {
                 .createdAt(LocalDateTime.now())
                 .restrictionUntil(LocalDateTime.now().plusDays(7))
                 .build();
+    }
+
+    // =========================================================================
+    // cancelRestriction
+    // =========================================================================
+    @Nested
+    class CancelRestrictionTest {
+
+        @Test
+        @DisplayName("[실패] 존재하지 않는 제재 ID이면 RESTRICTION_NOT_FOUND 예외 발생")
+        void failWhenRestrictionNotFound() {
+            // ============ Given =================
+            Long restrictionId = 999L;
+            given(restrictionRepository.findById(restrictionId)).willReturn(Optional.empty());
+
+            // ============ When & Then =================
+            assertThatThrownBy(() -> adminRestrictionService.cancelRestriction(restrictionId))
+                    .isInstanceOf(CustomException.class);
+        }
+
+        @Test
+        @DisplayName("[실패] 제재 상태가 CANCELED이면 ALREADY_CANCELED 예외 발생")
+        void failWhenAlreadyCanceled() {
+            // ============ Given =================
+            Long restrictionId = 1L;
+            Restriction mockRestriction = mockRestriction(2L, RestrictionStatus.CANCELED);
+            given(restrictionRepository.findById(restrictionId)).willReturn(Optional.of(mockRestriction));
+
+            // ============ When & Then =================
+            assertThatThrownBy(() -> adminRestrictionService.cancelRestriction(restrictionId))
+                    .isInstanceOf(CustomException.class);
+
+            verify(mockRestriction, never()).cancel();
+        }
+
+        @Test
+        @DisplayName("[실패] 제재 상태가 EXPIRED이면 ALREADY_EXPIRED 예외 발생")
+        void failWhenAlreadyExpired() {
+            // ============ Given =================
+            Long restrictionId = 1L;
+            Restriction mockRestriction = mockRestriction(2L, RestrictionStatus.EXPIRED);
+            given(restrictionRepository.findById(restrictionId)).willReturn(Optional.of(mockRestriction));
+
+            // ============ When & Then =================
+            assertThatThrownBy(() -> adminRestrictionService.cancelRestriction(restrictionId))
+                    .isInstanceOf(CustomException.class);
+
+            verify(mockRestriction, never()).cancel();
+        }
+
+        @Test
+        @DisplayName("[실패] 제재 대상 사용자가 존재하지 않으면 USER_NOT_FOUND 예외 발생")
+        void failWhenUserNotFound() {
+            // ============ Given =================
+            Long restrictionId = 1L;
+            Long userId = 2L;
+            Restriction mockRestriction = mockRestriction(userId, RestrictionStatus.ACTIVE);
+
+            given(restrictionRepository.findById(restrictionId)).willReturn(Optional.of(mockRestriction));
+            given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+            // ============ When & Then =================
+            assertThatThrownBy(() -> adminRestrictionService.cancelRestriction(restrictionId))
+                    .isInstanceOf(CustomException.class);
+
+            // 사용자를 찾지 못해 예외가 발생하더라도 제재 취소(cancel) 메서드는 먼저 호출되어야 함
+            verify(mockRestriction, times(1)).cancel();
+        }
+
+        @Test
+        @DisplayName("[성공] ACTIVE 상태의 제재를 성공적으로 해제한다")
+        void successCancelRestriction() {
+            // ============ Given =================
+            Long restrictionId = 1L;
+            Long userId = 2L;
+
+            Restriction mockRestriction = mockRestriction(userId, RestrictionStatus.ACTIVE);
+            com.example.egobook_be.domain.user.entity.User mockUser = mock(com.example.egobook_be.domain.user.entity.User.class);
+            com.example.egobook_be.domain.restriction.dto.RestrictionCancelResDto mockResDto =
+                    mock(com.example.egobook_be.domain.restriction.dto.RestrictionCancelResDto.class);
+
+            given(restrictionRepository.findById(restrictionId)).willReturn(Optional.of(mockRestriction));
+            given(userRepository.findById(userId)).willReturn(Optional.of(mockUser));
+            given(restrictionMapper.toCancelResDto(mockRestriction, mockUser)).willReturn(mockResDto);
+
+            // ============ When =================
+            com.example.egobook_be.domain.restriction.dto.RestrictionCancelResDto result =
+                    adminRestrictionService.cancelRestriction(restrictionId);
+
+            // ============ Then =================
+            assertThat(result).isNotNull();
+            assertThat(result).isEqualTo(mockResDto);
+
+            // 검증: 제재 취소 메서드가 정확히 1번 호출되었는가?
+            verify(mockRestriction, times(1)).cancel();
+
+            // 검증: 매퍼가 올바른 파라미터로 호출되었는가?
+            verify(restrictionMapper, times(1)).toCancelResDto(mockRestriction, mockUser);
+        }
     }
 }
