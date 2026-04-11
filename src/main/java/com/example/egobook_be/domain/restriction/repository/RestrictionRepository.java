@@ -21,6 +21,8 @@ public interface RestrictionRepository extends JpaRepository<Restriction, Long> 
 
     boolean existsByUserIdAndDomainTypeAndStatus(Long userId, RestrictionDomainType domainType, RestrictionStatus status);
 
+    boolean existsByUserIdAndStatus(Long userId, RestrictionStatus status);
+
     // 사용자 전체 제재 기록 Slice 조회 (status 필터 없음)
     Slice<Restriction> findAllByUserId(Long userId, Pageable pageable);
 

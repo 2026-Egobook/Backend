@@ -60,4 +60,9 @@ public class Restriction extends BaseTimeEntity {
                 .restrictionUntil(LocalDateTime.now(ZoneId.of("Asia/Seoul")).plusDays(7))
                 .build();
     }
+
+    // ACTIVE 상태인 제재 해제 처리
+    public void cancel() {
+        this.status = RestrictionStatus.CANCELED;
+    }
 }
