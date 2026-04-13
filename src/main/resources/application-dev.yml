@@ -48,7 +48,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: "health", "info", "prometheus" # prometheus 엔드포인트 노출
+        include: health, info, prometheus # prometheus 엔드포인트 노출
   endpoint:
     prometheus:
       access: unrestricted # 접근 무제한 설정
