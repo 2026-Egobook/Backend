@@ -48,10 +48,15 @@ management:
   endpoints:
     web:
       exposure:
-        include: health # health만 노출
+        include: "health", "info", "prometheus" # prometheus 엔드포인트 노출
   endpoint:
+    prometheus:
+      access: unrestricted # 접근 무제한 설정
     health:
       show-details: always # 상세 정보(DB 에러 내용 등) 표시 O
+  metrics:
+    tags:
+      application: egobook-dev-api # 그라파나 패널에서 애플리케이션을 구분하기 위한 태그
 
 app:
   oauth:
