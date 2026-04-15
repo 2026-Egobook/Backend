@@ -6,7 +6,7 @@ import com.example.egobook_be.domain.notification.repository.NotificationReposit
 import com.example.egobook_be.domain.user.entity.InkLog;
 import com.example.egobook_be.domain.user.entity.InkLogType;
 import com.example.egobook_be.domain.user.entity.User;
-import com.example.egobook_be.domain.user.enums.UserErrorCode;
+import com.example.egobook_be.domain.user.exception.UserErrorCode;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
@@ -17,7 +17,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 

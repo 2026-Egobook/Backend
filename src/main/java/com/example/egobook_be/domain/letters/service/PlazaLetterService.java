@@ -20,11 +20,13 @@ import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.InkLog;
 import com.example.egobook_be.domain.user.entity.InkLogType;
 import com.example.egobook_be.domain.user.entity.User;
-import com.example.egobook_be.domain.user.enums.UserErrorCode;
+import com.example.egobook_be.domain.user.exception.UserErrorCode;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.domain.letters.mapper.PlazaLetterMapper;
+import com.example.egobook_be.domain.restriction.enums.RestrictionDomainType;
+import com.example.egobook_be.domain.restriction.service.RestrictionGuardService;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import com.example.egobook_be.global.util.InkLogUtil;
@@ -42,7 +44,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -70,12 +74,15 @@ public class PlazaLetterService {
 
     private final AiRequestCountLogRepository aiRequestCountLogRepo;
 
+    private final RestrictionGuardService restrictionGuardService;
+
     @Value("${spring.cloud.aws.cloudfront.domain}")
     private String cloudfrontDomain;
 
 
     @Transactional(readOnly = true)
     public InboxNextResponse getNextArrivedLetter(Long userId) {
+        restrictionGuardService.checkLetterRestriction(userId);
         return plazaLetterRepository
                 .findFirstByReceiverIdAndStatusOrderByArrivedAtDesc(userId, PlazaLetterStatus.ARRIVED)
                 .map(plazaLetterMapper::toResponse)  // Mapper를 이용해 변환
@@ -115,6 +122,9 @@ public class PlazaLetterService {
                 .orElseThrow(() -> new CustomException(LettersErrorCode.USER_NOT_FOUND));
         Mission userMission = missionRepository.findByUser(user)
                 .orElseThrow(() -> new CustomException(UserErrorCode.MISSION_NOT_FOUND));
+
+        // 발신 차단 - 제재 사용자는 편지를 보낼 수 없음
+        restrictionGuardService.checkLetterRestriction(userId);
 
         validateCreateLetterRequest(request);
 
@@ -159,9 +169,17 @@ public class PlazaLetterService {
         } else {
             List<Long> candidates = userRepository.findHighReplyRateCandidates(userId, 50);
             if (!candidates.isEmpty()) {
-                receiverId = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
-                arrivedAt = now;
-                replyDeadlineAt = now.plusHours(24);
+                Set<Long> restrictedIds = restrictionGuardService.getActivelyRestrictedUserIds(RestrictionDomainType.LETTER);
+                if (!restrictedIds.isEmpty()) {
+                    candidates = candidates.stream()
+                            .filter(id -> !restrictedIds.contains(id))
+                            .collect(Collectors.toList());
+                }
+                if (!candidates.isEmpty()) {
+                    receiverId = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
+                    arrivedAt = now;
+                    replyDeadlineAt = now.plusHours(24);
+                }
             }
         }
 
@@ -414,6 +432,9 @@ public class PlazaLetterService {
 
         // 3. 자기 자신에게 답장을 보내지 않도록 검증
         validateOwnership(letter, userId);
+
+        // 3-1. 편지 도메인 제재 여부 확인
+        restrictionGuardService.checkLetterRestriction(userId);
 
         // 4. 답장 가능한 상태인지 검증
         LocalDateTime now = LocalDateTime.now();
