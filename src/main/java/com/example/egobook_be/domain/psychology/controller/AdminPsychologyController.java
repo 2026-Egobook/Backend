@@ -8,6 +8,7 @@ import com.example.egobook_be.domain.psychology.service.AdminPsychologyService;
 import com.example.egobook_be.domain.psychology.service.PsychologyService;
 import com.example.egobook_be.global.response.GlobalResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +17,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/admin/psychology")
+@Tag(name = "Admin Psychology Controller", description = "관리자 [심리지식] 관련 API")
 public class AdminPsychologyController {
 
     private final AdminPsychologyService psychologyService;

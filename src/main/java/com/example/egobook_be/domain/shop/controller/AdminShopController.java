@@ -18,7 +18,6 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/admin/item")
-@Tag(name = "Admin Psychology Controller", description = "관리자 [심리지식] 관련 API")
 public class AdminShopController implements AdminShopControllerDocs {
 
     private final AdminShopService adminShopService;
