@@ -15,4 +15,6 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     List<Item> findAllByName(String name);
 
+    boolean existsByNameAndPath(String name, String path);
+
 }

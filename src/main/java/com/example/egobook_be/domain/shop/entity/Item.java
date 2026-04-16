@@ -49,6 +49,9 @@ public class Item extends BaseTimeEntity {
     @Column(nullable = true)
     private Integer price;
 
+    @Column(nullable = true)
+    private String status;
+
     /*
      * 이 아이템을 보유한 유저 매핑 리스트 (양방향 매핑)
      * 아이템 자체가 삭제되면, 해당 아이템의 보유 기록(UserItem)도 삭제됨
@@ -57,6 +60,7 @@ public class Item extends BaseTimeEntity {
     @OneToMany(mappedBy = "item", fetch = FetchType.LAZY, orphanRemoval = true)
     @Builder.Default
     private List<UserItem> userItems = new ArrayList<>();
+
 
     // --- 비즈니스 로직 (URL 조합 도우미 메서드) ---
     /**
@@ -77,5 +81,25 @@ public class Item extends BaseTimeEntity {
         this.category = item.getCategory();
         this.name = item.getName();
         this.price = item.getPrice();
+        this.status = item.getStatus();
+    }
+
+    public String getStatus() {
+        return this.status == null ? "ACTIVE" : this.status;
+    }
+
+    public void activate(){
+        this.status="ACTIVE";
+    }
+    public void deactivate(){
+        this.status="INACTIVE";
+    }
+
+    public void updateAll(ItemCategory category, Integer price, String path, String name, String status) {
+        this.price = price;
+        this.category = category;
+        this.path = path;
+        this.name = name;
+        this.status = status;
     }
 }

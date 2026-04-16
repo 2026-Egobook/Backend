@@ -1,4 +1,4 @@
-package com.example.egobook_be.domain.shop.sevice;
+package com.example.egobook_be.domain.shop.service;
 
 import com.example.egobook_be.domain.shop.dto.*;
 import com.example.egobook_be.domain.shop.entity.Item;

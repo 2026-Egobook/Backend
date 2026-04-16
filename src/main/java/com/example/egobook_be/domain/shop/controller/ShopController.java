@@ -5,13 +5,12 @@ import com.example.egobook_be.domain.shop.dto.ItemInfoResDto;
 import com.example.egobook_be.domain.shop.dto.PurchaseItemReqDto;
 import com.example.egobook_be.domain.shop.dto.ShopItemInfoResDto;
 import com.example.egobook_be.domain.shop.enums.ItemCategory;
-import com.example.egobook_be.domain.shop.sevice.ShopService;
+import com.example.egobook_be.domain.shop.service.ShopService;
 import com.example.egobook_be.global.response.GlobalResponse;
 import com.example.egobook_be.global.response.SliceResponse;
 import io.swagger.v3.oas.annotations.Parameter;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

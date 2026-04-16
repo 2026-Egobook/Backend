@@ -6,12 +6,14 @@ import com.example.egobook_be.domain.question.dto.AdminQuestionListResDto;
 import com.example.egobook_be.domain.question.service.AdminQuestionService;
 import com.example.egobook_be.global.response.GlobalResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/admin/question")
+@Tag(name = "Admin Question Controller", description = "관리자 [질문] 관련 API")
 public class AdminQuestionController {
 
     private final AdminQuestionService adminQuestionService;
