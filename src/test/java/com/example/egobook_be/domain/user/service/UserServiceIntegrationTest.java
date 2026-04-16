@@ -14,7 +14,7 @@ import com.example.egobook_be.domain.terms.entity.Term;
 import com.example.egobook_be.domain.terms.enums.TermType;
 import com.example.egobook_be.domain.terms.repository.TermRepository;
 import com.example.egobook_be.domain.user.entity.User;
-import com.example.egobook_be.domain.user.enums.UserErrorCode;
+import com.example.egobook_be.domain.user.exception.UserErrorCode;
 import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;

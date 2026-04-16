@@ -16,10 +16,11 @@ import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.InkLog;
 import com.example.egobook_be.domain.user.entity.InkLogType;
 import com.example.egobook_be.domain.user.entity.User;
-import com.example.egobook_be.domain.user.enums.UserErrorCode;
+import com.example.egobook_be.domain.user.exception.UserErrorCode;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
+import com.example.egobook_be.domain.restriction.service.RestrictionGuardService;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import com.example.egobook_be.global.util.InkLogUtil;
@@ -47,6 +48,7 @@ public class TodayQuestionService {
     private final AbilityRepository abilityRepository;
     private final FriendRepository friendRepository;
     private final InkLogUtil inkLogUtil;
+    private final RestrictionGuardService restrictionGuardService;
 
     /** 오늘의 질문 조회 **/
     @Transactional(readOnly = true)
@@ -107,6 +109,8 @@ public class TodayQuestionService {
         if (questionAnswerRepository.existsByUserAndQuestion(user, todayQuestion)) {
             throw new CustomException(QuestionErrorCode.ALREADY_ANSWERED_TODAY);
         }
+
+        restrictionGuardService.checkQuestionAnswerRestriction(userId);
 
         // 오늘 처음 "오늘의 질문"에 답변했는지 여부 확인
         ZoneId zoneId = ZoneId.of("Asia/Seoul");
@@ -209,6 +213,8 @@ public class TodayQuestionService {
                         new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND)
                 );
 
+        restrictionGuardService.checkQuestionAnswerRestriction(userId);
+
         answer.update(
                 reqDto.content(),
                 reqDto.visibility()
@@ -216,48 +222,6 @@ public class TodayQuestionService {
     }
 
     /** 친구 답변 조회 **/
-//    @Transactional(readOnly = true)
-//    public List<FriendAnswerResDto> getFriendsAnswers(Long userId) {
-//
-//        User me = userRepository.findById(userId)
-//                .orElseThrow(() ->
-//                        new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
-//                );
-//
-//        TodayQuestion todayQuestion = todayQuestionRepository
-//                .findByQuestionDate(LocalDate.now())
-//                .orElseThrow(() ->
-//                        new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND)
-//                );
-//
-//        // 내 친구 목록 조회
-//        List<User> friends = friendRepository.findByUser(me)
-//                .stream()
-//                .map(Friend::getFriend)
-//                .toList();
-//
-//        if (friends.isEmpty()) {
-//            return List.of();
-//        }
-//
-//        // 친구들의 FRIENDS 공개 답변 조회
-//        return questionAnswerRepository
-//                .findByQuestionAndVisibilityAndUserIn(
-//                        todayQuestion,
-//                        AnswerVisibility.FRIEND,
-//                        friends
-//                )
-//                .stream()
-//                .map(answer -> FriendAnswerResDto.builder()
-//                        .answerId(answer.getId())
-//                        .userId(answer.getUser().getId())
-//                        .nickname(answer.getUser().getNickname())
-//                        .content(answer.getContent())
-//                        .createdAt(answer.getCreatedAt())
-//                        .build()
-//                )
-//                .toList();
-//    }
     @Transactional(readOnly = true)
     public SliceResponse<FriendAnswerResDto> getFriendsAnswers(
             Long userId,
@@ -307,32 +271,6 @@ public class TodayQuestionService {
     }
 
     /** 내가 지금까지 작성한 모든 답변 조회 **/
-//    @Transactional(readOnly = true)
-//    public List<MyAnswerHistoryResDto> getMyAnswerHistory(Long userId) {
-//
-//        User user = userRepository.findById(userId)
-//                .orElseThrow(() ->
-//                        new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
-//                );
-//
-//        return questionAnswerRepository
-//                .findByUserOrderByCreatedAtDesc(user)
-//                .stream()
-//                .map(answer -> {
-//                    TodayQuestion question = answer.getQuestion();
-//
-//                    return MyAnswerHistoryResDto.builder()
-//                            .questionId(question.getId())
-//                            .questionDate(question.getQuestionDate())
-//                            .questionContent(question.getContent())
-//                            .answerId(answer.getId())
-//                            .answerContent(answer.getContent())
-//                            .visibility(answer.getVisibility())
-//                            .answeredAt(answer.getCreatedAt())
-//                            .build();
-//                })
-//                .toList();
-//    }
     @Transactional(readOnly = true)
     public SliceResponse<MyAnswerHistoryResDto> getMyAnswerHistory(
             Long userId,
@@ -370,6 +308,8 @@ public class TodayQuestionService {
                 .orElseThrow(() ->
                         new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND)
                 );
+
+        restrictionGuardService.checkQuestionAnswerRestriction(userId);
 
         questionAnswerRepository.delete(answer);
     }

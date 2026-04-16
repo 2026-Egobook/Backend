@@ -14,6 +14,8 @@ import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
+import com.example.egobook_be.domain.restriction.exception.RestrictionErrorCode;
+import com.example.egobook_be.domain.restriction.service.RestrictionGuardService;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.util.InkLogUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +31,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,6 +48,7 @@ class TodayQuestionUpdateAnswerServiceTest {
     @Mock private AbilityRepository abilityRepository;
     @Mock private FriendRepository friendRepository;
     @Mock private InkLogUtil inkLogUtil;
+    @Mock private RestrictionGuardService restrictionGuardService;
 
     private User user;
     private TodayQuestion todayQuestion;
@@ -104,5 +108,28 @@ class TodayQuestionUpdateAnswerServiceTest {
                 .isInstanceOf(CustomException.class)
                 .extracting(e -> ((CustomException) e).getErrorCode())
                 .isEqualTo(QuestionErrorCode.ANSWER_NOT_FOUND);
+    }
+
+    // [AI-GEN] RestrictionGuardService 적용 이후 추가된 제재 관련 테스트 케이스
+
+    @Test
+    @DisplayName("updateAnswer_QUESTION_ANSWER 제재 중_예외")
+    void updateAnswer_questionAnswerRestricted_fail() {
+        // given
+        QuestionAnswer answer = mock(QuestionAnswer.class);
+        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+                .willReturn(Optional.of(todayQuestion));
+        given(questionAnswerRepository.findByUserAndQuestion(user, todayQuestion))
+                .willReturn(Optional.of(answer));
+        willThrow(new CustomException(RestrictionErrorCode.QUESTION_ANSWER_RESTRICTED))
+                .given(restrictionGuardService).checkQuestionAnswerRestriction(1L);
+
+        // when & then
+        assertThatThrownBy(() -> todayQuestionService.updateAnswer(1L, reqDto))
+                .isInstanceOf(CustomException.class)
+                .extracting(e -> ((CustomException) e).getErrorCode())
+                .isEqualTo(RestrictionErrorCode.QUESTION_ANSWER_RESTRICTED);
+
+        verify(answer, never()).update(any(), any());
     }
 }

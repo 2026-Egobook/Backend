@@ -39,6 +39,7 @@ public enum AuthErrorCode implements BaseErrorCode {
     ACCESS_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Access Token이 만료되었습니다. Refresh Token을 사용하여 Access Token을 재발급받으세요."),
     REFRESH_TOKEN_EXPIRED_GUEST(HttpStatus.UNAUTHORIZED, "GUEST Refresh Token이 만료되었습니다. GUEST의 Recover Token을 사용하여 Refresh Token을 재발급받으세요."),
     REFRESH_TOKEN_EXPIRED_GOOGLE(HttpStatus.UNAUTHORIZED, "GOOGLE Refresh Token이 만료되었습니다. Google 로그인을 다시 시도하세요."),
+    REFRESH_TOKEN_EXPIRED_ADMIN(HttpStatus.UNAUTHORIZED, "관리자 Refresh Token이 만료되었습니다. 관리자 계정으로 다시 로그인하세요."),
 
     /**
      * 404 NOT_FOUND: 리소스 없음

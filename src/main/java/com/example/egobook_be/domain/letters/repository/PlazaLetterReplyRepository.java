@@ -16,6 +16,8 @@ import java.util.Optional;
 public interface PlazaLetterReplyRepository extends JpaRepository<PlazaLetterReply, Long> {
     boolean existsByLetter(PlazaLetter letter);
 
+    long countByReplierId(Long replierId);
+
     boolean existsByLetter_LetterId(Long letterId);
 
     @Query("SELECT r FROM PlazaLetterReply r JOIN FETCH r.letter WHERE r.replyId = :replyId")

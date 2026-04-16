@@ -16,6 +16,8 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
 
     Optional<PlazaLetter> findFirstByReceiverIdAndStatusOrderByArrivedAtDesc(Long receiverId, PlazaLetterStatus status);
 
+    Integer countBySenderId(Long senderId);
+
     boolean existsBySenderIdAndCreatedAtBetween(Long senderId, LocalDateTime start, LocalDateTime end);
 
     Optional<PlazaLetter> findByThreadId(Long threadId);
@@ -161,5 +163,28 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
             @Param("userId") Long userId
     );
 
-}
+    // ── 관리자 API용 - 날짜 범위 + status 집계 ──────────────────────────────
 
+    @Query("""
+        SELECT COUNT(l) FROM PlazaLetter l
+        WHERE l.createdAt BETWEEN :start AND :end
+          AND l.status = :status
+    """)
+    long countByCreatedAtBetweenAndStatus(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("status") PlazaLetterStatus status
+    );
+
+    @Query("""
+        SELECT COUNT(l) FROM PlazaLetter l
+        WHERE l.createdAt BETWEEN :start AND :end
+          AND l.status IN :statuses
+    """)
+    long countByCreatedAtBetweenAndStatuses(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("statuses") List<PlazaLetterStatus> statuses
+    );
+
+}

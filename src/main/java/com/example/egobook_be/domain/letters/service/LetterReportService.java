@@ -2,18 +2,15 @@ package com.example.egobook_be.domain.letters.service;
 
 import com.example.egobook_be.domain.letters.entity.PlazaLetter;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReport;
-import com.example.egobook_be.domain.letters.entity.ReplyReportReason;
-import com.example.egobook_be.domain.letters.enums.LetterReportReason;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
+import com.example.egobook_be.global.enums.ReportReason;
 import com.example.egobook_be.global.enums.ReportStatus;
 import com.example.egobook_be.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -23,10 +20,10 @@ public class LetterReportService {
     private final PlazaLetterRepository plazaLetterRepository;
 
     @Transactional
-    public void reportLetter(Long letterId, Long userId, LetterReportReason reason, String description){
+    public void reportLetter(Long letterId, Long userId, ReportReason reason, String description){
 
         // 기타면 description 필수
-        if (reason == LetterReportReason.OTHER && (description == null || description.isBlank())) {
+        if (reason == ReportReason.OTHER && (description == null || description.isBlank())) {
             throw new CustomException(LettersErrorCode.INVALID_REPORT_REASON);
         }
 

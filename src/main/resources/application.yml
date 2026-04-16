@@ -63,7 +63,7 @@ app:
     # 일주일 (1000 * 60 * 60 * 24 * 7)
     purge-duration-in-ms: 604800000
 
-# health check 설정
+# ops 설정
 management:
   endpoints:
     web:

@@ -5,7 +5,6 @@ import com.example.egobook_be.domain.letters.dto.request.CreateLetterRequest;
 import com.example.egobook_be.domain.letters.dto.request.ReplyReportRequest;
 import com.example.egobook_be.domain.letters.dto.request.ReplyRequest;
 import com.example.egobook_be.domain.letters.dto.response.*;
-import com.example.egobook_be.domain.letters.entity.ReplyReportReason;
 import com.example.egobook_be.domain.letters.service.*;
 import com.example.egobook_be.global.response.GlobalResponse;
 import com.example.egobook_be.global.response.SliceResponse;
@@ -19,7 +18,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.*;
 import com.example.egobook_be.domain.letters.dto.request.LetterReportRequest;
 import com.example.egobook_be.domain.letters.service.LetterReportService;
@@ -399,5 +397,13 @@ public class PlazaLetterController {
         );
     }
 
-
+    @Operation(summary = "편지 AI 분석 취소")
+    @PostMapping("/{letterId}/cancel-analysis")
+    public GlobalResponse<String> cancelAnalysis(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @PathVariable Long letterId
+    ) {
+        plazaLetterService.cancelAnalysis(userId, letterId);
+        return GlobalResponse.success("분석이 취소되었습니다.");
+    }
 }

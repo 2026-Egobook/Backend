@@ -3,6 +3,8 @@ package com.example.egobook_be.domain.letters.service;
 import com.example.egobook_be.domain.letters.entity.PlazaLetter;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
+import com.example.egobook_be.domain.restriction.enums.RestrictionDomainType;
+import com.example.egobook_be.domain.restriction.service.RestrictionGuardService;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -11,7 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +23,7 @@ public class PlazaLetterDispatchService {
 
     private final PlazaLetterRepository plazaLetterRepository;
     private final UserRepository userRepository;
+    private final RestrictionGuardService restrictionGuardService;
 
     private static final int BATCH_SIZE = 20;
     private static final int RECEIVER_POOL_SIZE = 300;
@@ -42,6 +47,15 @@ public class PlazaLetterDispatchService {
         );
 
         if (receiverPool.isEmpty()) return;
+
+        // LETTER 제재 사용자 수신자 풀에서 제외
+        Set<Long> restrictedIds = restrictionGuardService.getActivelyRestrictedUserIds(RestrictionDomainType.LETTER);
+        if (!restrictedIds.isEmpty()) {
+            receiverPool = receiverPool.stream()
+                    .filter(id -> !restrictedIds.contains(id))
+                    .collect(Collectors.toList());
+            if (receiverPool.isEmpty()) return;
+        }
 
         for (PlazaLetter letter : waitingLetters) {
             Long senderId = letter.getSenderId();

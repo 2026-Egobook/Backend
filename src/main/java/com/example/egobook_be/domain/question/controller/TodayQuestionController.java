@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.question.controller;
 
+import com.example.egobook_be.domain.letters.service.LetterReportAdminService;
 import com.example.egobook_be.domain.question.dto.*;
 import com.example.egobook_be.domain.question.service.AnswerReportAdminService;
 import com.example.egobook_be.domain.question.service.AnswerReportService;
@@ -20,6 +21,7 @@ public class TodayQuestionController implements TodayQuestionControllerDocs {
     private final TodayQuestionService todayQuestionService;
     private final AnswerReportService answerReportService;
     private final AnswerReportAdminService answerReportAdminService;
+//    private final LetterReportAdminService letterReportAdminService;
 
     @GetMapping("/today")
     public ResponseEntity<GlobalResponse<TodayQuestionResDto>> getTodayQuestion(

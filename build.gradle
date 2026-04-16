@@ -76,8 +76,9 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
 
-    // Health Check
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    // Ops
+    implementation 'org.springframework.boot:spring-boot-starter-actuator' // Spring Boot 운영/모니터링 엔드포인트 제공 라이브러리
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus' // Actuator가 수집한 메트릭을 Prometheus가 읽을 수 있는 포맷으로 변환/노출하는 라이브러리
 
     // AWS
     implementation "io.awspring.cloud:spring-cloud-aws-starter-s3"

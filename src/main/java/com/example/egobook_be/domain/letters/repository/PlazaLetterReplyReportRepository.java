@@ -2,6 +2,8 @@ package com.example.egobook_be.domain.letters.repository;
 
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReply;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReplyReport;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -9,9 +11,10 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
-public interface PlazaLetterReplyReportRepository extends JpaRepository<PlazaLetterReplyReport, Long> {
+public interface PlazaLetterReplyReportRepository extends JpaRepository<PlazaLetterReplyReport, Long>, PlazaLetterReplyReportRepositoryCustom {
 
     boolean existsByReply_ReplyIdAndReporterId(Long replyId, Long reporterId);
 
@@ -40,4 +43,26 @@ public interface PlazaLetterReplyReportRepository extends JpaRepository<PlazaLet
     // 신고된 답장에 대한 신고 횟수를 셈
     @Query("SELECT COUNT(r) FROM PlazaLetterReplyReport r WHERE r.reply.replyId = :replyId")
     long countByReply_ReplyId(@Param("replyId") Long replyId);
+
+    @Query("""
+        SELECT r
+        FROM PlazaLetterReplyReport r
+        JOIN FETCH r.reply
+        ORDER BY r.createdAt DESC
+    """)
+    Slice<PlazaLetterReplyReport> findAllWithReply(Pageable pageable);
+
+    //상세 조회
+    @Query("""
+        SELECT r
+        FROM PlazaLetterReplyReport r
+        JOIN FETCH r.reply
+        WHERE r.reportId = :reportId
+    """)
+    Optional<PlazaLetterReplyReport> findByIdWithReply(@Param("reportId") Long reportId);
+
+    //수동 삭제
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM PlazaLetterReplyReport r WHERE r.reply.replyId = :replyId")
+    void deleteAllByReplyId(@Param("replyId") Long replyId);
 }

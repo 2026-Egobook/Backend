@@ -41,6 +41,8 @@ server:
         # => https가 적용된 곳에만 적용해야한다.
         
 springdoc:
+  api-docs:
+    enabled: false   # /v3/api-docs 비활성화
   swagger-ui:
     enabled: false # 운영 서버에서는 Swagger UI 비활성화
 

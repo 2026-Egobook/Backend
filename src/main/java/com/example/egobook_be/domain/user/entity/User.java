@@ -7,8 +7,24 @@ import com.example.egobook_be.domain.user.enums.RoleType;
 import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.global.entity.BaseTimeEntity;
 import com.example.egobook_be.global.exception.CustomException;
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -18,18 +34,16 @@ import java.util.List;
 
 @Entity
 @Builder
-// Private로 Access를 막아둠으로써, 외부 코드에서 new User(...)로 생성하는 것을 금지시킨다.
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-// Protected로 Acess를 설정함으로써, JPA/Hibernate는 접근 가능하지만 개발자가 직접 호출 못하게 설정한다.
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @Table(name = "User")
 public class User extends BaseTimeEntity {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // DB의 AUTO_INCREMENT와 같음
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 사용자에게 노출되는 고유 식별 코드 (예: EG7X9A21)
     @Column(name = "account_code", unique = true, nullable = false, length = 12)
     private String accountCode;
 
@@ -38,7 +52,7 @@ public class User extends BaseTimeEntity {
     @Builder.Default
     private RoleType role = RoleType.ROLE_USER;
 
-    @Column(length = 20) // 닉네임은 최대 8글자
+    @Column(length = 20)
     private String nickname;
 
     @Enumerated(EnumType.STRING)
@@ -54,18 +68,18 @@ public class User extends BaseTimeEntity {
 
     @Column(name = "level", nullable = false)
     @Builder.Default
-    private Integer level = 1; // 사용자 레벨 기본값 1
+    private Integer level = 1;
 
     @Column(name = "purge_at")
-    private LocalDateTime purgeAt; // 완전 삭제 예정 시각
+    private LocalDateTime purgeAt;
 
     @Column(name = "deleted_at")
-    private LocalDateTime deletedAt; // 삭제 요청 시각
+    private LocalDateTime deletedAt;
 
     @Setter
     @Column(name = "daily_praise")
     @Builder.Default
-    private Boolean dailyPraise = true; // AI 칭찬서 수신 여부 (기본값 true)
+    private Boolean dailyPraise = true;
 
     @Setter
     @Column(name = "weekly_analysis_enabled", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
@@ -78,20 +92,17 @@ public class User extends BaseTimeEntity {
 
     @Column(nullable = false)
     @Builder.Default
-    private boolean notificationEnabled = true; // 알림 설정 (기본값 true)
+    private boolean notificationEnabled = true;
 
     @Column(nullable = false)
     @Builder.Default
-    private boolean isFirstAttendanceToday = true; // 오늘 첫 접속 상태인지 여부
+    private boolean isFirstAttendanceToday = true;
 
     @Column(length = 500)
     private String fcmToken;
 
-    // 편지 전송 조건 저장
     @Column(name = "letter_receive_blocked_until")
     private LocalDateTime letterReceiveBlockedUntil;
-
-    // ========= 연관관계 매핑 ========= //
 
     @OneToOne(
             mappedBy = "user",
@@ -101,30 +112,25 @@ public class User extends BaseTimeEntity {
     private Ability ability;
 
     @Enumerated(EnumType.STRING)
-    private CounselTone counselingTone;
+    @Builder.Default
+    private CounselTone counselingTone = CounselTone.SOFT;
 
-    public void updateCounselingTone(CounselTone toneStyle) {
-        this.counselingTone = toneStyle;
-    }
-    /*
-     * 사용자가 보유한 아이템 리스트 (양방향 매핑)
-     * User가 삭제되면 보유 목록도 같이 삭제되도록 CascadeType.ALL 설정
-     */
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<UserItem> userItems = new ArrayList<>();
 
-    // ========= Entity 비즈니스 메서드 ========= //
+    public void updateCounselingTone(CounselTone toneStyle) {
+        this.counselingTone = toneStyle;
+    }
 
     public void updateFcmToken(String fcmToken) {
         this.fcmToken = fcmToken;
     }
 
     /**
-     * 사용자가 login했을 때 User Entity 스스로가 자신의 상태를 최신으로 갱신하는 함수
-     * - 함수 동작
-     *      1. 접속 시간 갱신
-     *      2. 상태 변경 - 현재 상태가 DORMANT(휴면)일 경우, 활동 중(ACTIVE) 상태로 변경한다.
+     * 사용자가 login 했을 때 User Entity 스스로 자신의 상태를 최신으로 갱신하는 함수
+     * - 접속 시간 갱신
+     * - 현재 상태가 DORMANT 이면 ACTIVE 상태로 변경
      */
     public void login() {
         this.lastLoginAt = LocalDateTime.now();
@@ -134,22 +140,20 @@ public class User extends BaseTimeEntity {
     }
 
     /**
-     * 사용자 닉네임을 업데이트 하는 Entity 비즈니스 메서드입니다.
-     * @param newNickname : 사용자가 업데이트 하고자 하는 새로운 닉네임
+     * 사용자 닉네임을 업데이트하는 Entity 비즈니스 메서드이다.
+     * @param newNickname 새로운 닉네임
      */
     public void updateNickname(String newNickname) {
         this.nickname = newNickname;
     }
 
-    public void updateEmail(String newEmail) {this.email = newEmail;}
+    public void updateEmail(String newEmail) {
+        this.email = newEmail;
+    }
+
     /**
-     * 사용자가 탈퇴를 수행했을 때, 바로 삭제하지 않고 실제 삭제 예정 날짜를 설정하는 함수입니다.
-     * (1) status -> WITHDRAW_PENDING
-     * (2) deletedAt(삭제 요청 시각) 최신화
-     * (3) purgeAt(완전 삭제 예정 시각) 최신화
-     * (4) dailPraise (AI 칭찬서 수신 여부) false
-     * (5) notificationEnabled (알림 설정) false
-     * @param purgeDurationInMs : 완전 삭제까지의 기간(일주일)
+     * 사용자가 탈퇴를 수행했을 때 soft delete 정보를 설정한다.
+     * @param purgeDurationInMs 완전 삭제까지의 유예 기간
      */
     public void withdrawUser(Long purgeDurationInMs) {
         this.status = UserStatus.WITHDRAW_PENDING;
@@ -159,7 +163,7 @@ public class User extends BaseTimeEntity {
         this.notificationEnabled = false;
     }
 
-    public void cancelWithDrawUser(){
+    public void cancelWithDrawUser() {
         this.status = UserStatus.ACTIVE;
         this.deletedAt = null;
         this.purgeAt = null;
@@ -167,12 +171,24 @@ public class User extends BaseTimeEntity {
         this.notificationEnabled = true;
     }
 
+    // [AI-GEN] restrict user status
+    public void suspend() {
+        this.status = UserStatus.SUSPENDED;
+    }
+
+    // [AI-GEN] restore user status
+    public void activate() {
+        this.status = UserStatus.ACTIVE;
+    }
+
     public void addInk(int amount) {
         this.ink += amount;
     }
 
-    public void useInk(int price){
-        if (price <= 0) return;
+    public void useInk(int price) {
+        if (price <= 0) {
+            return;
+        }
 
         if (this.ink == null || this.ink < price) {
             throw new CustomException(LettersErrorCode.INSUFFICIENT_INK);
@@ -194,23 +210,19 @@ public class User extends BaseTimeEntity {
     }
 
     /**
-     * 출석 여부를 확인한 후, 출석을 하지 않았다면 출석 보상 부여 및 상태를 변경하는 함수
-     * @param rewardAmount : 보상을 받을 잉크량
-     * return : 지급된 보상 잉크량
+     * 오늘 첫 출석 여부를 확인하고 보상을 지급한다.
+     * @param rewardAmount 보상 잉크
+     * @return 지급된 보상 잉크
      */
-    public int checkFirstAttendanceTodayAndGetReward(int rewardAmount){
-        // 1. 출석 여부 확인 - 이미 출석했다면 보상 0
-        if(!this.isFirstAttendanceToday()){
+    public int checkFirstAttendanceTodayAndGetReward(int rewardAmount) {
+        if (!this.isFirstAttendanceToday()) {
             return 0;
         }
 
-        // 2. 오늘 첫 접속 상태라면, 스스로 상태 변경 후 보상 지급
         this.isFirstAttendanceToday = false;
         this.addInk(rewardAmount);
         return rewardAmount;
     }
-
-
 
     public void blockLetterReceiveUntil(LocalDateTime until) {
         this.letterReceiveBlockedUntil = until;
@@ -220,19 +232,15 @@ public class User extends BaseTimeEntity {
         return letterReceiveBlockedUntil == null || !now.isBefore(letterReceiveBlockedUntil);
     }
 
-    public void levelUp(){
+    public void levelUp() {
         this.level += 1;
     }
 
-
-    // 해당 시간까지 수신 차단된 상태인지 확인하는 메서드도 필요할 수 있음.
     public boolean canReceiveLetters() {
         return letterReceiveBlockedUntil == null || LocalDateTime.now().isAfter(letterReceiveBlockedUntil);
     }
 
-    // getter, setter
     public LocalDateTime getLetterReceiveBlockedUntil() {
         return letterReceiveBlockedUntil;
     }
-
 }

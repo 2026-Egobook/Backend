@@ -55,7 +55,7 @@ class NotificationServiceTest {
         given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
 
         String longContent = "17자가 넘는지 확인. 힘들었겠따... 근데 나도 힘들어";
-        PlazaLetterReply reply = PlazaLetterReply.builder().text(longContent).build();
+        PlazaLetterReply reply = PlazaLetterReply.builder().content(longContent).build();
         given(plazaLetterReplyRepository.findById(TARGET_ID)).willReturn(Optional.of(reply));
 
         // When

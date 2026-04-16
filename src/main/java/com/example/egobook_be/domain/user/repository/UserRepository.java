@@ -1,9 +1,11 @@
 package com.example.egobook_be.domain.user.repository;
 
+import com.example.egobook_be.domain.user.dto.SearchUserResDto;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.enums.UserStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
@@ -75,4 +77,13 @@ public interface UserRepository extends JpaRepository<User, Long>,UserRepository
     List<Long> findAvailableReceivers(@Param("now") LocalDateTime now, Pageable pageable);
 
     Optional<User> findByEmail(String email);
+
+    @Query("select new com.example.egobook_be.domain.user.dto.SearchUserResDto(" +
+            "u.id, u.accountCode, u.email, u.nickname, u.status)" +
+            "from User u " +
+            "where (u.nickname like concat('%', :keyword, '%') or " +
+            "       u.email like concat('%', :keyword, '%') or " +
+            "       u.accountCode like concat('%', :keyword, '%')) " +
+            "and (:status is null or u.status = :status)")
+    Slice<SearchUserResDto> findUsersByKeywordAndStatus(@Param("keyword")String keyword, @Param("status")UserStatus status, Pageable pageable);
 }
