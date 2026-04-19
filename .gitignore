@@ -48,6 +48,10 @@ src/test/resources/application-test.yml
 ### firebase access key ###
 src/main/resources/firebase-service-account.json
 
-### CLAUDE ###
+### CLAUDE.md ###
 CLAUDE.md
-.claude/settings.local.json
+.claude/settings.local.json.
+.claude
+
+### CODEX ###
+AGENTS.md

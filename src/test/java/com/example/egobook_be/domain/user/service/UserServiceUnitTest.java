@@ -8,7 +8,7 @@ import com.example.egobook_be.domain.auth.repository.RefreshTokenBackupRepositor
 import com.example.egobook_be.domain.user.dto.WithdrawReasonReqDto;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.entity.WithdrawReason;
-import com.example.egobook_be.domain.user.enums.UserErrorCode;
+import com.example.egobook_be.domain.user.exception.UserErrorCode;
 import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.user.enums.WithdrawReasonType;
 import com.example.egobook_be.domain.user.repository.UserRepository;

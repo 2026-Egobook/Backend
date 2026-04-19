@@ -2,23 +2,7 @@ package com.example.egobook_be.domain.auth.sevice;
 
 import com.example.egobook_be.domain.auth.dto.req.*;
 import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
-import com.example.egobook_be.domain.home.entity.Mission;
-import com.example.egobook_be.domain.home.repository.MissionRepository;
-import com.example.egobook_be.domain.shop.entity.Item;
-import com.example.egobook_be.domain.shop.entity.UserItem;
-import com.example.egobook_be.domain.shop.enums.ShopErrorCode;
-import com.example.egobook_be.domain.shop.repository.ItemRepository;
-import com.example.egobook_be.domain.shop.repository.UserItemRepository;
-import com.example.egobook_be.domain.terms.entity.Term;
-import com.example.egobook_be.domain.terms.entity.UserTerm;
-import com.example.egobook_be.domain.terms.enums.TermErrorCode;
-import com.example.egobook_be.domain.terms.repository.TermRepository;
-import com.example.egobook_be.domain.terms.repository.UserTermRepository;
-import com.example.egobook_be.domain.user.entity.Ability;
-import com.example.egobook_be.domain.user.enums.RoleType;
-import com.example.egobook_be.domain.user.enums.UserErrorCode;
 import com.example.egobook_be.domain.user.enums.UserStatus;
-import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.service.UserService;
 import com.example.egobook_be.global.util.*;
 import com.example.egobook_be.global.util.module.TokenInfo;
@@ -30,7 +14,6 @@ import com.example.egobook_be.domain.auth.enums.Provider;
 import com.example.egobook_be.domain.auth.repository.AuthAccountRepository;
 import com.example.egobook_be.domain.auth.repository.RefreshTokenBackupRepository;
 import com.example.egobook_be.domain.user.entity.User;
-import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.security.CustomUserDetails;
 import com.example.egobook_be.global.util.module.RedisValue;
@@ -41,10 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Auth 관련 비즈니스 로직을 수행하는
