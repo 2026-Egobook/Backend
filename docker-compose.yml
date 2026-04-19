@@ -12,6 +12,11 @@ services:
       - redis-db
     networks:
       - egobook-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"   # 로그 파일 하나당 최대 10MB
+        max-file: "3"     # 최대 파일 개수 3개 (오래된 건 삭제)
 
   # Redis
   redis-db:
