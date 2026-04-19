@@ -143,7 +143,11 @@ jobs:
           name: egobookServer # build job에서 upload할 때 설정한 파일 꾸러미 이름 지정
           path: build/libs/ # 해당 파일을 가져와서 어디에 둘지 설정
 
-      # (2) EC2로 배포
+      # (2) 레포지토리 코드를 다시 체크아웃 (Dockerfile, docker-compose.yml 메모리에 로드시키기 위해)
+      - name: Checkout for Docker files
+        uses: actions/checkout@v4
+
+      # (3) EC2로 배포
       - name: Deploy to EC2 with Docker
         # env: 해당 step레벨에서 사용할 환경 변수 설정(workflow, job 레벨에서도 설정 가능)
         env:
