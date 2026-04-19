@@ -191,7 +191,7 @@ jobs:
             mv *.jar egobookServer.jar
           
             # Redis 비밀번호를 포함하여 컨테이너 실행
-            REDIS_PASSWORD=$REDIS_PASSWORD sudo -E docker-compose up -d --build
+            REDIS_PASSWORD=$REDIS_PASSWORD sudo -E docker compose up -d --build
           
             # 안 쓰는 이미지 삭제
             sudo docker image prune -f
