@@ -10,6 +10,14 @@ services:
     restart: always  # 서버 재시작 시 자동 실행
     depends_on:
       - redis-db
+    environment:
+      # 컨테이너 내부에서 파일이 위치할 경로를 지정합니다.
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/resources/firebase-service-account.json
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      # [호스트 경로]:[컨테이너 내부 경로]
+      # EC2에 생성된 실제 파일을 컨테이너 내부의 위 environment에서 설정한 경로로 마운트합니다.
+      - ./src/main/resources/firebase-service-account.json:/app/resources/firebase-service-account.json
     networks:
       - egobook-network
     logging:

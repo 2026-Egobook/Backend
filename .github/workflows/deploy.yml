@@ -186,16 +186,25 @@ jobs:
           # - $EC2_USERNAME@$EC2_HOST:...: 내 컴퓨터의 $jar_file을 EC2 서버의 /home/사용자/egobookServer.jar 라는 이름으로 저장해라!
           # - 참고: 업로드할 때 이름을 egobookServer.jar로 고정했습니다. 이렇게 하면 매번 파일명이 바뀌어도 서버 안에서는 항상 같은 이름이라 관리가 편합니다.
           
-          # EC2 접속 및 Docker Compose 실행 - "" 안에 있는 명령어는 EC2 안에서 실행됨
+          # EC2 접속 및 Docker Compose 실행
           ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "
-            cd /home/$EC2_USERNAME
-            mv *.jar egobookServer.jar
+          cd /home/$EC2_USERNAME
           
-            # Redis 비밀번호를 포함하여 컨테이너 실행
-            REDIS_PASSWORD=$REDIS_PASSWORD sudo -E docker compose up -d --build
-          
-            # 안 쓰는 이미지 삭제
-            sudo docker image prune -f
+          # 1. 파일 이름 정리
+          mv *.jar egobookServer.jar
+        
+          # 2. Firebase 키 파일 경로를 명시적으로 지정 (환경 변수에는 '경로'만 담아야 함)
+          # 현재 docker-compose.yml이 위치한 곳의 파일을 가리키도록 설정
+          export FIREBASE_PATH=\"/home/$EC2_USERNAME/src/main/resources/firebase-service-account.json\"
+        
+          # 3. 컨테이너 실행
+          # -E 옵션으로 export한 FIREBASE_PATH를 sudo 환경에서도 쓸 수 있게 함
+          REDIS_PASSWORD=$REDIS_PASSWORD \
+          GOOGLE_APPLICATION_CREDENTIALS=\$FIREBASE_PATH \
+          sudo -E docker compose up -d --build
+        
+          # 4. 정리
+          sudo docker image prune -f
           "
           
           # Runner(가상환경)에 만들었던 임시 키 파일 삭제
