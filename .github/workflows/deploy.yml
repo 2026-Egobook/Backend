@@ -100,8 +100,9 @@ jobs:
       # Firebase Service Account Key
       - name: Create Firebase Service Account Key
         run: |
-          echo "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}" > ./src/main/resources/firebase-service-account.json
-
+          mkdir -p ./src/main/resources
+          # Secrets 값을 가져와 base64로 풀어서 파일로 저장
+          echo "${{ secrets.FIREBASE_KEY_BASE64 }}" | base64 --decode > ./src/main/resources/firebase-service-account.json
 
         # (5) gradlew 파일에 실행 권한 부여
       - name: Grant execute permission for gradlew
