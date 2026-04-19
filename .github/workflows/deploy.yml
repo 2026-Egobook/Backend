@@ -159,6 +159,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           WORD_AI_BASE_URL: ${{ secrets.WORD_AI_BASE_URL }}
+          FIREBASE_KEY_BASE64: ${{ secrets.FIREBASE_KEY_BASE64 }}
           # => github secrets에 설정해놓은 값들 env로 가져오기
 
         run: |
@@ -188,23 +189,22 @@ jobs:
           
           # EC2 접속 및 Docker Compose 실행
           ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "
-          cd /home/$EC2_USERNAME
+            mkdir -p /home/$EC2_USERNAME/src/main/resources
+            echo '$FIREBASE_KEY_BASE64' | base64 --decode > /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
+            chmod 600 /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
+      
+            cd /home/$EC2_USERNAME
+            
+            # 1. 파일 이름 정리
+            mv *.jar egobookServer.jar
           
-          # 1. 파일 이름 정리
-          mv *.jar egobookServer.jar
-        
-          # 2. Firebase 키 파일 경로를 명시적으로 지정 (환경 변수에는 '경로'만 담아야 함)
-          # 현재 docker-compose.yml이 위치한 곳의 파일을 가리키도록 설정
-          export FIREBASE_PATH=\"/home/$EC2_USERNAME/src/main/resources/firebase-service-account.json\"
-        
-          # 3. 컨테이너 실행
-          # -E 옵션으로 export한 FIREBASE_PATH를 sudo 환경에서도 쓸 수 있게 함
-          REDIS_PASSWORD=$REDIS_PASSWORD \
-          GOOGLE_APPLICATION_CREDENTIALS=\$FIREBASE_PATH \
-          sudo -E docker compose up -d --build
-        
-          # 4. 정리
-          sudo docker image prune -f
+            # 3. 컨테이너 실행
+            # -E 옵션으로 export한 FIREBASE_PATH를 sudo 환경에서도 쓸 수 있게 함
+            REDIS_PASSWORD=$REDIS_PASSWORD \
+            sudo -E docker compose up -d --build
+          
+            # 4. 정리
+            sudo docker image prune -f
           "
           
           # Runner(가상환경)에 만들었던 임시 키 파일 삭제
