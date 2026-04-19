@@ -53,6 +53,7 @@ public class AdsService {
             String transactionId, String userIdStr, String weeklyCounselIdStr,
             String rewardType, String adUnitId
     ) {
+        log.info("[AdsService] adMobCallbackInk Start");
         /*
           * 1. 보안 검증 - 주어진 SSV 서명을 key_id로 검증
           * - Swagger Test를 위해, 값이 "TEST_PASS"가 들어오면 검증을 패스하도록 설정한다.
@@ -101,6 +102,7 @@ public class AdsService {
             }
             case AdRewardType.WEEK_COUNSEL -> rewardWeekCounsel(transactionId, userIdStr, weeklyCounselIdStr, adUnitId);
         }
+        log.info("[AdsService] adMobCallbackInk End");
     }
 
     /**
@@ -167,6 +169,7 @@ public class AdsService {
 
     @Transactional
     public void grantTestAdReward(Long userId, TestAdRewardReqDto reqDto) {
+        log.info("[AdsService] grantTestAdReward Start - userId: {}", userId);
         // 1. "TEST_" 접두사를 붙여서 랜덤 transactionId를 생성한다.
         String mockTransactionId = "TEST_" + UUID.randomUUID().toString();
 
@@ -201,6 +204,7 @@ public class AdsService {
             }
             case AdRewardType.WEEK_COUNSEL -> rewardWeekCounsel(mockTransactionId, userId.toString(), reqDto.targetId().toString(), reqDto.adUnitId());
         }
+        log.info("[AdsService] grantTestAdReward End - userId: {}", userId);
     }
 
 
@@ -212,6 +216,7 @@ public class AdsService {
      */
     @Transactional(readOnly = true)
     public UserAdStatusResDto getUserAdStatus(Long userId) {
+        log.info("[AdsService] getUserAdStatus Start - userId: {}", userId);
         // 1. 오늘 날짜 범위 구하기 (KST 00:00 ~ 23:59)
         LocalDateTime nowKst = LocalDateTime.now(ZoneId.of(KST_ZONE));
         LocalDateTime startOfDay = nowKst.toLocalDate().atStartOfDay(); // 00:00:00
@@ -222,6 +227,8 @@ public class AdsService {
 
         // 3. 응답 생성
         boolean isAvailable = currentCount < DAILY_AD_LIMIT;
+
+        log.info("[AdsService] getUserAdStatus Start - userId: {}", userId);
 
         return UserAdStatusResDto.builder()
                 .currentViewCount(currentCount)

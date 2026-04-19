@@ -14,6 +14,7 @@ import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlazaLetterQueryService {
@@ -38,6 +40,7 @@ public class PlazaLetterQueryService {
 
     @Transactional(readOnly = true)
     public SliceResponse<PlazaSentLetterResDto> getMySentLetters(Long userId, Integer page, Integer size) {
+        log.info("[PlazaLetterQueryService] getMySentLetters Start - userId: {}", userId);
 
         int safePage = (page == null || page < 1) ? 1 : page;
         int safeSize = (size == null || size <= 0) ? DEFAULT_SIZE : Math.min(size, MAX_SIZE);
@@ -51,6 +54,7 @@ public class PlazaLetterQueryService {
 
         Slice<PlazaLetter> sliceResult = plazaLetterRepository.findMySentLettersSlice(userId, pageable);
 
+        log.info("[PlazaLetterQueryService] getMySentLetters End - userId: {}", userId);
         // 2) DTO로 변환하여 반환
         return SliceResponse.of(sliceResult, plazaLetterMapper::toDto);
     }
@@ -61,6 +65,7 @@ public class PlazaLetterQueryService {
             int page,
             int size
     ) {
+        log.info("[PlazaLetterQueryService] getRepliesToMyLetters Start - userId: {}", userId);
         int safePage = Math.max(page, 1);
         int safeSize = Math.min(Math.max(size, 1), 50);
 
@@ -104,6 +109,7 @@ public class PlazaLetterQueryService {
                         }
                 ));
 
+        log.info("[PlazaLetterQueryService] getRepliesToMyLetters End - userId: {}", userId);
         // 4) DTO 변환
         return SliceResponse.of(slice, reply -> {
             PlazaLetter letter = reply.getLetter();
@@ -125,6 +131,7 @@ public class PlazaLetterQueryService {
 
     @Transactional(readOnly = true)
     public PlazaLetterDetailResDto getMyLetterDetail(Long userId, Long letterId) {
+        log.info("[PlazaLetterQueryService] getMyLetterDetail Start - userId: {}", userId);
 
         PlazaLetter letter = plazaLetterRepository.findById(letterId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
@@ -144,12 +151,13 @@ public class PlazaLetterQueryService {
                     .existsByReply_ReplyIdAndReporterId(reply.getReplyId(), userId);
         }
 
+        log.info("[PlazaLetterQueryService] getMyLetterDetail End - userId: {}", userId);
         return plazaLetterMapper.toDetailDto(letter, reply, reported);
     }
 
     @Transactional(readOnly = true)
     public SliceResponse<DeferredInboxItemDto> getMyDeferredInbox(Long userId, Integer page, Integer size) {
-
+        log.info("[PlazaLetterQueryService] getMyDeferredInbox Start - userId: {}", userId);
         int safePage = (page == null || page < 1) ? 1 : page;
         int safeSize = (size == null || size <= 0) ? DEFAULT_SIZE : Math.min(size, MAX_SIZE);
 
@@ -161,17 +169,20 @@ public class PlazaLetterQueryService {
 
         Slice<PlazaLetter> slice = plazaLetterRepository.findMyDeferredInboxSlice(userId, pageable);
 
+        log.info("[PlazaLetterQueryService] getMyDeferredInbox End - userId: {}", userId);
         return SliceResponse.of(slice, plazaLetterMapper::toDeferredInboxItemDto);
     }
 
 
     @Transactional(readOnly = true)
     public InboxNextResponse getInboxLetterDetail(Long userId, Long letterId) {
+        log.info("[PlazaLetterQueryService] getInboxLetterDetail Start - userId: {}", userId);
 
         PlazaLetter letter = plazaLetterRepository
                 .findInboxLetterForReply(letterId, userId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
 
+        log.info("[PlazaLetterQueryService] getInboxLetterDetail End - userId: {}", userId);
         return plazaLetterMapper.toResponse(letter);
     }
 

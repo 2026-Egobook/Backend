@@ -19,6 +19,7 @@ import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.exception.GlobalErrorCode;
 import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -26,6 +27,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class NotificationService {
@@ -40,6 +42,7 @@ public class NotificationService {
     /** 알림 생성 */
     @Transactional
     public void createNotification(Long userId, NotificationType type, Long targetId, String... args) {
+        log.info("[NotificationService] createNotification Start - userId: {}, targetId: {}", userId, targetId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(NotificationErrorCode.USER_NOT_FOUND));
 
@@ -69,12 +72,13 @@ public class NotificationService {
         notificationRepository.save(notification);
 
         fcmService.sendPushNotification(user, notification);
+        log.info("[NotificationService] createNotification End - userId: {}, targetId: {}", userId, targetId);
     }
 
     /** 알림 목록 */
     @Transactional(readOnly = true)
     public SliceResponse<NotificationResDto> getNotifications(Long userId, int page, int size) {
-
+        log.info("[NotificationService] getNotifications Start - userId: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(NotificationErrorCode.USER_NOT_FOUND));
 
@@ -94,12 +98,14 @@ public class NotificationService {
 
         Slice<Notification> slice = notificationRepository.findAllByUser(user, pageable);
 
+        log.info("[NotificationService] getNotifications End - userId: {}", userId);
         return SliceResponse.of(slice, NotificationMapper::toNotificationDto);
     }
 
     /** 알림 읽음 처리 */
     @Transactional
     public NotificationReadResDto readNotification(Long userId, Long notificationId) {
+        log.info("[NotificationService] readNotification Start - userId: {}, notificationId: {}", userId, notificationId);
 
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new CustomException(NotificationErrorCode.NOTIFICATION_NOT_FOUND));
@@ -111,28 +117,33 @@ public class NotificationService {
         notification.markAsRead();
         notificationRepository.save(notification);
 
+        log.info("[NotificationService] readNotification End - userId: {}, notificationId: {}", userId, notificationId);
         return NotificationMapper.toNotificationReadDto(notification);
     }
 
     /** 알림 설정 확인 */
     @Transactional(readOnly = true)
     public NotificationSettingResDto getNotificationSetting(Long userId) {
+        log.info("[NotificationService] getNotificationSetting Start - userId: {}", userId);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(NotificationErrorCode.USER_NOT_FOUND));
 
+        log.info("[NotificationService] getNotificationSetting End - userId: {}", userId);
         return NotificationMapper.toNotificationSettingDto(user);
     }
 
     /** 알림 설정 변경 */
     @Transactional
     public NotificationSettingResDto updateNotificationSetting(Long userId) {
+        log.info("[NotificationService] updateNotificationSetting Start - userId: {}", userId);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(NotificationErrorCode.USER_NOT_FOUND));
 
         user.updateNotificationEnabled();
 
+        log.info("[NotificationService] updateNotificationSetting Start - userId: {}", userId);
         return NotificationMapper.toNotificationSettingDto(user);
     }
 
