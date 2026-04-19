@@ -7,7 +7,7 @@ spring:
     username: ${DB_USER}
     password: ${DB_PW}
   jpa:
-    show-sql: true      # 개발 서버니까 로그 봄
+    show-sql: false      # 개발 서버니까 로그 봄
     hibernate:
       ddl-auto: update  # 데이터 날아가면 안 되니까 update
   logging:
