@@ -135,17 +135,17 @@ jobs:
     needs: build  # needs: 해당 Job은 지정한 Job들이 성공적으로 끝난 후에만 실행된다는 의존성 선언
     runs-on: ubuntu-latest # 실행 환경(OS 환경) 설정. 해당 작업을 실행할 컴퓨터의 운영체제를 지정함
     steps:
-      # (1) build해놓은 결과물(.jar) 다운로드 받기
+      # (1) 레포지토리 코드를 다시 체크아웃 (Dockerfile, docker-compose.yml 메모리에 로드시키기 위해)
+      - name: Checkout for Docker files
+        uses: actions/checkout@v4
+
+      # (2) build해놓은 결과물(.jar) 다운로드 받기
       - name: Download build artifact
         uses: actions/download-artifact@v4
         # 해당 build 결과물을 업로드한 버전과 같아야함.
         with: # with: 전달할 파라미터 설정
           name: egobookServer # build job에서 upload할 때 설정한 파일 꾸러미 이름 지정
-          path: build/libs/ # 해당 파일을 가져와서 어디에 둘지 설정
-
-      # (2) 레포지토리 코드를 다시 체크아웃 (Dockerfile, docker-compose.yml 메모리에 로드시키기 위해)
-      - name: Checkout for Docker files
-        uses: actions/checkout@v4
+          path: build/libs # 해당 파일을 가져와서 어디에 둘지 설정
 
       # (3) EC2로 배포
       - name: Deploy to EC2 with Docker
