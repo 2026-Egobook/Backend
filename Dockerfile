@@ -1,5 +1,5 @@
 # 1. Base 이미지 설정
-FROM openjdk:21-jdk-slim
+FROM amazoncorretto:21-al2023-jdk
 
 # 2. 작업 디렉토리 설정
 WORKDIR /app
