@@ -19,13 +19,14 @@ import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.util.InkLogUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class HomeService {
@@ -51,6 +52,7 @@ public class HomeService {
      */
     @Transactional
     public HomeResDto getHomeData(Long userId){
+        log.info("[HomeService] getHomeData Start - userId: {}", userId);
         /*
          * 1. 사용자 정보 가져오기
          * - 해당 API가 동시에 호출되면 동시성 이슈로 2개의 스레드가 처리됨으로써 잉크 보상이 2번 주어질 수 있다.
@@ -76,6 +78,7 @@ public class HomeService {
         else attendanceRewardInk = 0;
         HomeResDto resDto = homeMapper.toHomeResDto(user, unReadNotificationCount, hasUnopenedPsychology, attendanceRewardInk);
 
+        log.info("[HomeService] getHomeData End - userId: {}", userId);
         return resDto;
     }
 
@@ -90,6 +93,7 @@ public class HomeService {
      */
     @Transactional
     public HomeActivityResDto getHomeActivities(Long userId){
+        log.info("[HomeService] getHomeActivities Start - userId: {}", userId);
         // 1. 사용자 가져오기
         User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
 
@@ -104,6 +108,7 @@ public class HomeService {
         // 4. 사용자의 주간 미션 현황을 최신화한다.
         userMission.checkAndResetWeekly(LocalDate.now());
 
+        log.info("[HomeService] getHomeActivities End - userId: {}", userId);
         /*
          * 5. Entity -> DTO 변환
          * Mission 엔티티에 만들어둔 편의 메서드를 활용하여 요일별 상태를 List로 변환합니다.
@@ -116,20 +121,24 @@ public class HomeService {
      */
     @Transactional(readOnly = true)
     public HomeAbilityResDto getHomeAbilities(Long userId){
+        log.info("[HomeService] getHomeAbilities Start - userId: {}", userId);
         // 1. 사용자 가져오기
         User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
 
         // 2. 해당 사용자의 Ability 가져오기
         Ability userAbility = abilityRepository.findByUser(user).orElseThrow(() -> new CustomException(UserErrorCode.ABILITY_NOT_FOUND));
 
+        log.info("[HomeService] getHomeAbilities End - userId: {}", userId);
         // 3. 해당 사용자의 Ability 반환
         return homeMapper.toHomeAbilityResDto(userAbility);
     }
 
     @Transactional(readOnly = true)
     public HomeSettingResDto getHomeSettings(Long userId){
+        log.info("[HomeService] getHomeSettings Start - userId: {}", userId);
         // 1. 사용자 가져오기
         User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+        log.info("[HomeService] getHomeSettings End - userId: {}", userId);
         // 2. 사용자의 AccountCode 반환
         return homeMapper.toHomeSettingResDto(user);
     }

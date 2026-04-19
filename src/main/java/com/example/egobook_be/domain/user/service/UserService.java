@@ -72,11 +72,13 @@ public class UserService {
      */
     @Transactional
     public User initializeAndRegisterUser(String email){
+        log.info("[UserService] initializeAndRegisterUser Start - email: {}", email);
         // 1. User Entity 생성
         User user = createUser(email);
 
         // 2. 초기 User 연관 데이터 생성
         allocateUser(user);
+        log.info("[UserService] initializeAndRegisterUser End - email: {}", email);
         return userRepository.save(user);
     }
 
@@ -88,6 +90,7 @@ public class UserService {
      * @param email : Guest-null, Google-Token에 있는 Google Email 설정
      */
     private User createUser(String email){
+        log.info("[UserService] createUser Start - email: {}", email);
         /*
          * AuthAccount -> User Entity의 연관관계 설정을 위해, UserRepository로 먼저 save한다.
          *  (1) accountCode: 랜덤으로 생성된 공개 고유 ID 지정 (중복 여부 확인)
@@ -201,18 +204,21 @@ public class UserService {
 
     @Transactional
     public UserNicknameResDto updateNickname(Long userId, UserNicknameUpdateReqDto reqDto) {
+        log.info("[UserService] updateNickname Start - userId: {}", userId);
         // 1. User 가져오기
         User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
 
         // 2. 닉네임 업데이트 (해당 닉네임의 스타일은 이미 Dto 레벨에서 검증되었음)
         user.updateNickname(reqDto.nickname());
 
+        log.info("[UserService] updateNickname End - userId: {}", userId);
         return UserNicknameResDto.builder().newNickname(user.getNickname()).build();
     }
 
     // 사용자가 전달해준 회원 탈퇴 이유를 저장하는 함수
     @Transactional
     public void saveWithdrawReason(Long userId, WithdrawReasonReqDto reqDto) {
+        log.info("[UserService] saveWithdrawReason Start - userId: {}", userId);
         // 1. User가 존재하는지 확인
         if(!userRepository.existsById(userId)) {
             throw new CustomException(UserErrorCode.USER_NOT_FOUND);
@@ -230,6 +236,7 @@ public class UserService {
 
         // 4. 회원 탈퇴 이유 저장
         withdrawReasonRepository.save(WithdrawReason.create(userId, reqDto.reasonType(), reqDto.text()));
+        log.info("[UserService] saveWithdrawReason End - userId: {}", userId);
     }
 
     /**
@@ -239,6 +246,7 @@ public class UserService {
      */
     @Transactional
     public void withDrawAccount(Long userId, String accessToken){
+        log.info("[UserService] withDrawAccount Start - userId: {}", userId);
         // 1. 사용자 인스턴스 가져오기 (비관적 락), 해당 사용자의 인증 정보 가져오기
         User user = userRepository.findByIdWithLock(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
         AuthAccount userAuthAccount = authAccountRepository.findByUser(user).orElseThrow(() -> new CustomException(AuthErrorCode.USER_AUTH_ACCOUNT_NOT_FOUND));
@@ -276,6 +284,7 @@ public class UserService {
 
         // 5-2. orphanRemoval 설정 활용하여 refreshTokenBackup 객체 삭제
         userAuthAccount.updateRefreshTokenBackup(null);
+        log.info("[UserService] withDrawAccount End - userId: {}", userId);
 
     }
 

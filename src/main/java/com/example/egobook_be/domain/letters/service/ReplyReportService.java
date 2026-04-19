@@ -9,11 +9,13 @@ import com.example.egobook_be.global.enums.ReportStatus;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReplyReportService {
@@ -24,6 +26,7 @@ public class ReplyReportService {
 
     @Transactional
     public void reportReply(Long userId, Long replyId, ReportReason reason, String description) {
+        log.info("[ReplyReportService] reportReply Start - userId: {}, replyId: {}", userId, replyId);
         // "기타"일 경우 사유 입력 값이 있어야 함
         if (reason == ReportReason.OTHER && (description == null || description.isBlank())) {
             throw new CustomException(LettersErrorCode.INVALID_REPORT_REASON);
@@ -66,6 +69,7 @@ public class ReplyReportService {
             // 3회 누적 신고된 답장 삭제 및 신고 DB로 이동
             moveReplyToReportDbAndDelete(replyId);
         }
+        log.info("[ReplyReportService] reportReply End - userId: {}, replyId: {}", userId, replyId);
     }
 
     // 신고 횟수 3회 누적 시 답장 삭제 및 신고 DB로 이동

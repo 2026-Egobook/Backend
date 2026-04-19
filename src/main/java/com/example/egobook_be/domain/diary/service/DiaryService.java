@@ -20,6 +20,7 @@ import com.example.egobook_be.global.response.SliceResponse;
 import com.example.egobook_be.global.util.InkLogUtil;
 import com.example.egobook_be.infra.s3.S3Service;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -30,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.*;
 import java.util.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DiaryService {
@@ -44,6 +46,7 @@ public class DiaryService {
     /** 감정 일기 생성 */
     @Transactional
     public DiaryCreateResDto createDiary(Long userId, DiaryCreateReqDto dto) {
+        log.info("[DiaryService] createDiary Start - userId: {}", userId);
         User user = diaryQueryService.getUserById(userId);
         Ability ability = diaryQueryService.getAbilityByUser(user);
         Mission userMission = diaryQueryService.getMissionByUser(user);
@@ -92,6 +95,7 @@ public class DiaryService {
                 .writtenAt(writtenAt)
                 .build());
 
+        log.info("[DiaryService] createDiary End - userId: {}", userId);
         // Reward 객체들 생성 후 DiaryCreateResDto 반환
         return DiaryMapper.toDiaryCreateDto(diary, getRewards(user, ability, userMission, isFirstDiaryToday, isFirstConcernToday, isFirstPositiveToday, dto.type()));
     }
@@ -202,6 +206,7 @@ public class DiaryService {
     /** 감정 일기 수정 */
     @Transactional
     public DiaryResDto updateDiary(Long userId, Long diaryId, DiaryUpdateReqDto dto) {
+        log.info("[DiaryService] updateDiary Start - userId: {}", userId);
 
         Diary diary = diaryQueryService.getDiaryWithAuth(userId, diaryId);
 
@@ -210,23 +215,27 @@ public class DiaryService {
         diary.update(dto.content(), dto.type(), dto.emotionLevel());
         diaryRepository.save(diary);
 
+        log.info("[DiaryService] updateDiary End - userId: {}", userId);
         return DiaryMapper.toDiaryDto(diary);
     }
 
     /** 감정 일기 삭제 */
     @Transactional
     public DiaryDeleteResDto deleteDiary(Long userId, Long diaryId) {
+        log.info("[DiaryService] deleteDiary Start - userId: {}", userId);
 
         Diary diary = diaryQueryService.getDiaryWithAuth(userId, diaryId);
 
         diaryRepository.delete(diary);
 
+        log.info("[DiaryService] deleteDiary End - userId: {}", userId);
         return DiaryMapper.toDiaryDeleteDto(true);
     }
 
     /** 날짜별 감정 일기 목록 조회 (type 필터링) */
     @Transactional(readOnly = true)
     public DiaryListResDto getDiaries(Long userId, LocalDate date, DiaryType type, int page, int size) {
+        log.info("[DiaryService] getDiaries Start - userId: {}", userId);
 
         User user = diaryQueryService.getUserById(userId);
 
@@ -256,13 +265,14 @@ public class DiaryService {
         // 선택 날짜 일기 개수
         int dailyCount = diaryRepository.countByUserAndDate(user, date);
 
+        log.info("[DiaryService] getDiaries End - userId: {}", userId);
         return DiaryMapper.toDiaryListDto(diaries, dailyCount);
     }
 
     /** 감정 일기 달력 */
     @Transactional(readOnly = true)
     public DiaryCalendarResDto getDiaryCalendar(Long userId, YearMonth month) {
-
+        log.info("[DiaryService] getDiaryCalendar Start - userId: {}", userId);
         User user = diaryQueryService.getUserById(userId);
 
         LocalDate startOfMonth = month.atDay(1);
@@ -271,6 +281,7 @@ public class DiaryService {
         List<DiaryRepository.DailyEmotionCount> dailyEmotions =
                 diaryRepository.findDailyEmotions(user, startOfMonth, endOfMonth);
 
+        log.info("[DiaryService] getDiaryCalendar End - userId: {}", userId);
         return DiaryMapper.toDiaryCalendarDto(month, dailyEmotions);
     }
 

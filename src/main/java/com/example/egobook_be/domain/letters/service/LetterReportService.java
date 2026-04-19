@@ -9,9 +9,11 @@ import com.example.egobook_be.global.enums.ReportReason;
 import com.example.egobook_be.global.enums.ReportStatus;
 import com.example.egobook_be.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LetterReportService {
@@ -21,6 +23,7 @@ public class LetterReportService {
 
     @Transactional
     public void reportLetter(Long letterId, Long userId, ReportReason reason, String description){
+        log.info("[LetterReportService] reportLetter Start - userId: {}", userId);
 
         // 기타면 description 필수
         if (reason == ReportReason.OTHER && (description == null || description.isBlank())) {
@@ -57,6 +60,7 @@ public class LetterReportService {
         if (reportCount >= 3) {
             plazaLetterRepository.deleteById(letterId);
         }
+        log.info("[LetterReportService] reportLetter End - userId: {}", userId);
     }
 }
 
