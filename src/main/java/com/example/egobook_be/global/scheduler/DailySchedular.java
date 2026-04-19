@@ -8,6 +8,8 @@ import com.example.egobook_be.domain.friend.repository.FriendRequestRepository;
 import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReplyReport;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReportRepository;
+import com.example.egobook_be.domain.restriction.enums.RestrictionStatus;
+import com.example.egobook_be.domain.restriction.repository.RestrictionRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterThreadRepository;
@@ -51,6 +53,7 @@ public class DailySchedular {
     private final QuestionAnswerRepository questionAnswerRepository;
     private final InkLogRepository inkLogRepository;
     private final PlazaLetterThreadRepository plazaLetterThreadRepository;
+    private final RestrictionRepository restrictionRepository;
 
     /**
      * 모든 사용자들의 일일 미션을 초기화하는 스케줄러 함수
@@ -78,6 +81,24 @@ public class DailySchedular {
         userRepository.resetAllAttendancesStatus();
         long endTime = System.currentTimeMillis();
         log.info("🕛 [DailySchedular] 사용자 일일 출석 보상 설정 작업 종료. (소요시간: {}ms)", endTime-startTime);
+    }
+
+    /**
+     * 만료 기간이 지난 ACTIVE 제재를 EXPIRED 상태로 일괄 업데이트하는 스케줄러
+     * - 초(0) 분(0) 시(0) 일(*) 월(*) 요일(*)
+     */
+    @Scheduled(cron = "0 0 0 * * *")
+    @Transactional
+    public void expireOverdueRestrictions() {
+        log.info("🕛 [DailySchedular] 만료 제재 상태 업데이트 작업 시작");
+        long startTime = System.currentTimeMillis();
+        int updated = restrictionRepository.bulkExpireOverdueRestrictions(
+                RestrictionStatus.EXPIRED,
+                RestrictionStatus.ACTIVE,
+                LocalDateTime.now()
+        );
+        long endTime = System.currentTimeMillis();
+        log.info("🕛 [DailySchedular] 만료 제재 상태 업데이트 완료. 총 {}건 (소요시간: {}ms)", updated, endTime - startTime);
     }
 
     /**

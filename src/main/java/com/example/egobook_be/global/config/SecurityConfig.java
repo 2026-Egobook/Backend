@@ -43,9 +43,8 @@ public class SecurityConfig {
             "/swagger-ui/**",   // Swagger UI CSS, JS, 이미지
             "/swagger-ui-custom.html",  // Swagger UI 메인 페이지
             "/manage/health",  // AWS의 ALB 헬스 체크 경로
+            "/manage/prometheus", // Prometheus Metrics 수집 경로
             "/ads/admob/callback", // AdMob의 광고 보상 수령 여부 확인 경로
-//            "/api/images", // 나중에 운영 단계에서 & JWT 구현을 한 뒤에는
-            "/test-google-oauth.html", // google oauth 확인용 임시 경로
             "/admin/auth/refresh",
             "/admin/auth/recertification",
     };

@@ -16,10 +16,11 @@ import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.InkLog;
 import com.example.egobook_be.domain.user.entity.InkLogType;
 import com.example.egobook_be.domain.user.entity.User;
-import com.example.egobook_be.domain.user.enums.UserErrorCode;
+import com.example.egobook_be.domain.user.exception.UserErrorCode;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
+import com.example.egobook_be.domain.restriction.service.RestrictionGuardService;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import com.example.egobook_be.global.util.InkLogUtil;
@@ -47,6 +48,7 @@ public class TodayQuestionService {
     private final AbilityRepository abilityRepository;
     private final FriendRepository friendRepository;
     private final InkLogUtil inkLogUtil;
+    private final RestrictionGuardService restrictionGuardService;
 
     /** 오늘의 질문 조회 **/
     @Transactional(readOnly = true)
@@ -107,6 +109,8 @@ public class TodayQuestionService {
         if (questionAnswerRepository.existsByUserAndQuestion(user, todayQuestion)) {
             throw new CustomException(QuestionErrorCode.ALREADY_ANSWERED_TODAY);
         }
+
+        restrictionGuardService.checkQuestionAnswerRestriction(userId);
 
         // 오늘 처음 "오늘의 질문"에 답변했는지 여부 확인
         ZoneId zoneId = ZoneId.of("Asia/Seoul");
@@ -209,6 +213,8 @@ public class TodayQuestionService {
                         new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND)
                 );
 
+        restrictionGuardService.checkQuestionAnswerRestriction(userId);
+
         answer.update(
                 reqDto.content(),
                 reqDto.visibility()
@@ -302,6 +308,8 @@ public class TodayQuestionService {
                 .orElseThrow(() ->
                         new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND)
                 );
+
+        restrictionGuardService.checkQuestionAnswerRestriction(userId);
 
         questionAnswerRepository.delete(answer);
     }
