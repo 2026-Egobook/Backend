@@ -35,6 +35,7 @@ public class EgoStatsService {
 
     @Transactional
     public EgoStatsResDto getStats(Long userId) {
+        log.info("[EgoStatsService] getStats Start - userId: {}", userId);
         Optional<UserStats> userStatsOpt = userStatsRepository.findByUserId(userId);
 
         // 레코드가 아예 없거나, 레코드는 있어도 실제 통계 데이터가 비어있는 경우
@@ -43,18 +44,18 @@ public class EgoStatsService {
         }
 
         try {
+            log.info("[EgoStatsService] getStats End - userId: {}", userId);
             return objectMapper.readValue(userStatsOpt.get().getStatsData(), EgoStatsResDto.class);
         } catch (JsonProcessingException e) {
             log.error("통계 데이터 파싱 실패", e);
             LocalDate now = LocalDate.now();
             return EgoStatsResDto.empty(now.getYear(), now.getMonthValue(), now.minusYears(1).getYear(), now.getMonthValue());
         }
-
     }
 
     @Transactional
     public void calculateAndSaveStats(Long userId, int year, int month) {
-
+        log.info("[EgoStatsService] calculateAndSaveStats Start - userId: {}", userId);
         EgoStatsResDto statsDto = getMonthlyStats(userId, year, month);
 
         try {
@@ -72,13 +73,14 @@ public class EgoStatsService {
         } catch (JsonProcessingException e) {
             log.error("제이슨 변환 실패", e);
         }
+        log.info("[EgoStatsService] calculateAndSaveStats End - userId: {}", userId);
     }
 
 
 
     @Transactional(readOnly = true)
     public EgoStatsResDto getMonthlyStats(Long userId, int year, int month) {
-
+        log.info("[EgoStatsService] getMonthlyStats Start - userId: {}", userId);
 
         LocalDate targetDate = LocalDate.of(year, month, 1);
         LocalDateTime endOfPeriod = targetDate.withDayOfMonth(targetDate.lengthOfMonth()).atTime(23, 59, 59);
@@ -120,6 +122,7 @@ public class EgoStatsService {
 
         MoodPeakResDto moodPeak = calculateMoodPeak(yearlyDiaries);
 
+        log.info("[EgoStatsService] getMonthlyStats End - userId: {}", userId);
         return EgoStatsResDto.builder()
                 .startYear(startOfOneYear.getYear())
                 .startMonth(startOfOneYear.getMonthValue())

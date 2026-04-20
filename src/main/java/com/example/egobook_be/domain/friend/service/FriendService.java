@@ -11,12 +11,14 @@ import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class FriendService {
@@ -28,6 +30,7 @@ public class FriendService {
     /** 친구 신청 **/
     @Transactional
     public void requestFriend(Long senderId, FriendRequestCreateReqDto reqDto) {
+        log.info("[FriendService] requestFriend Start - senderId: {}", senderId);
 
         if (senderId.equals(reqDto.receiverId())) {
             throw new CustomException(FriendErrorCode.SELF_REQUEST_NOT_ALLOWED);
@@ -72,11 +75,13 @@ public class FriendService {
                             .build()
             );
         }
+        log.info("[FriendService] requestFriend End - senderId: {}", senderId);
     }
 
     /** 친구 신청 수락 **/
     @Transactional
     public void acceptRequest(Long receiverId, Long requestId) {
+        log.info("[FriendService] acceptRequest Start - receiverId: {}", receiverId);
         try {
             User receiver = userRepository.findById(receiverId)
                     .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
@@ -119,11 +124,13 @@ public class FriendService {
             // 동시에 거절 / 취소 / 다른 수락이 발생한 경우
             throw new CustomException(FriendErrorCode.FRIEND_REQUEST_CONFLICT);
         }
+        log.info("[FriendService] acceptRequest End - receiverId: {}", receiverId);
     }
 
     /** 친구 신청 거절 **/
     @Transactional
     public void rejectRequest(Long receiverId, Long requestId) {
+        log.info("[FriendService] rejectRequest Start - receiverId: {}", receiverId);
         try {
             User receiver = userRepository.findById(receiverId)
                     .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
@@ -150,12 +157,13 @@ public class FriendService {
             // 동시에 accept / cancel 된 경우
             throw new CustomException(FriendErrorCode.FRIEND_REQUEST_CONFLICT);
         }
+        log.info("[FriendService] rejectRequest End - receiverId: {}", receiverId);
     }
 
     /** 친구 신청 취소 **/
     @Transactional
     public void cancelRequest(Long senderId, Long requestId) {
-
+        log.info("[FriendService] cancelRequest Start - senderId: {}", senderId);
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
@@ -164,11 +172,13 @@ public class FriendService {
                 .orElseThrow(() -> new CustomException(FriendErrorCode.FRIEND_REQUEST_NOT_FOUND));
 
         friendRequestRepository.delete(request);
+        log.info("[FriendService] cancelRequest End - senderId: {}", senderId);
     }
 
     /** 친구 삭제 **/
     @Transactional
     public void deleteFriend(Long userId, Long friendId) {
+        log.info("[FriendService] deleteFriend Start - userId: {}", userId);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
@@ -178,6 +188,7 @@ public class FriendService {
 
         friendRepository.deleteByUserAndFriend(user, friend);
         friendRepository.deleteByUserAndFriend(friend, user);
+        log.info("[FriendService] deleteFriend Start - userId: {}", userId);
     }
 
 
@@ -221,10 +232,11 @@ public class FriendService {
 
     @Transactional(readOnly = true)
     public List<FriendRequestListResDto> getIncomingRequests(Long userId) {
-
+        log.info("[FriendService] getIncomingRequests Start - userId: {}", userId);
         User receiver = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
+        log.info("[FriendService] getIncomingRequests End - userId: {}", userId);
         return friendRequestRepository.findByReceiverAndStatus(
                         receiver,
                         FriendRequestStatus.PENDING
@@ -248,10 +260,12 @@ public class FriendService {
     /** 내가 보낸 친구 신청 목록 **/
     @Transactional(readOnly = true)
     public List<FriendRequestListResDto> getOutgoingRequests(Long userId) {
+        log.info("[FriendService] getOutgoingRequests Start - userId: {}", userId);
 
         User sender = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
+        log.info("[FriendService] getOutgoingRequests End - userId: {}", userId);
         return friendRequestRepository
                 .findBySenderAndStatusWithReceiver(sender, FriendRequestStatus.PENDING)
                 .stream()
@@ -272,6 +286,7 @@ public class FriendService {
     /** 친구 리스트 **/
     @Transactional(readOnly = true)
     public FriendListResDto getFriends(Long userId) {
+        log.info("[FriendService] getFriends Start - userId: {}", userId);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
@@ -289,6 +304,7 @@ public class FriendService {
                 })
                 .toList();
 
+        log.info("[FriendService] getFriends End - userId: {}", userId);
         return FriendListResDto.builder()
                 .count(friends.size())
                 .friends(friends)
@@ -298,10 +314,12 @@ public class FriendService {
     /** 친구 검색 **/
     @Transactional(readOnly = true)
     public List<FriendSearchResDto> searchFriends(Long userId, String keyword) {
+        log.info("[FriendService] searchFriends Start - userId: {}, keyword: {}", userId, keyword);
 
         User me = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
+        log.info("[FriendService] searchFriends End - userId: {}, keyword: {}", userId, keyword);
         return userRepository
                 .findByNicknameContainingIgnoreCaseOrAccountCodeContainingIgnoreCase(keyword, keyword)
                 .stream()

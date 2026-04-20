@@ -7,6 +7,7 @@ import com.example.egobook_be.domain.restriction.enums.RestrictionDomainType;
 import com.example.egobook_be.domain.restriction.service.RestrictionGuardService;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlazaLetterDispatchService {
@@ -33,6 +35,7 @@ public class PlazaLetterDispatchService {
      */
     @Transactional
     public void dispatchWaitingLetters() {
+        log.info("[PlazaLetterDispatchService] dispatchWaitingLetters Start");
         LocalDateTime now = LocalDateTime.now();
 
         List<PlazaLetter> waitingLetters =
@@ -65,6 +68,7 @@ public class PlazaLetterDispatchService {
 
             letter.assignReceiver(receiverId, now, now.plusHours(24));
         }
+        log.info("[PlazaLetterDispatchService] dispatchWaitingLetters End");
     }
 
     private Long pickRandomExcluding(List<Long> pool, Long excluded) {

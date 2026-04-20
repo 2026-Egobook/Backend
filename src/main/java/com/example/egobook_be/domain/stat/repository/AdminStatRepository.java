@@ -5,7 +5,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -23,7 +22,7 @@ public interface AdminStatRepository extends Repository<User, Long> {
     List<JoinWithdrawCount> countJoin(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
-            String format
+            @Param("format") String format
     );
 
     @Query(value = """
@@ -37,7 +36,7 @@ public interface AdminStatRepository extends Repository<User, Long> {
     List<JoinWithdrawCount> countWithdraw(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
-            String format
+            @Param("format") String format
     );
 
     interface JoinWithdrawCount {

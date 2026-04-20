@@ -16,6 +16,7 @@ import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.exception.GlobalErrorCode;
 import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ShopService {
@@ -54,6 +56,7 @@ public class ShopService {
      */
     @Transactional(readOnly = true)
     public SliceResponse<ShopItemInfoResDto> getItemSlice(Long userId, ItemCategory category, Integer page, Integer size){
+        log.info("[ShopService] getItemSlice Start - userId: {}", userId);
         /*
          * 1. Slicing을 위한 Pageable 객체 생성 (아이템 가격 기준으로 오름차순 정렬)
          * - 프론트로부터는 Slice값이 1 ~ N으로 오기 때문에, 해당 값을 -1
@@ -83,6 +86,7 @@ public class ShopService {
                 (oldValue, newValue) -> newValue
         ));
 
+        log.info("[ShopService] getItemSlice End - userId: {}", userId);
         /*
          * 4. Slice<Item> -> SliceResponse<ItemInfoResDto> Mapping
          * - 위에서 찾은 sliceEntity, userItemIds를 이용해서 Entity -> Dto로 변환
@@ -102,6 +106,7 @@ public class ShopService {
      */
     @Transactional
     public ItemInfoResDto purchaseItem(Long userId, PurchaseItemReqDto reqDto){
+        log.info("[ShopService] purchaseItem Start - userId: {}", userId);
         /*
          * 1. 사용자가 보낸 Item을 검증한다.
          * - 1) item이 실제로 존재하는 Item인가?
@@ -124,6 +129,7 @@ public class ShopService {
         userItem = userItemRepository.save(userItem);
         user.useInk(item.getPrice());
 
+        log.info("[ShopService] purchaseItem End - userId: {}", userId);
         // 4. 아이템 구매 후, 해당 아이템에 대한 정보를 반환한다.
         return userItemMapper.toItemInfoResDto(userItem, item, getShopCloudFrontDomain());
     }
@@ -137,6 +143,7 @@ public class ShopService {
      */
     @Transactional
     public ItemInfoResDto equipItem(Long userId, EquipItemReqDto reqDto) {
+        log.info("[ShopService] equipItem Start - userId: {}", userId);
         Long itemId = reqDto.itemId();
         boolean targetStatus = reqDto.isEquipped();
 
@@ -178,6 +185,7 @@ public class ShopService {
             targetUserItem.unequip();
         }
 
+        log.info("[ShopService] equipItem End - userId: {}", userId);
         // 4. 변경된 정보 반환
         return userItemMapper.toItemInfoResDto(targetUserItem, targetUserItem.getItem(), getMyCloudFrontDomain());
     }
@@ -188,8 +196,10 @@ public class ShopService {
      */
     @Transactional(readOnly = true)
     public List<ItemInfoResDto> getEquippedItems(Long userId){
+        log.info("[ShopService] getEquippedItems Start - userId: {}", userId);
         // 1. 해당 사용자가 보유하고 있는 아이템들 조회
         List<UserItem> equippedItems = userItemRepository.findEquippedItems(userId);
+        log.info("[ShopService] getEquippedItems End - userId: {}", userId);
         // 2. 조회해온 각 아이템을 dto로 변환 (Fetch Join 썼으므로 N+1 발생 안함)
         return equippedItems.stream()
                 .map(userItem -> userItemMapper.toItemInfoResDto(userItem, userItem.getItem(), getMyCloudFrontDomain()))

@@ -52,23 +52,27 @@ public class AdminStatService {
             throw new CustomException(AdminStatErrorCode.DATE_RANGE_TOO_LONG);
         }
 
-        Map<LocalDate, Long> dauMap = userActivityLogRepository.countDau(startDate, endDate)
-                .stream()
+        Map<LocalDate, Long> dauMap = userActivityLogRepository
+                .countDau(startDate, endDate).stream()
                 .collect(Collectors.toMap(
-                        UserActivityLogRepository.DauCount::getDate,
-                        UserActivityLogRepository.DauCount::getCount
+                        UserActivityLogRepository.AuCount::getDate,
+                        UserActivityLogRepository.AuCount::getCount
+                ));
+
+        Map<LocalDate, Long> mauMap = userActivityLogRepository
+                .countMau(startDate, endDate).stream()
+                .collect(Collectors.toMap(
+                        UserActivityLogRepository.AuCount::getDate,
+                        UserActivityLogRepository.AuCount::getCount
                 ));
 
         List<AdminDauMauResDto.DauMauCount> data = new ArrayList<>();
 
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
-            Long dau = dauMap.getOrDefault(date, 0L);
-            Long mau = userActivityLogRepository.countMau(date.minusDays(29), date);
-
             data.add(AdminDauMauResDto.DauMauCount.builder()
                     .date(date)
-                    .dau(dau)
-                    .mau(mau)
+                    .dau(dauMap.getOrDefault(date, 0L))
+                    .mau(mauMap.getOrDefault(date, 0L))
                     .build());
         }
 

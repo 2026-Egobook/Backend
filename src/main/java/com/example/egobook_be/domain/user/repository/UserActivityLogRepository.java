@@ -29,21 +29,34 @@ public interface UserActivityLogRepository extends JpaRepository<UserActivityLog
     GROUP BY active_date
     ORDER BY active_date
     """, nativeQuery = true)
-    List<DauCount> countDau(
+    List<AuCount> countDau(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );
 
     @Query(value = """
-    SELECT COUNT(DISTINCT user_id)
-    FROM user_activity_log
-    WHERE active_date >= :startDate
-      AND active_date <= :endDate
+    WITH RECURSIVE date_series AS (
+        SELECT :startDate AS dt
+        UNION ALL
+        SELECT dt + INTERVAL 1 DAY
+        FROM date_series
+        WHERE dt < :endDate
+    )
+    SELECT
+        d.dt        AS date,
+        COUNT(DISTINCT a.user_id) AS count
+    FROM date_series d
+    LEFT JOIN user_activity_log a
+        ON a.active_date BETWEEN DATE_SUB(d.dt, INTERVAL 29 DAY) AND d.dt
+    GROUP BY d.dt
+    ORDER BY d.dt
     """, nativeQuery = true)
-    Long countMau(
+    List<AuCount> countMau(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );
+
+
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = """
@@ -52,7 +65,7 @@ public interface UserActivityLogRepository extends JpaRepository<UserActivityLog
     """, nativeQuery = true)
     void insertIgnore(@Param("userId") Long userId, @Param("activeDate") LocalDate activeDate);
 
-    interface DauCount {
+    interface AuCount {
         LocalDate getDate();
         Long getCount();
     }

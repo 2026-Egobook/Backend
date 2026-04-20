@@ -25,6 +25,7 @@ import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import com.example.egobook_be.global.util.InkLogUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TodayQuestionService {
@@ -53,6 +55,7 @@ public class TodayQuestionService {
     /** 오늘의 질문 조회 **/
     @Transactional(readOnly = true)
     public TodayQuestionResDto getTodayQuestion(Long userId) {
+        log.info("[TodayQuestionService] getTodayQuestion Start - userId: {}", userId);
 
         TodayQuestion question = todayQuestionRepository
                 .findByQuestionDate(LocalDate.now())
@@ -83,6 +86,7 @@ public class TodayQuestionService {
             }
         }
 
+        log.info("[TodayQuestionService] getTodayQuestion End - userId: {}", userId);
         return TodayQuestionResDto.builder()
                 .questionId(question.getId())
                 .content(question.getContent())
@@ -95,6 +99,7 @@ public class TodayQuestionService {
     /** 답변 작성 **/
     @Transactional
     public void createAnswer(Long userId, AnswerCreateReqDto reqDto) {
+        log.info("[TodayQuestionService] createAnswer Start - userId: {}", userId);
         // 1. User, Mission, Ability 객체 가져오기
         User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
         Mission userMission = missionRepository.findByUser(user).orElseThrow(() -> new CustomException(UserErrorCode.MISSION_NOT_FOUND));
@@ -164,11 +169,13 @@ public class TodayQuestionService {
             }
         }
         inkLogRepository.saveAll(inkLogs);
+        log.info("[TodayQuestionService] createAnswer End - userId: {}", userId);
     }
 
     /** 오늘의 질문 PUBLIC 답변 전체 조회 **/
     @Transactional(readOnly = true)
     public SliceResponse<PublicAnswerResDto> getPublicAnswers(int page, int size) {
+        log.info("[TodayQuestionService] getPublicAnswers Start");
 
         TodayQuestion todayQuestion = todayQuestionRepository
                 .findByQuestionDate(LocalDate.now())
@@ -189,13 +196,14 @@ public class TodayQuestionService {
                         pageable
                 );
 
+        log.info("[TodayQuestionService] getPublicAnswers End");
         return SliceResponse.of(slice, PublicAnswerMapper::toDto);
     }
 
     /** 답변 수정 **/
     @Transactional
     public void updateAnswer(Long userId, AnswerUpdateReqDto reqDto) {
-
+        log.info("[TodayQuestionService] updateAnswer Start - userId: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() ->
                         new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
@@ -219,6 +227,7 @@ public class TodayQuestionService {
                 reqDto.content(),
                 reqDto.visibility()
         );
+        log.info("[TodayQuestionService] updateAnswer End - userId: {}", userId);
     }
 
     /** 친구 답변 조회 **/
@@ -228,6 +237,7 @@ public class TodayQuestionService {
             int page,
             int size
     ) {
+        log.info("[TodayQuestionService] getFriendsAnswers Start - userId: {}", userId);
         User me = userRepository.findById(userId)
                 .orElseThrow(() ->
                         new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
@@ -267,6 +277,7 @@ public class TodayQuestionService {
                         pageable
                 );
 
+        log.info("[TodayQuestionService] getFriendsAnswers End - userId: {}", userId);
         return SliceResponse.of(slice);
     }
 
@@ -277,6 +288,7 @@ public class TodayQuestionService {
             int page,
             int size
     ) {
+        log.info("[TodayQuestionService] getMyAnswerHistory Start - userId: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() ->
                         new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
@@ -291,13 +303,14 @@ public class TodayQuestionService {
         Slice<QuestionAnswer> slice =
                 questionAnswerRepository.findMyAnswerHistorySlice(user, pageable);
 
+        log.info("[TodayQuestionService] getMyAnswerHistory End - userId: {}", userId);
         return SliceResponse.of(slice, MyAnswerHistoryMapper::toDto);
     }
 
     /** 내가 작성한 오늘의 질문 답변 삭제 **/
     @Transactional
     public void deleteAnswer(Long userId, Long answerId) {
-
+        log.info("[TodayQuestionService] deleteAnswer Start - userId: {}, answerId: {}", userId, answerId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() ->
                         new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
@@ -312,5 +325,6 @@ public class TodayQuestionService {
         restrictionGuardService.checkQuestionAnswerRestriction(userId);
 
         questionAnswerRepository.delete(answer);
+        log.info("[TodayQuestionService] deleteAnswer End - userId: {}, answerId: {}", userId, answerId);
     }
 }

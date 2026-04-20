@@ -52,6 +52,7 @@ public class AdminContentService {
 
     @Transactional(readOnly = true)
     public DailyPraiseStatusRes getDailyPraiseStatus(LocalDate startDate, LocalDate endDate) {
+        log.info("[AdminContentService] getDailyPraiseStatus Start - startDate: {}, endDate: {}", startDate, endDate);
         validateDateRange(startDate, endDate);
 
         List<DailyPraiseSendFailLog> failLogs =
@@ -95,6 +96,7 @@ public class AdminContentService {
                         .build())
                 .collect(Collectors.toList());
 
+        log.info("[AdminContentService] getDailyPraiseStatus End - startDate: {}, endDate: {}", startDate, endDate);
         return DailyPraiseStatusRes.builder()
                 .summary(summary)
                 .dailyStats(dailyStats)
@@ -104,6 +106,7 @@ public class AdminContentService {
 
     @Transactional
     public ResendRes resendDailyPraise(ResendReqDto reqDto) {
+        log.info("[AdminContentService] resendDailyPraise Start");
         validateFailIds(reqDto.getFailIds());
 
         List<ResendResult> results = new ArrayList<>();
@@ -137,7 +140,7 @@ public class AdminContentService {
                 failCount++;
             }
         }
-
+        log.info("[AdminContentService] resendDailyPraise End");
         return ResendRes.builder()
                 .successCount(successCount)
                 .failCount(failCount)
@@ -151,6 +154,7 @@ public class AdminContentService {
 
     @Transactional(readOnly = true)
     public WeeklyReportStatusRes getWeeklyReportStatus(LocalDate startDate, LocalDate endDate) {
+        log.info("[AdminContentService] getWeeklyReportStatus Start - startDate: {}. endDate: {}", startDate, endDate);
         validateDateRange(startDate, endDate);
 
         List<WeeklyReportSendFailLog> failLogs =
@@ -174,6 +178,7 @@ public class AdminContentService {
                         .build())
                 .collect(Collectors.toList());
 
+        log.info("[AdminContentService] getWeeklyReportStatus End - startDate: {}. endDate: {}", startDate, endDate);
         return WeeklyReportStatusRes.builder()
                 .summary(summary)
                 .failLogs(failLogDtos)
@@ -182,6 +187,7 @@ public class AdminContentService {
 
     @Transactional
     public ResendRes resendWeeklyReport(ResendReqDto reqDto) {
+        log.info("[AdminContentService] resendWeeklyReport Start");
         validateFailIds(reqDto.getFailIds());
 
         List<ResendResult> results = new ArrayList<>();
@@ -216,6 +222,7 @@ public class AdminContentService {
             }
         }
 
+        log.info("[AdminContentService] resendWeeklyReport End");
         return ResendRes.builder()
                 .successCount(successCount)
                 .failCount(failCount)

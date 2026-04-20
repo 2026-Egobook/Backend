@@ -59,6 +59,7 @@ public class AuthService {
      */
     @Transactional
     public JwtTokenResDto registerGoogle(GoogleJoinReqDto reqDto){
+        log.info("[AuthService] registerGoogle Start");
         /*
          * 1. Google ID Token 검증 및 정보 추출
          * - 유효하지 않은 토큰이면 GoogleOAuthService에서 예외가 발생한다.
@@ -110,6 +111,7 @@ public class AuthService {
          */
         authAccount = createAuthAccount(user, Provider.GOOGLE, hashedGoogleSub);
 
+        log.info("[AuthService] registerGoogle End - userId: {}", user.getId());
         // 5. Token을 발급 및 환경 세팅 수행
         return processIssueTokens(user, authAccount, email);
     }
@@ -153,6 +155,7 @@ public class AuthService {
      */
     @Transactional
     public JwtTokenResDto registerGuest(GuestJoinReqDto reqDto){
+        log.info("[AuthService] registerGuest Start");
         /*
          * 1. 중복 가입 방지
          * 이미 Guest로 등록된 기기인지 확인한다.
@@ -191,6 +194,8 @@ public class AuthService {
         // 7. 모든 토큰들을 발급한 뒤, Refresh Token을 Table, Redis에 저장하는 Process를 수행
         tokenManagementService.saveRefreshTokenToTableAndRedis(refreshTokenInfo, user, authAccount);
 
+        log.info("[AuthService] registerGuest Start - userId: {}", user.getId());
+
         /*
          * 10. 클라이언트에게 토큰을 반환
          * recoverToken은 회원가입, refreshToken 재발급 시에만 발급된다.
@@ -210,6 +215,7 @@ public class AuthService {
      */
     @Transactional
     public JwtTokenResDto refreshToken(RefreshReqDto reqDto){
+        log.info("[AuthService] refreshToken Start");
         // 1. 전달받은 Refresh Token Hashing
         String hashedRefreshToken = hashingUtil.hashingValue(reqDto.refreshToken());
         
@@ -267,6 +273,8 @@ public class AuthService {
         // 7. Access Token 재생성 후 Access, Refresh Token 반환
         String subject = jwtUtil.createSubject(authAccount.getProvider(), authAccount.getHashedDeviceUid());
         TokenInfo newAccessTokenInfo = jwtUtil.createAccessToken(user.getId(), authAccount.getId(), subject, user.getRole());
+
+        log.info("[AuthService] refreshToken End - userId: {}", user.getId());
         return buildJwtTokenResDto(newAccessTokenInfo.token(), reqDto.refreshToken(), null, null);
     }
 
@@ -277,6 +285,8 @@ public class AuthService {
      */
     @Transactional
     public JwtTokenResDto recertificationGuestToken(GuestRecertificationReqDto reqDto){
+        log.info("[AuthService] recertificationGuestToken Start");
+
         // 1. 전달받은 Device Uid, Recover Token Hashing
         String hashedDeviceUid = hashingUtil.hashingValue(reqDto.deviceUid());
         String hashedRecoverToken = hashingUtil.hashingValue(reqDto.recoverToken());
@@ -330,6 +340,8 @@ public class AuthService {
          */
         tokenManagementService.saveRefreshTokenToTableAndRedis(newRefreshTokenInfo, user, authAccount);
 
+        log.info("[AuthService] recertificationGuestToken End - userId: {}", user.getId());
+
         // 8. 결과 반환
         return buildJwtTokenResDto(newAccessTokenInfo.token(), newRefreshTokenInfo.token(), newRecoverTokenInfo.token(), null);
     }
@@ -342,6 +354,8 @@ public class AuthService {
      */
     @Transactional
     public JwtTokenResDto recertificationGoogleToken(GoogleRecertificationReqDto reqDto){
+        log.info("[AuthService] recertificationGoogleToken Start");
+
         // 1. 구글 토큰 검증
         GoogleIdToken.Payload payload = googleOAuthService.verifyToken(reqDto.idToken());
         String hashedGoogleSub = hashingUtil.hashingValue(payload.getSubject());
@@ -377,6 +391,8 @@ public class AuthService {
         // 5. Refresh Token 저장 최신화 (DB + Redis)
         tokenManagementService.saveRefreshTokenToTableAndRedis(refreshTokenInfo, user, authAccount);
 
+        log.info("[AuthService] recertificationGoogleToken End - userId: {}", user.getId());
+
         // 6. 반환
         return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), null, user.getEmail());
     }
@@ -390,6 +406,7 @@ public class AuthService {
      */
     @Transactional
     public JwtTokenResDto linkGoogleAccount(Long userId, GoogleJoinReqDto reqDto) {
+        log.info("[AuthService] linkGoogleAccount Start - userId: {}", userId);
         // 1. Google ID Token 검증
         GoogleIdToken.Payload payload = googleOAuthService.verifyToken(reqDto.idToken());
         String googleSub = payload.getSubject();
@@ -425,6 +442,7 @@ public class AuthService {
         // 8. 새 토큰 저장 (DB & Redis)
         tokenManagementService.saveRefreshTokenToTableAndRedis(refreshTokenInfo, user, authAccount);
 
+        log.info("[AuthService] linkGoogleAccount End - userId: {}", userId);
         // 9. 반환 (Google이므로 Recover Token은 비워놓고 반환한다)
         return buildJwtTokenResDto(accessTokenInfo.token(), refreshTokenInfo.token(), null, user.getEmail());
     }

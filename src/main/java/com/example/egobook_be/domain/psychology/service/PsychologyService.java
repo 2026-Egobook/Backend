@@ -13,6 +13,7 @@ import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +22,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Random;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PsychologyService {
@@ -33,9 +34,11 @@ public class PsychologyService {
 
     @Transactional
     public DailyKnowledgeResDto getDailyKnowledge(Long userId) {
+        log.info("[PsychologyService] getDailyKnowledge Start - userId: {}", userId);
         User user = userRepository.findById(userId).orElseThrow();
         LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
 
+        log.info("[PsychologyService] getDailyKnowledge End - userId: {}", userId);
         // 1. 오늘 이 유저가 이미 조회한 기록이 있는지 확인
         return userKnowledgeRepository.findFirstByUserAndCreatedAtAfter(user, startOfToday)
                 .map(uk -> createResponse(user, uk.getPsychologyKnowledge(), uk.isBookmarked())) // 기존 기록 반환
@@ -68,6 +71,7 @@ public class PsychologyService {
 
     @Transactional
     public KnowledgeSaveResDto saveKnowledge(Long userId, Long knowledgeId) {
+        log.info("[PsychologyService] saveKnowledge Start - userId: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(PsychologyErrorCode.USER_NOT_FOUND));
         PsychologyKnowledge knowledge = psychologyKnowledgeRepository.findById(knowledgeId)
@@ -92,11 +96,13 @@ public class PsychologyService {
                         }
                 );
 
+        log.info("[PsychologyService] saveKnowledge End - userId: {}", userId);
         return new KnowledgeSaveResDto(true, knowledgeId, "오늘의 심리지식이 저장되었습니다.");
     }
 
     @Transactional
     public KnowledgeDeleteResDto deleteSavedKnowledge(Long userId, Long knowledgeId) {
+        log.info("[PsychologyService] deleteSavedKnowledge Start - userId: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(PsychologyErrorCode.USER_NOT_FOUND));
         PsychologyKnowledge knowledge = psychologyKnowledgeRepository.findById(knowledgeId)
@@ -111,11 +117,13 @@ public class PsychologyService {
 
         uk.delete();
 
+        log.info("[PsychologyService] deleteSavedKnowledge End - userId: {}", userId);
         return new KnowledgeDeleteResDto(true, knowledgeId, "북마크가 취소되었습니다.");
     }
 
     @Transactional(readOnly = true)
     public SavedKnowledgeListResDto getSavedKnowledgeList(Long userId) {
+        log.info("[PsychologyService] getSavedKnowledgeList Start - userId: {}", userId);
         User user = userRepository.findById(userId).orElseThrow();
 
         List<SavedKnowledgeListResDto.SavedKnowledgeItemResDto> items = userKnowledgeRepository.findAllByUserAndDeletedAtIsNull(user).stream()
@@ -128,16 +136,19 @@ public class PsychologyService {
                         uk.getSavedAt() != null ? uk.getSavedAt().format(DateTimeFormatter.ISO_DATE_TIME) : ""))
                 .toList();
 
+        log.info("[PsychologyService] getSavedKnowledgeList End - userId: {}", userId);
         return new SavedKnowledgeListResDto(items, false, null);
     }
 
     @Transactional(readOnly = true)
     public DailyStatusResDto getDailyStatus(Long userId) {
+        log.info("[PsychologyService] getDailyStatus Start - userId: {}", userId);
         User user = userRepository.findById(userId).orElseThrow();
         LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
         boolean alreadyReceived = inkLogRepository.existsByUserAndReasonAndCreatedAtAfter(
                 user, InkLogType.FIRST_PSYCHOLOGY_VIEW, startOfToday);
 
+        log.info("[PsychologyService] getDailyStatus End - userId: {}", userId);
         return new DailyStatusResDto(!alreadyReceived);
     }
 
