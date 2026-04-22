@@ -502,6 +502,7 @@ public class AuthService {
                 .authAccountId(authAccount.getId())
                 .provider(authAccount.getProvider())
                 .hashedDeviceUid(authAccount.getHashedDeviceUid()) // authAccount에 들어있는 deviceUid는 해싱된 상태이다.
+                .subject(authAccount.getProvider().toString() + ":" + authAccount.getHashedDeviceUid()) // JWT Subject
                 .role(user.getRole())
                 .build();
         return new CustomUserDetails(userAuthDto);
