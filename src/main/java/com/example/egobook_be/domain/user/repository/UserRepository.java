@@ -86,4 +86,6 @@ public interface UserRepository extends JpaRepository<User, Long>,UserRepository
             "       u.accountCode like concat('%', :keyword, '%')) " +
             "and (:status is null or u.status = :status)")
     Slice<SearchUserResDto> findUsersByKeywordAndStatus(@Param("keyword")String keyword, @Param("status")UserStatus status, Pageable pageable);
+
+    Long countByCreatedAtBefore(LocalDateTime createdAtBefore);
 }

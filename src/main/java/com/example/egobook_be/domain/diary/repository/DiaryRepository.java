@@ -13,7 +13,6 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -56,10 +55,31 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
 
     List<Diary> findAllByUserIdAndWrittenAtAfter(Long userId, LocalDateTime writtenAt);
 
+    Long countByDateBetween(LocalDate startDate, LocalDate endDate);
+
+    @Query("""
+    SELECT dt as type, COUNT(d) as count
+    FROM Diary d
+    JOIN d.type dt
+    WHERE d.date >= :start
+      AND d.date <= :end
+    GROUP BY dt
+    """)
+    List<DiaryTypeCount> countByTypeAndDateBetween(
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end
+    );
+
+    interface DiaryTypeCount {
+        DiaryType getType();
+        Long getCount();
+    }
+
     interface DailyEmotionCount {
         LocalDate getDate();
         Integer getEmotionLevel();
     }
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM Diary d WHERE d.user IN :users")
     void bulkDeleteByUserIn(@Param("users") List<User> users);
