@@ -16,8 +16,7 @@ import java.time.LocalDate;
                 @UniqueConstraint(name = "uk_user_activity", columnNames = {"user_id", "active_date"})
         },
         indexes = {
-                @Index(name = "idx_active_date", columnList = "active_date"),
-                @Index(name = "idx_user_activity", columnList = "user_id, active_date")
+                @Index(name = "idx_active_date", columnList = "active_date")
         }
 )
 public class UserActivityLog {
