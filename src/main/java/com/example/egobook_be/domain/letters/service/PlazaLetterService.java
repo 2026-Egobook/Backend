@@ -81,7 +81,9 @@ public class PlazaLetterService {
 
 
     @Transactional(readOnly = true)
-    public InboxNextResponse getNextArrivedLetter(Long userId) {
+    public InboxNextResponse getNextArrivedLetter(Long userId)
+    {
+        log.info("[PlazaLetterService] getNextArrivedLetter End - userId: {}", userId);
         restrictionGuardService.checkLetterRestriction(userId);
         return plazaLetterRepository
                 .findFirstByReceiverIdAndStatusOrderByArrivedAtDesc(userId, PlazaLetterStatus.ARRIVED)
@@ -90,6 +92,7 @@ public class PlazaLetterService {
     }
 
     private void enforceWordAiOrThrow(String text, Long userId, BlockType blockType) {
+        log.info("[PlazaLetterService] enforceWordAiOrThrow Start - userId: {}", userId);
         // AI 요청 수 카운트 저장
         aiRequestCountLogRepo.save(AiRequestCountLog.builder()
                 .type(blockType)
@@ -114,10 +117,12 @@ public class PlazaLetterService {
             // AI 서버 장애/타임아웃일 때 예외처리
             throw new CustomException(LettersErrorCode.AI_MODERATION_FAILED);
         }
+        log.info("[PlazaLetterService] enforceWordAiOrThrow End - userId: {}", userId);
     }
 
     @Transactional
     public CreateLetterResponse createLetter(Long userId, CreateLetterRequest request) {
+        log.info("[PlazaLetterService] createLetter Start - userId: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.USER_NOT_FOUND));
         Mission userMission = missionRepository.findByUser(user)
@@ -228,6 +233,7 @@ public class PlazaLetterService {
             imageUrl = cloudfrontDomain + "/letter/" + fileName + ".png";
         }
 
+        log.info("[PlazaLetterService] createLetter End - userId: {}", userId);
         return CreateLetterResponse.builder()
                 .letterId(saved.getLetterId())
                 .threadId(saved.getThreadId())
@@ -245,6 +251,7 @@ public class PlazaLetterService {
     public void handleAiResult(Long letterId, WordDetectResponse result,
                                Long receiverId, LocalDateTime now,
                                PlazaLetterMode mode, User sender) {
+        log.info("[PlazaLetterService] handleAiResult Start - letterId: {}", letterId);
         aiRequestCountLogRepo.save(AiRequestCountLog.builder()
                 .type(BlockType.LETTER)
                 .requestedAt(LocalDateTime.now())
@@ -292,21 +299,25 @@ public class PlazaLetterService {
         } catch (Exception e) {
             log.error("편지 알림 생성 실패. LetterId: {}", letterId, e);
         }
+        log.info("[PlazaLetterService] handleAiResult End - letterId: {}", letterId);
     }
 
     // AI 서버 오류 처리
     @Transactional
     public void handleAiError(Long letterId) {
+        log.info("[PlazaLetterService] handleAiError Start - letterId: {}", letterId);
         PlazaLetter letter = plazaLetterRepository.findById(letterId).orElse(null);
         if (letter == null) return;
         if (letter.getStatus() == PlazaLetterStatus.CANCELLED) return;
 
         // AI 오류 시 욕설 감지 실패와 동일하게 처리
         plazaLetterRepository.delete(letter);
+        log.info("[PlazaLetterService] handleAiError End - letterId: {}", letterId);
     }
 
     @Transactional
     public void cancelAnalysis(Long userId, Long letterId) {
+        log.info("[PlazaLetterService] cancelAnalysis Start - userId: {}, letterId: {}", userId, letterId);
         PlazaLetter letter = plazaLetterRepository.findById(letterId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
 
@@ -320,6 +331,7 @@ public class PlazaLetterService {
             letter.setStatus(PlazaLetterStatus.CANCELLED);
             plazaLetterRepository.save(letter);
         }
+        log.info("[PlazaLetterService] cancelAnalysis End - userId: {}, letterId: {}", userId, letterId);
     }
 
 
@@ -390,6 +402,7 @@ public class PlazaLetterService {
 
     @Transactional
     public DeleteThreadResponse deleteThread(Long userId, Long threadId) {
+        log.info("[PlazaLetterService] deleteThread Start - userId: {}, threadId: {}", userId, threadId);
         // 스레드 존재 체크
         if (!plazaLetterThreadRepository.existsById(threadId)) {
             throw new CustomException(LettersErrorCode.THREAD_NOT_FOUND);
@@ -412,6 +425,7 @@ public class PlazaLetterService {
         plazaLetterRepository.deleteByThreadId(threadId);
         plazaLetterThreadRepository.deleteById(threadId);
 
+        log.info("[PlazaLetterService] deleteThread End - userId: {}, threadId: {}", userId, threadId);
         return DeleteThreadResponse.builder()
                 .threadId(threadId)
                 .deleted(true)
@@ -420,6 +434,7 @@ public class PlazaLetterService {
 
     @Transactional
     public ReplyResponse replyToLetter(Long userId, Long letterId, String content) {
+        log.info("[PlazaLetterService] replyToLetter Start - userId: {}, letterId: {}", userId, letterId);
         // 1. User, Ability 가져오기
         User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
         Ability userAbility = abilityRepository.findByUser(user).orElseThrow(() -> new CustomException(UserErrorCode.ABILITY_NOT_FOUND));
@@ -525,6 +540,7 @@ public class PlazaLetterService {
         }
         inkLogRepository.saveAll(inkLogs);
 
+        log.info("[PlazaLetterService] replyToLetter End - userId: {}, letterId: {}", userId, letterId);
         return ReplyResponse.builder()
                 .letterId(letter.getLetterId())
                 .status(letter.getStatus())
@@ -535,6 +551,7 @@ public class PlazaLetterService {
 
     @Transactional
     public DeferResponse deferLetter(Long userId, Long letterId) {
+        log.info("[PlazaLetterService] deferLetter Start - userId: {}, letterId: {}", userId, letterId);
         PlazaLetter letter = getLetterOrThrow(letterId);
         validateOwnership(letter, userId);
 
@@ -545,6 +562,7 @@ public class PlazaLetterService {
             letter.markDeferred();
         }
 
+        log.info("[PlazaLetterService] deferLetter End - userId: {}, letterId: {}", userId, letterId);
         return DeferResponse.builder()
                 .letterId(letter.getLetterId())
                 .status(letter.getStatus())
@@ -553,6 +571,7 @@ public class PlazaLetterService {
 
     @Transactional
     public GiveUpResponse giveUpLetter(Long userId, Long letterId) {
+        log.info("[PlazaLetterService] giveUpLetter Start - userId: {}, letterId: {}", userId, letterId);
         PlazaLetter letter = getLetterOrThrow(letterId);
         validateOwnership(letter, userId);
 
@@ -569,6 +588,7 @@ public class PlazaLetterService {
         // 4시간 수신 제한
         user.blockLetterReceiveUntil(now.plusHours(4));
 
+        log.info("[PlazaLetterService] giveUpLetter End - userId: {}, letterId: {}", userId, letterId);
         return GiveUpResponse.builder()
                 .letterId(letter.getLetterId())
                 .status(letter.getStatus())
@@ -633,6 +653,7 @@ public class PlazaLetterService {
 
     @Transactional(readOnly = true)
     public SliceResponse<ReplyItemDto> getMyReplies(Long userId, int page, int size) {
+        log.info("[PlazaLetterService] getMyReplies Start - userId: {}", userId);
 
         int safePage = Math.max(page, 1);
         int safeSize = Math.min(Math.max(size, 1), 50);
@@ -642,6 +663,7 @@ public class PlazaLetterService {
                 safeSize
         );
 
+        log.info("[PlazaLetterService] getMyReplies End - userId: {}", userId);
         return SliceResponse.of(
                 plazaLetterReplyRepository.findMyRepliesWithLetter(userId, pageable),
                 this::toReplyItemDto

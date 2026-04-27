@@ -50,6 +50,7 @@ public class EgoRoomService {
 
     @Transactional(readOnly = true)
     public Map<String, Boolean> getSettings(Long userId) {
+        log.info("[EgoRoomService] getSettings Start - userId: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("유저를 찾을 수 없습니다."));
 
@@ -57,27 +58,33 @@ public class EgoRoomService {
         settings.put("dailyPraiseEnabled", user.getDailyPraise());
         settings.put("weeklyAnalysisEnabled", user.getWeeklyAnalysisEnabled());
 
+        log.info("[EgoRoomService] getSettings End - userId: {}", userId);
         return settings;
     }
 
     @Transactional
     public void updateDailyPraiseSetting(Long userId, Boolean enabled) {
+        log.info("[EgoRoomService] updateDailyPraiseSetting Start - userId: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("유저를 찾을 수 없습니다."));
 
         user.updateDailyPraiseEnabled(enabled);
+        log.info("[EgoRoomService] updateDailyPraiseSetting End - userId: {}", userId);
     }
 
     @Transactional
     public void updateWeeklyAnalysisSetting(Long userId, Boolean enabled) {
+        log.info("[EgoRoomService] updateWeeklyAnalysisSetting Start - userId: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("유저를 찾을 수 없습니다."));
 
         user.updateWeeklyAnalysisEnabled(enabled);
+        log.info("[EgoRoomService] updateWeeklyAnalysisSetting End - userId: {}", userId);
     }
 
     @Transactional(readOnly = true)
     public SliceResponse<DailyPraiseSimpleItemDto> getDailyPraiseList(Long userId, int page, int size) {
+        log.info("[EgoRoomService] getDailyPraiseList Start - userId: {}", userId);
         if (page<1){
             throw new CustomException(GlobalErrorCode.INVALID_SLICE_VALUE);
         }
@@ -93,6 +100,7 @@ public class EgoRoomService {
 
         Slice<DailyPraise> praiseSlice = dailyPraiseRepository.findAllByUserId(userId, pageable);
 
+        log.info("[EgoRoomService] getDailyPraiseList End - userId: {}", userId);
         return SliceResponse.of(praiseSlice,praise->new DailyPraiseSimpleItemDto(
                 praise.getId(),
                 praise.getPraiseDate().toString(),
@@ -103,6 +111,7 @@ public class EgoRoomService {
 
     @Transactional
     public DailyPraiseItemDto getDailyPraiseDetail(Long userId, LocalDate date) {
+        log.info("[EgoRoomService] getDailyPraiseDetail Start - userId: {}", userId);
         DailyPraise praise = dailyPraiseRepository.findByUserIdAndPraiseDate(userId, date)
                 .orElseThrow(() -> new CustomException(DiaryErrorCode.PRAISE_NOT_FOUND));
         User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
@@ -133,6 +142,7 @@ public class EgoRoomService {
             }
         }
 
+        log.info("[EgoRoomService] getDailyPraiseDetail End - userId: {}", userId);
         return new DailyPraiseItemDto(
                 praise.getPraiseDate().toString(),
                 praise.getContent(),
@@ -144,6 +154,7 @@ public class EgoRoomService {
 
     @Transactional(readOnly = true)
     public SliceResponse<WeeklyCounselSimpleItemDto> getWeeklyCounselList(Long userId, int page, int size) {
+        log.info("[EgoRoomService] getWeeklyCounselList Start - userId: {}", userId);
         if (page < 1) {
             throw new CustomException(GlobalErrorCode.INVALID_SLICE_VALUE);
         }
@@ -159,6 +170,7 @@ public class EgoRoomService {
 
         Slice<WeeklyCounsel> counselSlice = weeklyCounselRepository.findAllByUserId(userId, pageable);
 
+        log.info("[EgoRoomService] getWeeklyCounselList End - userId: {}", userId);
         return SliceResponse.of(counselSlice, counsel -> new WeeklyCounselSimpleItemDto(
                 counsel.getId(),
                 counsel.getStartDate().toString(),
@@ -170,6 +182,7 @@ public class EgoRoomService {
 
     @Transactional
     public WeeklyCounselDetailResDto getWeeklyCounselDetail(Long userId, LocalDate startDate) {
+        log.info("[EgoRoomService] getWeeklyCounselDetail Start - userId: {}", userId);
         WeeklyCounsel counsel = weeklyCounselRepository.findByUserIdAndStartDate(userId, startDate)
                 .orElseThrow(() -> new CustomException(DiaryErrorCode.COUNSEL_NOT_FOUND));
 
@@ -181,16 +194,19 @@ public class EgoRoomService {
         }
 
         counsel.markAsRead();
+        log.info("[EgoRoomService] getWeeklyCounselDetail End - userId: {}", userId);
         return WeeklyCounselDetailResDto.from(counsel, false);
     }
 
     @Transactional
     public CounselToneResDto updateNextWeekTone(Long userId, CounselTone toneStyle) {
+        log.info("[EgoRoomService] updateNextWeekTone Start - userId: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
 
         user.updateCounselingTone(toneStyle);
 
+        log.info("[EgoRoomService] updateNextWeekTone End - userId: {}", userId);
         return new CounselToneResDto(toneStyle);
     }
 
@@ -199,7 +215,7 @@ public class EgoRoomService {
     // 일간 칭찬서 생성
     @Transactional
     public void createDailyPraise(Long userId, LocalDate date) {
-
+        log.info("[EgoRoomService] createDailyPraise Start - userId: {}", userId);
         // 이미 존재하면 넘어감
         Optional<DailyPraise> existingPraise = dailyPraiseRepository.findByUserIdAndPraiseDate(userId, date);
         if (existingPraise.isPresent()) {
@@ -242,12 +258,14 @@ public class EgoRoomService {
             log.error("일간 칭찬서 도착 알림 생성 실패. UserId: {}, dailyPraiseId: {}",
                     userId, dailyPraise.getId(), e);
         }
+        log.info("[EgoRoomService] createDailyPraise End - userId: {}", userId);
     }
 
     // ── 일간 칭찬서 재발송 (관리자 수동 재발송용) ─────────────────────────────
     // createDailyPraise와 동일한 로직, 중복 체크 없이 강제 재생성
     @Transactional
     public void resendDailyPraise(Long userId, LocalDate date) {
+        log.info("[EgoRoomService] resendDailyPraise Start - userId: {}", userId);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다. ID: " + userId));
@@ -280,12 +298,13 @@ public class EgoRoomService {
             log.error("일간 칭찬서 재발송 알림 생성 실패. UserId: {}, dailyPraiseId: {}",
                     userId, dailyPraise.getId(), e);
         }
+        log.info("[EgoRoomService] resendDailyPraise End - userId: {}", userId);
     }
 
     // ── 주간 분석서 생성 (스케줄러용) ────────────────────────────────────────
     @Transactional
     public void createWeeklyAnalysis(Long userId, LocalDate startDate) {
-
+        log.info("[EgoRoomService] createWeeklyAnalysis Start - userId: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
 
@@ -349,12 +368,14 @@ public class EgoRoomService {
             log.error("주간 리포트 도착 알림 생성 실패. UserId: {}, CounselId: {}",
                     userId, counsel.getId(), e);
         }
+        log.info("[EgoRoomService] createWeeklyAnalysis End - userId: {}", userId);
     }
 
     // ── 주간 분석서 재발송 (관리자 수동 재발송용) ─────────────────────────────
     // createWeeklyAnalysis와 동일한 로직, 중복 체크 없이 강제 재생성
     @Transactional
     public void resendWeeklyAnalysis(Long userId, LocalDate startDate) {
+        log.info("[EgoRoomService] resendWeeklyAnalysis Start - userId: {}", userId);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
@@ -412,10 +433,12 @@ public class EgoRoomService {
             log.error("주간 리포트 재발송 알림 생성 실패. UserId: {}, CounselId: {}",
                     userId, counsel.getId(), e);
         }
+        log.info("[EgoRoomService] resendWeeklyAnalysis End - userId: {}", userId);
     }
 
     @Transactional
     public void unlockWeeklyCounsel(Long userId, LocalDate startDate, UnlockType type) {
+        log.info("[EgoRoomService] unlockWeeklyCounsel Start - userId: {}", userId);
         WeeklyCounsel counsel = weeklyCounselRepository.findByUserIdAndStartDate(userId, startDate)
                 .orElseThrow(() -> new CustomException(EgoRoomErrorCode.COUNSEL_NOT_FOUND));
 
@@ -428,13 +451,16 @@ public class EgoRoomService {
         }
 
         counsel.unlock(); // counsel.isLocked = false;
+        log.info("[EgoRoomService] unlockWeeklyCounsel End - userId: {}", userId);
     }
 
     @Transactional(readOnly = true)
     public String getUserCounselTone(Long userId) {
+        log.info("[EgoRoomService] getUserCounselTone Start - userId: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
         CounselTone tone = user.getCounselingTone();
+        log.info("[EgoRoomService] getUserCounselTone End - userId: {}", userId);
         return (tone != null) ? tone.name() : CounselTone.SOFT.name();
     }
 

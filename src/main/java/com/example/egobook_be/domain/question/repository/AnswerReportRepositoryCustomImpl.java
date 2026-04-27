@@ -77,7 +77,7 @@ public class AnswerReportRepositoryCustomImpl implements AnswerReportRepositoryC
         Long count = queryFactory
                 .select(qAnswerReport.count())
                 .from(qAnswerReport)
-                .join(qAnswerReport.user) // count 쿼리는 n+1 문제가 발생하지 않는다
+                .join(qAnswerReport.user) // dau 쿼리는 n+1 문제가 발생하지 않는다
 
                 .join(qAnswerReport.answer)
                 .join(qAnswerReport.answer.user)

@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # Spring Boot 애플리케이션
+  egobook-api:
+    build: .
+    container_name: egobook-server
+    ports:
+      - "8080:8080"
+    restart: always  # 서버 재시작 시 자동 실행
+    depends_on:
+      - redis-db
+    environment:
+      # 컨테이너 내부에서 파일이 위치할 경로를 지정합니다.
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/resources/firebase-service-account.json
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      # [호스트 경로]:[컨테이너 내부 경로]
+      # EC2에 생성된 실제 파일을 컨테이너 내부의 위 environment에서 설정한 경로로 마운트합니다.
+      - ./src/main/resources/firebase-service-account.json:/app/resources/firebase-service-account.json
+    networks:
+      - egobook-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"   # 로그 파일 하나당 최대 10MB
+        max-file: "3"     # 최대 파일 개수 3개 (오래된 건 삭제)
+
+  # Redis
+  redis-db:
+    image: redis:latest
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    restart: always  # <--- 이 설정이 있으면 EC2가 꺼졌다 켜져도 도커가 알아서 실행해줍니다.
+    volumes:
+      - ./redis/data:/data  # <--- Redis 데이터가 서버 재시작 후에도 유지되도록 저장소 연결
+    command: redis-server --requirepass "${REDIS_PASSWORD}" --appendonly yes
+    networks:
+      - egobook-network
+
+networks:
+  egobook-network:
+    driver: bridge

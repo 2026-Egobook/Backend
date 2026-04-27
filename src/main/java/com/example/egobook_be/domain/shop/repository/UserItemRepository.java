@@ -4,10 +4,12 @@ import com.example.egobook_be.domain.shop.dto.UserItemStatusDto;
 import com.example.egobook_be.domain.shop.entity.UserItem;
 import com.example.egobook_be.domain.shop.enums.ItemCategory;
 import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -45,4 +47,21 @@ public interface UserItemRepository extends JpaRepository<UserItem, Long> {
     List<UserItem> findEquippedItems(@Param("userId")Long userId);
 
     void deleteByUserIn(List<User> users);
+
+    @Query(value = """
+    SELECT DATE_FORMAT(ui.purchased_at, :format) AS period,
+           SUM(i.price) AS amount
+    FROM user_item ui
+    JOIN item i ON ui.item_id = i.id
+    WHERE ui.purchased_at >= :start
+      AND ui.purchased_at < :end
+      AND i.price IS NOT NULL
+    GROUP BY period
+    ORDER BY period
+    """, nativeQuery = true)
+    List<InkLogRepository.InkStatAmount> sumConsumed(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("format") String format
+    );
 }

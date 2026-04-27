@@ -8,11 +8,13 @@ import com.example.egobook_be.domain.question.repository.QuestionAnswerRepositor
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AnswerReportAdminService {
@@ -25,8 +27,10 @@ public class AnswerReportAdminService {
             int page,
             int size
     ) {
+        log.info("[AnswerReportAdminService] getReportedAnswers Start");
         Pageable pageable = PageRequest.of(page-1, size);
 
+        log.info("[AnswerReportAdminService] getReportedAnswers End");
         return SliceResponse.of(
                 answerReportRepository.findAllWithAnswerAndUser(pageable),
                 this::toDto
@@ -51,19 +55,23 @@ public class AnswerReportAdminService {
 
     @Transactional(readOnly = true)
     public AnswerReportAdminResDto getReportedAnswerDetail(Long reportId) {
+        log.info("[AnswerReportAdminService] getReportedAnswers Start - reportId: {}", reportId);
         AnswerReport report = answerReportRepository.findByIdWithAnswerAndUser(reportId)
                 .orElseThrow(() -> new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND));
 
+        log.info("[AnswerReportAdminService] getReportedAnswers End - reportId: {}", reportId);
         return toDto(report);
     }
 
     //수동 삭제
     @Transactional
     public void deleteAnswer(Long answerId) {
+        log.info("[AnswerReportAdminService] deleteAnswer Start - answerId: {}", answerId);
         if (!questionAnswerRepository.existsById(answerId)) {
             throw new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND);
         }
         answerReportRepository.deleteAllByAnswerId(answerId);   // 신고 내역 먼저 삭제
         questionAnswerRepository.deleteById(answerId);
+        log.info("[AnswerReportAdminService] deleteAnswer End - answerId: {}", answerId);
     }
 }

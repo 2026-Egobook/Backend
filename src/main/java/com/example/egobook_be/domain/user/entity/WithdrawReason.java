@@ -29,6 +29,10 @@ public class WithdrawReason extends BaseTimeEntity {
     private String text;
 
     public static WithdrawReason create(Long userId, WithdrawReasonType withdrawReasonType, String text) {
-        return WithdrawReason.builder().userId(userId).withdrawReasonType(withdrawReasonType).build();
+        return WithdrawReason.builder()
+                .userId(userId)
+                .withdrawReasonType(withdrawReasonType)
+                .text(text)
+                .build();
     }
 }

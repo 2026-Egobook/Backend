@@ -97,12 +97,6 @@ jobs:
           sed -i "s|\${GEMINI_API_KEY}|${{ secrets.GEMINI_API_KEY }}|g" $FILE
         shell: bash
 
-      # Firebase Service Account Key
-      - name: Create Firebase Service Account Key
-        run: |
-          echo "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}" > ./src/main/resources/firebase-service-account.json
-
-
         # (5) gradlew 파일에 실행 권한 부여
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -135,70 +129,63 @@ jobs:
     needs: build  # needs: 해당 Job은 지정한 Job들이 성공적으로 끝난 후에만 실행된다는 의존성 선언
     runs-on: ubuntu-latest # 실행 환경(OS 환경) 설정. 해당 작업을 실행할 컴퓨터의 운영체제를 지정함
     steps:
-      # (1) build해놓은 결과물(.jar) 다운로드 받기
+      # (1) 레포지토리 코드를 다시 체크아웃 (Dockerfile, docker-compose.yml 메모리에 로드시키기 위해)
+      - name: Checkout for Docker files
+        uses: actions/checkout@v4
+
+      # (2) build해놓은 결과물(.jar) 다운로드 받기
       - name: Download build artifact
         uses: actions/download-artifact@v4
         # 해당 build 결과물을 업로드한 버전과 같아야함.
         with: # with: 전달할 파라미터 설정
           name: egobookServer # build job에서 upload할 때 설정한 파일 꾸러미 이름 지정
-          path: build/libs/ # 해당 파일을 가져와서 어디에 둘지 설정
+          path: build/libs # 해당 파일을 가져와서 어디에 둘지 설정
 
-      # (2) EC2로 배포
-      - name: Deploy to EC2
+      # (3) EC2로 배포
+      - name: Deploy to EC2 with Docker
         # env: 해당 step레벨에서 사용할 환경 변수 설정(workflow, job 레벨에서도 설정 가능)
         env:
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
+          REDIS_PASSWORD: ${{secrets.DEV_REDIS_PW}}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           WORD_AI_BASE_URL: ${{ secrets.WORD_AI_BASE_URL }}
+          FIREBASE_KEY_BASE64: ${{ secrets.FIREBASE_KEY_BASE64 }}
           # => github secrets에 설정해놓은 값들 env로 가져오기
 
         run: |
           echo "$EC2_SSH_KEY" > private_key.pem
-          # >: 파일 덮어씌우기.
-          # echo로 해당 파일의 내용을 private_key.pem이라는 실제 파일로 만든다.
-          
           chmod 600 private_key.pem
-          # chmod 600: 해당 파일의 권한을 "소유자"만 읽고 쓸 수 있게 변경함
-          # 이걸 안하면 SSH 접속 시 키 파일이 너무 개방되어있다고 접속을 거부당함
           
           # jar 파일 찾기
           jar_file=$(find build/libs -name '*.jar' ! -name '*plain.jar' | head -n 1)
-          # - find build/libs: 아까 다운로드 받은 폴더를 뒤진다
-          # - -name '*.jar': .jar로 끝나는 파일을 찾는다
-          # - ! -name '*plain.jar': 이름에 plain이 들어간 파일을 제외한다 -> spring boot 2.5 이상부터는 실행 불가능한 plain.jar 파일이 같이 생성되는데, 이걸 배포하면 실행이 안됨
-          # - | head -n 1: 여러 개가 나오면 맨 위에거 하나만 선택함 
           
-          # EC2로 파일 전송 (S3 없이 직접 전송)
-          scp -i private_key.pem -o StrictHostKeyChecking=no "$jar_file" $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/egobookServer.jar
-          # - scp: Secure Copy. SSH를 통해 안전하게 파일을 복사하는 명령어입니다.
-          # - -i private_key.pem: 아까 만든 열쇠 파일을 신분증으로 제출합니다.
-          # - -o StrictHostKeyChecking=no: "이 서버 처음 보는데 접속할래?" 묻는 과정(Yes/No)을 무시하고 강제로 접속합니다. (자동화를 위해 필수)
-          # - $EC2_USERNAME@$EC2_HOST:...: 내 컴퓨터의 $jar_file을 EC2 서버의 /home/사용자/egobookServer.jar 라는 이름으로 저장해라!
-          # - 참고: 업로드할 때 이름을 egobookServer.jar로 고정했습니다. 이렇게 하면 매번 파일명이 바뀌어도 서버 안에서는 항상 같은 이름이라 관리가 편합니다.
+          # EC2로 Jar, Dockerfile, docker-compose.yml 파일들 전송
+          scp -i private_key.pem -o StrictHostKeyChecking=no "$jar_file" Dockerfile docker-compose.yml $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/
           
-          # EC2 접속 및 실행 - "" 안에 있는 명령어는 EC2 안에서 실행됨
+          # EC2 접속 및 Firebase 키 생성 + Docker Compose 실행
           ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "
-            # (1) 기존 프로세스 종료
-            pgrep java | xargs -r kill -15
-            sleep 5
-            # - pgrep java: 현재 실행 중인 자바 프로그램의 PID(프로세스 번호)를 찾습니다.
-            # - | xargs -r: 찾은 번호가 있다면(-r) 다음 명령어로 넘깁니다. 없으면 아무것도 안 합니다.
-            # - kill -15: 해당 프로세스에게 "이제 그만 종료해줄래?"라고 정중하게 요청합니다 (SIGTERM).
-            # - kill -9 (강제 종료)보다 안전합니다.
-            # - sleep 5: 프로세스가 완전히 꺼질 때까지 5초 정도 기다려줍니다.
-            # - [중요] -Dspring.profiles.active=dev 옵션 추가 (dev 설정 파일 적용)
+          cd /home/$EC2_USERNAME
           
-            # (2) 새 버전 실행
-            nohup java -Duser.timezone=Asia/Seoul -Dspring.profiles.active=dev -jar /home/$EC2_USERNAME/egobookServer.jar > app.log 2>&1 &
-            # - nohup ... &: [필수] SSH 접속이 끊겨도 서버가 계속 돌아가게 합니다. (백그라운드 실행)
-            # - -Dspring.profiles.active=dev: 아까 질문하셨던 application-dev.yml 설정을 적용해서 켭니다.
-            # - > app.log 2>&1:
-            # ---- 서버의 실행 로그(System.out)를 app.log 파일에 기록합니다.
-            # ---- 2>&1: 에러 로그(Standard Error)도 app.log에 같이 적으라는 뜻입니다.
+          # 1. 파일 이름 정리
+          mv *.jar egobookServer.jar
+          
+          # 2. ⭐ Firebase 키 파일을 EC2에서 직접 생성
+          # 혹시 잘못된 빈 디렉토리가 있다면 먼저 제거 (한 번만 필요하지만 안전장치로 유지)
+          sudo rm -rf /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
+          mkdir -p /home/$EC2_USERNAME/src/main/resources
+          echo '$FIREBASE_KEY_BASE64' | base64 -d > /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
+          chmod 600 /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
+          
+          # 3. 컨테이너 실행
+          REDIS_PASSWORD=$REDIS_PASSWORD \
+          sudo -E docker compose up -d --build
+          
+          # 4. 정리
+          sudo docker image prune -f
           "
           
-          # Runner(가상환경)에 만들었던 임시 키 파일 삭제
+          # Runner의 임시 키 파일 삭제
           rm -f private_key.pem
