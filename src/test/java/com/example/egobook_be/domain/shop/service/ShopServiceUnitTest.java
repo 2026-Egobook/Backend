@@ -9,7 +9,6 @@ import com.example.egobook_be.domain.shop.mapper.ItemMapper;
 import com.example.egobook_be.domain.shop.mapper.UserItemMapper;
 import com.example.egobook_be.domain.shop.repository.ItemRepository;
 import com.example.egobook_be.domain.shop.repository.UserItemRepository;
-import com.example.egobook_be.domain.shop.sevice.ShopService;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.exception.UserErrorCode;
 import com.example.egobook_be.domain.user.repository.UserRepository;

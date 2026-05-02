@@ -48,13 +48,13 @@ public class PsychologyService {
                             .map(uk -> uk.getPsychologyKnowledge().getId())
                             .toList();
 
-                    List<PsychologyKnowledge> candidates = psychologyKnowledgeRepository.findAll().stream()
+                    List<PsychologyKnowledge> candidates = psychologyKnowledgeRepository.findAllByDeletedAtIsNull().stream()
                             .filter(pk -> !viewedIds.contains(pk.getId()))
                             .toList();
 
                     if (candidates.isEmpty()) {
                         userKnowledgeRepository.deleteAllByUserId(userId);
-                        candidates = psychologyKnowledgeRepository.findAll();
+                        candidates = psychologyKnowledgeRepository.findAllByDeletedAtIsNull();
                     }
                     // 3. 오늘 지식 확정 및 DB 저장
                     long seed = userId + LocalDate.now().toEpochDay();

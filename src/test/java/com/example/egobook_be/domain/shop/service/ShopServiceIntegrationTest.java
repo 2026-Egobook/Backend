@@ -6,7 +6,6 @@ import com.example.egobook_be.domain.shop.enums.ItemCategory;
 import com.example.egobook_be.domain.shop.enums.ShopErrorCode;
 import com.example.egobook_be.domain.shop.repository.ItemRepository;
 import com.example.egobook_be.domain.shop.repository.UserItemRepository;
-import com.example.egobook_be.domain.shop.sevice.ShopService;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
@@ -14,7 +13,6 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.concurrent.CountDownLatch;

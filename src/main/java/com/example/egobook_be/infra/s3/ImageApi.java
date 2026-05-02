@@ -33,9 +33,9 @@ public class ImageApi {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<GlobalResponse<?>> uploadImage(
             @Parameter(description = "업로드할 이미지 파일 (.jpg, .png 등)") // 3. 파라미터 설명 추가
-            @RequestPart("file") MultipartFile file
+            @RequestPart("file") MultipartFile file, @RequestPart("path") String path
     ) throws IOException {
-        String imageUrl = s3ImageService.upload(file);
+        String imageUrl = s3ImageService.upload(file, path);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(GlobalResponse.success(201, "이미지를 성공적으로 S3에 업로드하였습니다.", imageUrl));
     }

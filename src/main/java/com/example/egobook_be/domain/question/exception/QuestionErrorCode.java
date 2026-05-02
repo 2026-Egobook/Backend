@@ -38,6 +38,16 @@ public enum QuestionErrorCode implements BaseErrorCode {
     INVALID_VISIBILITY(
             HttpStatus.BAD_REQUEST,
             "유효하지 않은 공개 범위입니다."
+    ),
+
+    INVALID_QUESTION_ID(
+            HttpStatus.CONFLICT,
+            "해당 id가 존재하지 않습니다."
+    ),
+
+    DUPLICATE_QUESTION_DATE(
+            HttpStatus.CONFLICT,
+            "해당 날짜에는 이미 활성화된 질문이 존재합니다."
     );
 
     private final HttpStatus status;

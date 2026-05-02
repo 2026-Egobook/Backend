@@ -5,21 +5,15 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 
 @Entity
 @Getter
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(
-        name = "today_question",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_today_question_date",
-                        columnNames = "question_date"
-                )
-        }
-)
+@Table(name = "today_question")
 public class TodayQuestion extends BaseTimeEntity {
 
     @Id
@@ -31,4 +25,15 @@ public class TodayQuestion extends BaseTimeEntity {
 
     @Column(name = "question_date", nullable = false)
     private LocalDate questionDate;
+
+    private LocalDateTime deletedAt;
+
+    public void update(String content, LocalDate questionDate) {
+        this.content = content;
+        this.questionDate = questionDate;
+    }
+
+    public void delete() {
+        this.deletedAt = LocalDateTime.now();
+    }
 }

@@ -1,11 +1,17 @@
 package com.example.egobook_be.infra.s3;
 
+import com.example.egobook_be.domain.shop.enums.ShopErrorCode;
+import com.example.egobook_be.domain.shop.repository.ItemRepository;
+import com.example.egobook_be.global.exception.CustomException;
+import com.example.egobook_be.global.exception.GlobalErrorCode;
 import io.awspring.cloud.s3.S3Template;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,12 +29,13 @@ public class S3ImageService {
      *  - (업로드, 다운로드, 삭제 등)을 훨씬 쉽고 안전하게 대행해준다.
      */
     private final S3Template s3Template;
-
+    private final ItemRepository itemRepository; // 다경이가 사용하는 레포지토리 객체
+    private final S3Client s3Client;
     // @Value를 이용해 yml에서 버킷 이름 가져오기
     @Value("${spring.cloud.aws.s3.bucket}")
     private String bucketName;
 
-    public String upload(MultipartFile image) throws IOException{
+    public String upload(MultipartFile image,String path) throws IOException{
         /**
          * 1. 빈 파일 체크
          * - 함수 인자로 받은 MultipartFile 객체의 유효성을 검증한다.
@@ -36,7 +43,7 @@ public class S3ImageService {
          * - getOriginalFilename()이 null인 경우도 확인한다.
          */
         if (image.isEmpty() || image.getOriginalFilename() == null) {
-            throw new IllegalArgumentException("이미지 파일이 존재하지 않습니다.");
+            throw new CustomException(GlobalErrorCode.INVALID_INPUT_VALUE);
         }
 
         /*
@@ -44,9 +51,13 @@ public class S3ImageService {
          * - S3는 같은 이름의 파일이 올라오면 덮어씌워버린다.
          * - 따라서, UUID(난수, 랜덤 문자열)을 생성해서 파일명 앞에 붙여준다. (ex: a1b2c3d4e5_profile.jpg)
          */
+
         String originalFilename = image.getOriginalFilename();
-        String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-        String s3FileName = UUID.randomUUID().toString().substring(0, 10) + originalFilename;
+        if (itemRepository.existsByNameAndPath(originalFilename, path)) {
+            throw new CustomException(ShopErrorCode.ALREADY_EXIST_ITEM);
+        }
+
+        String s3FileName = "files/shop/" + path + "/" + originalFilename;
 
         /*
          * 3. S3에 업로드
@@ -57,9 +68,10 @@ public class S3ImageService {
         try (InputStream inputStream = image.getInputStream()) {
             // s3Template이 알아서 Content-Type 설정 및 업로드를 처리합니다.
             s3Template.upload(bucketName, s3FileName, inputStream);
-        } catch (IOException e) {
+        } catch (Exception e) {
+            e.printStackTrace();
             log.error("S3 업로드 중 에러 발생", e);
-            throw new RuntimeException("이미지 업로드에 실패했습니다.");
+            throw new RuntimeException("이미지 업로드에 실패했습니다. 원인: " + e.getMessage());
         }
 
         /**
@@ -68,5 +80,48 @@ public class S3ImageService {
          * - 주의: 버킷이 Private인 경우 이 URL로 바로 접근이 안 될 수 있습니다. (Presigned URL 등 필요)
          */
         return s3Template.download(bucketName, s3FileName).getURL().toString();
+    }
+
+    /**
+     * 5. S3 파일 삭제
+     * [ s3Template.deleteObject(bucket, key); ]
+     * - key는 S3에 저장된 파일의 전체 경로(파일명 포함)를 의미합니다.
+     */
+    public void delete(String path, String fileName) {
+        String s3FileName = "files/shop/" + path + "/" + fileName;
+
+        try {
+            s3Template.deleteObject(bucketName, s3FileName);
+            log.info("S3 파일 삭제 성공: {}", s3FileName);
+        } catch (Exception e) {
+            log.error("S3 파일 삭제 중 에러 발생: {}", s3FileName, e);
+            throw new CustomException(ShopErrorCode.FILE_NOT_FOUND_IN_S3);
+        }
+    }
+
+    public void move(String oldPath, String newPath, String fileName) {
+        String sourceKey = "files/shop/" + oldPath + "/" + fileName;
+        String destinationKey = "files/shop/" + newPath + "/" + fileName;
+
+        try {
+            // 1. 파일 복사 요청 생성
+            CopyObjectRequest copyRequest = CopyObjectRequest.builder()
+                    .sourceBucket(bucketName)
+                    .sourceKey(sourceKey)
+                    .destinationBucket(bucketName)
+                    .destinationKey(destinationKey)
+                    .build();
+
+            // 2. 복사 실행
+            s3Client.copyObject(copyRequest);
+
+            // 3. 기존 위치의 파일 삭제
+
+            s3Template.deleteObject(bucketName, sourceKey);
+            log.info("S3 파일 이동 완료: {} -> {}", sourceKey, destinationKey);
+        } catch (Exception e) {
+            log.error("S3 파일 이동 중 에러 발생", e);
+            throw new RuntimeException("파일 경로 변경에 실패했습니다.");
+        }
     }
 }

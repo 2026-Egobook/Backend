@@ -70,4 +70,6 @@ public class UserItem {
                 .isEquipped(false)
                 .build();
     }
+
+
 }
