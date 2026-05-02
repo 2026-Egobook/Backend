@@ -46,7 +46,8 @@ public class SecurityConfig {
             "/manage/prometheus", // Prometheus Metrics 수집 경로
             "/ads/admob/callback", // AdMob의 광고 보상 수령 여부 확인 경로
             "/admin/auth/refresh",
-            "/admin/auth/recertification",
+            "/admin/auth/register",
+            "/admin/auth/login"
     };
 
     /**

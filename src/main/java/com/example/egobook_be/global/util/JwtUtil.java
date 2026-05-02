@@ -203,6 +203,15 @@ public class JwtUtil {
         return provider.toString() + ":" + hashedDeviceUid;
     }
 
+    /**
+     * Admin용 Subject 생성
+     * @param adminId 관리자 로그인 아이디
+     * @return "ADMIN:adminId"
+     */
+    public String createAdminSubject(String adminId) {
+        return "ADMIN:" + adminId;
+    }
+
 
     // ===============================================================
     // [Getter]

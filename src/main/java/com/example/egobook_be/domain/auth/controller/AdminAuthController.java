@@ -1,7 +1,8 @@
 package com.example.egobook_be.domain.auth.controller;
 
-import com.example.egobook_be.domain.auth.dto.req.GuestRecertificationReqDto;
+import com.example.egobook_be.domain.auth.dto.req.AdminAuthReqDto;
 import com.example.egobook_be.domain.auth.dto.req.RefreshReqDto;
+import com.example.egobook_be.domain.auth.dto.res.AdminLoginResDto;
 import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
 import com.example.egobook_be.domain.auth.sevice.AdminAuthService;
 import com.example.egobook_be.global.response.GlobalResponse;
@@ -18,6 +19,24 @@ public class AdminAuthController implements AdminAuthControllerDocs {
 
     private final AdminAuthService adminAuthService;
 
+    // [AI-GEN] 관리자 회원가입 엔드포인트 처리
+    @Override
+    public ResponseEntity<GlobalResponse<Void>> registerAdmin(@RequestBody @Valid AdminAuthReqDto reqDto) {
+        adminAuthService.registerAdmin(reqDto);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(GlobalResponse.success("관리자 회원가입이 완료되었습니다.", null));
+    }
+
+    // [AI-GEN] 관리자 로그인 엔드포인트 처리
+    @Override
+    public ResponseEntity<GlobalResponse<AdminLoginResDto>> loginAdmin(@RequestBody @Valid AdminAuthReqDto reqDto) {
+        AdminLoginResDto resDto = adminAuthService.loginAdmin(reqDto);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(GlobalResponse.success("로그인 성공입니다.", resDto));
+    }
+
     /**
      * [관리자 Access Token 재발급]
      * POST /admin/auth/refresh
@@ -30,15 +49,4 @@ public class AdminAuthController implements AdminAuthControllerDocs {
                 .body(GlobalResponse.success("Access Token이 정상적으로 재발급되었습니다.", jwtTokenResDto));
     }
 
-    /**
-     * [관리자 Recover Token으로 토큰 재발급]
-     * POST /admin/auth/recertification
-     */
-    @Override
-    public ResponseEntity<GlobalResponse<JwtTokenResDto>> recertificationAdminToken(@RequestBody @Valid GuestRecertificationReqDto reqDto) {
-        JwtTokenResDto jwtTokenResDto = adminAuthService.recertificationAdminToken(reqDto);
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(GlobalResponse.success("Access/Refresh/Recover Token이 정상적으로 재발급되었습니다.", jwtTokenResDto));
-    }
 }

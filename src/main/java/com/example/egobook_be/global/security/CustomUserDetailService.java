@@ -88,6 +88,7 @@ public class CustomUserDetailService implements UserDetailsService {
                 .authAccountId(authAccount.getId()) // AuthAccount 테이블의 PK (토큰 백업용)
                 .provider(authAccount.getProvider()) // provider 설정
                 .hashedDeviceUid(authAccount.getHashedDeviceUid()) // hashing된 기기 고유 ID
+                .subject(authAccount.getProvider().toString() + ":" + authAccount.getHashedDeviceUid()) // JWT Subject
                 .role(user.getRole())           // 사용자 권한 (RoleType)
                 .build();
 
