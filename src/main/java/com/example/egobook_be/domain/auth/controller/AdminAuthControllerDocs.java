@@ -1,7 +1,8 @@
 package com.example.egobook_be.domain.auth.controller;
 
-import com.example.egobook_be.domain.auth.dto.req.GuestRecertificationReqDto;
+import com.example.egobook_be.domain.auth.dto.req.AdminAuthReqDto;
 import com.example.egobook_be.domain.auth.dto.req.RefreshReqDto;
+import com.example.egobook_be.domain.auth.dto.res.AdminLoginResDto;
 import com.example.egobook_be.domain.auth.dto.res.JwtTokenResDto;
 import com.example.egobook_be.global.response.GlobalResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,6 +22,53 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RequestMapping("/admin/auth")
 public interface AdminAuthControllerDocs {
 
+    @Operation(summary = "관리자 회원가입", description = """
+            관리자가 아이디와 비밀번호를 입력하여 신규 계정을 등록하는 API입니다.
+
+            [ **입력값** ]
+            1. `adminId`: 관리자 아이디
+            2. `password`: 관리자 비밀번호
+
+            - **기능**: 신규 관리자 계정을 생성합니다.
+            - **실패 시**:
+              - 400: 필수 값 누락
+              - 409: 이미 존재하는 관리자 아이디
+
+            - **주의사항** -
+                - 회원가입을 한다 해서 바로 로그인할 수 없습니다.
+                - 직접 해당 계정의 설정을 변경해야 로그인이 가능합니다.
+            """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "회원가입 성공",
+                    content = @Content),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (아이디/비밀번호 누락)", content = @Content),
+            @ApiResponse(responseCode = "409", description = "이미 존재하는 관리자 아이디", content = @Content)
+    })
+    @PostMapping("/register")
+    ResponseEntity<GlobalResponse<Void>> registerAdmin(@RequestBody @Valid AdminAuthReqDto reqDto);
+
+    @Operation(summary = "관리자 로그인", description = """
+            관리자가 아이디와 비밀번호를 입력하여 로그인하는 API입니다.
+
+            [ **입력값** ]
+            1. `adminId`: 관리자 아이디
+            2. `password`: 관리자 비밀번호
+
+            - **기능**: 아이디/비밀번호 검증 후 Access Token, Refresh Token을 발급합니다.
+            - **실패 시**:
+              - 400: 필수 값 누락
+              - 401: 아이디 또는 비밀번호 불일치
+            """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "로그인 성공",
+                    content = @Content(schema = @Schema(implementation = AdminLoginResDto.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (아이디/비밀번호 누락)", content = @Content),
+            @ApiResponse(responseCode = "401", description = "아이디 또는 비밀번호 불일치", content = @Content)
+    })
+    @PostMapping("/login")
+    ResponseEntity<GlobalResponse<AdminLoginResDto>> loginAdmin(@RequestBody @Valid AdminAuthReqDto reqDto);
+
+
     @Operation(summary = "관리자 Access Token 재발급", description = """
             관리자가 Refresh Token을 이용하여 Access Token을 재발급받는 API입니다.
 
@@ -30,7 +78,7 @@ public interface AdminAuthControllerDocs {
             2. `refreshToken`: 만료되지 않은 Refresh Token (Bearer 제외)
 
             - **기능**: 유효한 Refresh Token을 검증하고, **새로운 Access Token**을 발급합니다.
-            - **실패 시**: 401 Unauthorized 반환 → 관리자 계정으로 재로그인이 필요합니다.
+            - **실패 시**: Redis에 Refresh Token 정보가 없으면 401 Unauthorized 반환 → 관리자 계정으로 재로그인이 필요합니다.
             """)
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Access Token 재발급 성공 (Refresh Token은 기존 토큰 그대로 반환)",
@@ -42,31 +90,4 @@ public interface AdminAuthControllerDocs {
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/refresh")
     ResponseEntity<GlobalResponse<JwtTokenResDto>> refreshAccessToken(@RequestBody @Valid RefreshReqDto reqDto);
-
-    @Operation(summary = "관리자 Recover Token으로 토큰 재발급", description = """
-            관리자의 Refresh Token이 만료되었을 때, 기기에 영구 저장된 Recover Token으로 세션을 복구하는 API입니다.
-
-            [ **입력값** ]
-            1. `deviceUid`: 기기 고유 UUID
-            2. `accessToken`: 만료되었거나 만료되지 않은, 기존에 사용하던 Access Token (Bearer 제외)
-            3. `recoverToken`: 기기에 영구 저장된 Recover Token
-
-            - **기능**:
-              1. Recover Token과 서버의 저장값을 대조하여 검증합니다.
-              2. 검증 성공 시, **새로운 Access Token, Refresh Token, Recover Token**을 발급합니다.
-              3. 새로운 Recover Token이 발급되어 서버에 갱신됩니다. **발급된 Recover Token을 다시 저장하세요.**
-
-            - **실패 시(400)**: Recover Token이 유효하지 않음 → 계정을 삭제 대기 상태로 전환합니다.
-            """)
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Access / Refresh / Recover Token이 정상적으로 재발급되었습니다.",
-                    content = @Content(schema = @Schema(implementation = JwtTokenResDto.class))),
-            @ApiResponse(responseCode = "400", description = "유효하지 않은 Recover Token (계정 삭제 대기 처리됨)", content = @Content),
-            @ApiResponse(responseCode = "401", description = "로그인이 필요합니다.", content = @Content),
-            @ApiResponse(responseCode = "403", description = "관리자 권한이 필요합니다. 또는 탈퇴 대기 중인 계정입니다.", content = @Content),
-            @ApiResponse(responseCode = "404", description = "해당 인증 정보를 찾을 수 없습니다.", content = @Content)
-    })
-    @SecurityRequirement(name = "bearerAuth")
-    @PostMapping("/recertification")
-    ResponseEntity<GlobalResponse<JwtTokenResDto>> recertificationAdminToken(@RequestBody @Valid GuestRecertificationReqDto reqDto);
 }

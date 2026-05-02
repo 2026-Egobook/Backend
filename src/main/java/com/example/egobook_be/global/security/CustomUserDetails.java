@@ -21,7 +21,7 @@ import java.util.List;
 @Getter
 @RequiredArgsConstructor
 public class CustomUserDetails implements UserDetails {
-    private final UserAuthDto userAuthDto; // 사용자 인증 정보를 담고 있는 dto
+private final UserAuthDto userAuthDto; // 사용자 인증 정보를 담고 있는 dto
 
     /**
      * [사용자 권한(Role)을 처리하는 함수]
@@ -54,13 +54,15 @@ public class CustomUserDetails implements UserDetails {
     }
 
     /**
-     * [Username 처리 -> Provider:HashedDeviceUid]
+     * [Username 처리 -> Provider:HashedDeviceUid 또는 ADMIN:adminId]
      * JWT의 Subject에 들어갈 값이자, Spring Security 내에서 이 유저를 식별하는 고유 ID입니다.
-     * 단순히 deviceUid만 반환하면 Guest/Google 계정이 중복될 수 있으므로,
-     * 반드시 "PROVIDER:UID" 형태로 조합해서 반환해야 합니다.
+     * Admin인 경우 "ADMIN:adminId" 형식을, User인 경우 "PROVIDER:UID" 형식을 반환합니다.
      */
     @Override
     public String getUsername() {
+        if (userAuthDto.subject().startsWith("ADMIN:")) {
+            return userAuthDto.subject();
+        }
         return userAuthDto.provider().toString() + ":" + userAuthDto.hashedDeviceUid();
     }
 

@@ -136,8 +136,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     /**
      * [Authentication 객체 생성 메서드]
      * DB를 거치지 않고 JWT Claims에서 정보를 추출하여 Principal을 구성한다.
-     * @param accessToken : 클라이언트로부터 받은
-     * @return
+     * Admin과 User를 subject 접두사로 분기하여 처리한다.
+     * @param accessToken : 클라이언트로부터 받은 Access Token
+     * @return Authentication 객체
      */
     private Authentication createAuthentication(String accessToken) {
         // 1. Access Token에서 데이터 추출
@@ -146,10 +147,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String subject = jwtUtil.getSubjectFromToken(accessToken);
         String roleString = jwtUtil.getRoleFromToken(accessToken);
 
-        /*
-         * 2. Subject를 Provider와 HashedDeviceUid로 분리한다.
-         * - 만약 형식이 잘못되었다면, INVALID_TYPE_TOKEN으로 예외처리를 한다.
-         */
+        // 2. Admin 분기: subject가 "ADMIN:"으로 시작
+        if (subject.startsWith("ADMIN:")) {
+            UserAuthDto userAuthDto = UserAuthDto.builder()
+                    .subject(subject)
+                    .role(RoleType.valueOf(roleString))
+                    .build();
+            CustomUserDetails customUserDetails = new CustomUserDetails(userAuthDto);
+            return new UsernamePasswordAuthenticationToken(customUserDetails, null, customUserDetails.getAuthorities());
+        }
+
+        // 3. User 분기: 기존 로직 유지
         String[] parts = subject.split(":", 2);
         if (parts.length < 2) {
             throw new CustomException(AuthErrorCode.INVALID_TYPE_TOKEN);
@@ -157,7 +165,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         Provider provider = Provider.valueOf(parts[0]);
         String hashedDeviceUid = parts[1];
 
-        // 3. UserAuthDto & CustomUserDetails 생성
+        // 4. UserAuthDto & CustomUserDetails 생성
         UserAuthDto userAuthDto = UserAuthDto.builder()
                 .userId(userId)
                 .authAccountId(authAccountId)
@@ -167,7 +175,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 .build();
         CustomUserDetails customUserDetails = new CustomUserDetails(userAuthDto);
 
-        // 4. Spring Security 인증 토큰 생성 및 반환
+        // 5. Spring Security 인증 토큰 생성 및 반환
         return new UsernamePasswordAuthenticationToken(customUserDetails, null, customUserDetails.getAuthorities());
     }
 
