@@ -147,6 +147,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String subject = jwtUtil.getSubjectFromToken(accessToken);
         String roleString = jwtUtil.getRoleFromToken(accessToken);
 
+        if (subject == null) {
+            throw new CustomException(AuthErrorCode.INVALID_TYPE_TOKEN);
+        }
+
         // 2. Admin 분기: subject가 "ADMIN:"으로 시작
         if (subject.startsWith("ADMIN:")) {
             UserAuthDto userAuthDto = UserAuthDto.builder()
@@ -171,6 +175,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 .authAccountId(authAccountId)
                 .hashedDeviceUid(hashedDeviceUid)
                 .provider(provider)
+                .subject(subject)
                 .role(RoleType.valueOf(roleString))
                 .build();
         CustomUserDetails customUserDetails = new CustomUserDetails(userAuthDto);
