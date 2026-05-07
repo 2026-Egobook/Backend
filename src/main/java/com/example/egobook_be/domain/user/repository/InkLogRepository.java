@@ -53,6 +53,8 @@ public interface InkLogRepository extends JpaRepository<InkLog, Long> {
             @Param("format") String format
     );
 
+    boolean existsByUserAndReasonAndCreatedAtBetween(User user, InkLogType reason, LocalDateTime createdAtAfter, LocalDateTime createdAtBefore);
+
     interface InkStatAmount {
         String getPeriod();
         Long getAmount();

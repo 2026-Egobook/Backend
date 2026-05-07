@@ -67,21 +67,22 @@ public class DiaryService {
         LocalDateTime endOfToday = LocalDate.now().atTime(LocalTime.MAX);
 
         // 오늘 첫 일기 작성 여부
-        boolean isFirstDiaryToday = !diaryRepository.existsByUserAndCreatedAtBetween(user, startOfToday, endOfToday);
+        boolean isFirstDiaryToday = !inkLogRepository.existsByUserAndReasonAndCreatedAtBetween(
+                user, InkLogType.FIRST_EMOTION_DIARY, startOfToday, endOfToday
+        );
 
         // 오늘 첫 고민(CONCERN) 일기 작성 여부
         boolean isFirstConcernToday =
                 dto.type().contains(DiaryType.CONCERN) &&
-                        !diaryRepository.existsByUserAndTypeContainingAndCreatedAtBetween(
-                                user, DiaryType.CONCERN, startOfToday, endOfToday
+                        !inkLogRepository.existsByUserAndReasonAndCreatedAtBetween(
+                                user, InkLogType.FIRST_CONCERN_DIARY, startOfToday, endOfToday
                         );
 
         // 오늘 첫 칭찬(PRAISE) 또는 감사(GRATITUDE) 작성 여부
         boolean isFirstPositiveToday =
                 (dto.type().contains(DiaryType.PRAISE) || dto.type().contains(DiaryType.GRATITUDE)) &&
-                        !diaryRepository.existsByUserAndTypeInAndCreatedAtBetween(
-                                user, Set.of(DiaryType.PRAISE, DiaryType.GRATITUDE),
-                                startOfToday, endOfToday
+                        !inkLogRepository.existsByUserAndReasonAndCreatedAtBetween(
+                                user, InkLogType.FIRST_POSITIVE_DIARY, startOfToday, endOfToday
                         );
 
         LocalDateTime writtenAt = LocalDateTime.now();
@@ -147,6 +148,7 @@ public class DiaryService {
          * - 감정조절 레벨이 올랐으면 잉크 +1
          */
         if (isFirstConcernToday) {
+            inkLogUtil.addInkLogToList(inkLogs, user, 0, InkLogType.FIRST_CONCERN_DIARY);
             int earnedInk = ability.addEmotionRegulation(1); // 감정 조절 Score를 증가시켰을 때, 사용자가 레벨업한 경우 earnedInk의 값은 1이다
             rewards.add(new DiaryCreateResDto.RewardResDto(
                     RewardType.EMOTION_REGULATION, 1, "고민 일기를 작성하여 감정조절 스코어가 상승했어요"
@@ -167,6 +169,7 @@ public class DiaryService {
          * - 긍정 사고의 레벨이 올랐으면 잉크 +1
          */
         if (isFirstPositiveToday) {
+            inkLogUtil.addInkLogToList(inkLogs, user, 0, InkLogType.FIRST_POSITIVE_DIARY);
             int amount = 1;
             int earnedInk = ability.addPositiveThinking(amount);
             if (diaryTypes.contains(DiaryType.PRAISE)) {
