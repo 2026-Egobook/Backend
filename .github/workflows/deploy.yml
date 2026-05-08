@@ -156,36 +156,39 @@ jobs:
           # => github secrets에 설정해놓은 값들 env로 가져오기
 
         run: |
+          set -euo pipefail
+          
           echo "$EC2_SSH_KEY" > private_key.pem
           chmod 600 private_key.pem
           
           # jar 파일 찾기
-          jar_file=$(find build/libs -name '*.jar' ! -name '*plain.jar' | head -n 1)
+          jar_file=$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*plain.jar' | head -n 1)
           
-          # EC2로 Jar, Dockerfile, docker-compose.yml 파일들 전송
-          scp -i private_key.pem -o StrictHostKeyChecking=no "$jar_file" Dockerfile docker-compose.yml $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/
+          if [ -z "$jar_file" ]; then
+            echo "실행 가능한 jar 파일을 찾지 못했습니다."
+            exit 1
+          fi
+          
+          cp "$jar_file" ./egobookServer.jar
+          
+          # 고정된 이름으로 EC2에 전송
+          scp -i private_key.pem -o StrictHostKeyChecking=no \
+            ./egobookServer.jar Dockerfile docker-compose.yml \
+            "$EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/"
           
           # EC2 접속 및 Firebase 키 생성 + Docker Compose 실행
-          ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "
-          cd /home/$EC2_USERNAME
+          ssh -i private_key.pem -o StrictHostKeyChecking=no "$EC2_USERNAME@$EC2_HOST" "
+            set -e
+            cd /home/$EC2_USERNAME
           
-          # 1. 파일 이름 정리
-          mv *.jar egobookServer.jar
+            # 과거에 남은 jar 찌꺼기 제거
+            rm -f Egobook_BE-*.jar
           
-          # 2. ⭐ Firebase 키 파일을 EC2에서 직접 생성
-          # 혹시 잘못된 빈 디렉토리가 있다면 먼저 제거 (한 번만 필요하지만 안전장치로 유지)
-          sudo rm -rf /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
-          mkdir -p /home/$EC2_USERNAME/src/main/resources
-          echo '$FIREBASE_KEY_BASE64' | base64 -d > /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
-          chmod 600 /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
-          
-          # 3. 컨테이너 실행
-          REDIS_PASSWORD=$REDIS_PASSWORD \
-          sudo -E docker compose up -d --build
-          
-          # 4. 정리
-          sudo docker image prune -f
+            sudo rm -rf /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
+            mkdir -p /home/$EC2_USERNAME/src/main/resources
+            echo '$FIREBASE_KEY_BASE64' | base64 -d > /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
+            chmod 600 /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
+            REDIS_PASSWORD=$REDIS_PASSWORD sudo -E docker compose up -d --build --force-recreate
+            sudo docker image prune -f
           "
-          
-          # Runner의 임시 키 파일 삭제
-          rm -f private_key.pem
+          rm -f private_key.pem ./egobookServer.jar
