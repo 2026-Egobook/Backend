@@ -5,6 +5,7 @@ import com.example.egobook_be.domain.home.entity.Mission;
 import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.letters.dto.request.CreateLetterRequest;
 import com.example.egobook_be.domain.letters.dto.response.CreateLetterResponse;
+import com.example.egobook_be.domain.letters.dto.response.ReplyResponse;
 import com.example.egobook_be.domain.letters.entity.PlazaLetter;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterMode;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
@@ -12,6 +13,8 @@ import com.example.egobook_be.domain.letters.entity.PlazaLetterThread;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.enums.PlazaLetterColor;
 import com.example.egobook_be.domain.letters.mapper.PlazaLetterMapper;
+import com.example.egobook_be.domain.letters.repository.AiRequestCountLogRepository;
+import com.example.egobook_be.domain.letters.repository.BadWordBlockLogRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterThreadRepository;
@@ -19,7 +22,10 @@ import com.example.egobook_be.domain.letters.service.PlazaLetterService;
 import com.example.egobook_be.domain.letters.service.WordClientService;
 import com.example.egobook_be.domain.notification.service.NotificationService;
 import com.example.egobook_be.domain.user.entity.Ability;
+import com.example.egobook_be.domain.user.entity.AbilityLogReason;
+import com.example.egobook_be.domain.user.entity.InkLogType;
 import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.repository.AbilityLogRepository;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
@@ -81,7 +87,16 @@ class PlazaLetterServiceTest {
     private AbilityRepository abilityRepository;
 
     @Mock
+    private AbilityLogRepository abilityLogRepository;
+
+    @Mock
     private WordClientService wordClient;
+
+    @Mock
+    private BadWordBlockLogRepository badWordBlockLogRepo;
+
+    @Mock
+    private AiRequestCountLogRepository aiRequestCountLogRepo;
 
     @Mock
     private InkLogUtil inkLogUtil;
@@ -281,6 +296,122 @@ class PlazaLetterServiceTest {
 
         verify(plazaLetterReplyRepository, never()).save(any());
         verify(notificationService, never()).createNotification(anyLong(), any(), anyLong(), any());
+    }
+
+    // [AI-GEN] 광장 편지 첫 작성 재보상 방지 테스트
+    @Test
+    @DisplayName("createLetter_오늘 첫 작성 잉크 로그가 있으면 보상을 지급하지 않는다")
+    void createLetter_오늘첫작성잉크로그가있으면_보상을지급하지않는다() {
+        // given
+        Long userId = 1L;
+
+        User sender = User.builder()
+                .id(userId)
+                .accountCode("ACC001")
+                .nickname("효진")
+                .ink(0)
+                .build();
+
+        Mission mission = Mission.builder()
+                .user(sender)
+                .build();
+
+        CreateLetterRequest request = new CreateLetterRequest();
+        ReflectionTestUtils.setField(request, "mode", PlazaLetterMode.RANDOM);
+        ReflectionTestUtils.setField(request, "text", "재보상 방지 편지");
+        ReflectionTestUtils.setField(request, "backgroundColor", PlazaLetterColor.WHITE);
+
+        PlazaLetterThread savedThread = PlazaLetterThread.builder()
+                .threadId(10L)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(sender));
+        given(missionRepository.findByUser(sender)).willReturn(Optional.of(mission));
+        given(plazaLetterRepository.existsBySenderIdAndCreatedAtBetween(eq(userId), any(), any())).willReturn(false);
+        given(inkLogRepository.existsByUserAndReasonAndCreatedAtBetween(eq(sender), eq(InkLogType.FIRST_LETTER_WRITE), any(), any()))
+                .willReturn(true);
+        given(wordClient.detectAsync(anyString())).willReturn(Mono.empty());
+        given(userRepository.findHighReplyRateCandidates(userId, 50)).willReturn(Collections.emptyList());
+        given(plazaLetterThreadRepository.save(any(PlazaLetterThread.class))).willReturn(savedThread);
+        given(plazaLetterRepository.save(any(PlazaLetter.class))).willAnswer(invocation -> {
+            PlazaLetter letter = invocation.getArgument(0);
+            return PlazaLetter.builder()
+                    .letterId(100L)
+                    .threadId(letter.getThreadId())
+                    .senderId(letter.getSenderId())
+                    .receiverId(letter.getReceiverId())
+                    .mode(letter.getMode())
+                    .fromLabel(letter.getFromLabel())
+                    .content(letter.getContent())
+                    .backgroundColor(letter.getBackgroundColor())
+                    .status(letter.getStatus())
+                    .createdAt(letter.getCreatedAt())
+                    .arrivedAt(letter.getArrivedAt())
+                    .replyDeadlineAt(letter.getReplyDeadlineAt())
+                    .build();
+        });
+
+        // when
+        plazaLetterService.createLetter(userId, request);
+
+        // then
+        verify(inkLogUtil, never()).addInkLogToList(anyList(), eq(sender), eq(1), eq(InkLogType.FIRST_LETTER_WRITE));
+    }
+
+    // [AI-GEN] 광장 답장 재보상 방지 테스트
+    @Test
+    @DisplayName("replyToLetter_오늘 첫 답장 보상 로그가 있으면 잉크와 공감성을 지급하지 않는다")
+    void replyToLetter_오늘첫답장보상로그가있으면_잉크와공감성을지급하지않는다() {
+        // given
+        Long userId = 2L;
+        Long letterId = 101L;
+
+        User receiver = User.builder()
+                .id(userId)
+                .accountCode("ACC002")
+                .nickname("민지")
+                .ink(0)
+                .build();
+
+        Ability ability = spy(Ability.builder()
+                .user(receiver)
+                .build());
+
+        PlazaLetter letter = PlazaLetter.builder()
+                .letterId(letterId)
+                .threadId(10L)
+                .senderId(1L)
+                .receiverId(userId)
+                .mode(PlazaLetterMode.RANDOM)
+                .fromLabel("익명")
+                .content("원본 편지")
+                .backgroundColor(PlazaLetterColor.WHITE)
+                .status(PlazaLetterStatus.ARRIVED)
+                .createdAt(LocalDateTime.now().minusHours(1))
+                .arrivedAt(LocalDateTime.now().minusMinutes(30))
+                .replyDeadlineAt(LocalDateTime.now().plusHours(23))
+                .build();
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(receiver));
+        given(abilityRepository.findByUser(receiver)).willReturn(Optional.of(ability));
+        given(plazaLetterRepository.findById(letterId)).willReturn(Optional.of(letter));
+        given(plazaLetterReplyRepository.existsByLetter(letter)).willReturn(false);
+        given(plazaLetterReplyRepository.existsByReplierIdAndCreatedAtBetween(eq(userId), any(), any())).willReturn(false);
+        given(inkLogRepository.existsByUserAndReasonAndCreatedAtBetween(eq(receiver), eq(InkLogType.FIRST_LETTER_REPLY), any(), any()))
+                .willReturn(true);
+        given(abilityLogRepository.existsByUserAndReasonAndCreatedAtBetween(eq(receiver), eq(AbilityLogReason.FIRST_LETTER_REPLY), any(), any()))
+                .willReturn(true);
+        given(plazaLetterReplyRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
+
+        // when
+        ReplyResponse result = plazaLetterService.replyToLetter(userId, letterId, "답장 내용");
+
+        // then
+        assertThat(result.getRewards()).isEmpty();
+        verify(inkLogUtil, never()).addInkLogToList(anyList(), eq(receiver), eq(1), eq(InkLogType.FIRST_LETTER_REPLY));
+        verify(ability, never()).addEmpathy(anyInt());
+        verify(abilityLogRepository).saveAll(anyList());
     }
 
     @Test
