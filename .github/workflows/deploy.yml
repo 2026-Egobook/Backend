@@ -157,38 +157,29 @@ jobs:
 
         run: |
           set -euo pipefail
-          
           echo "$EC2_SSH_KEY" > private_key.pem
           chmod 600 private_key.pem
-          
-          # jar 파일 찾기
           jar_file=$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*plain.jar' | head -n 1)
-          
           if [ -z "$jar_file" ]; then
             echo "실행 가능한 jar 파일을 찾지 못했습니다."
             exit 1
           fi
-          
           cp "$jar_file" ./egobookServer.jar
-          
-          # 고정된 이름으로 EC2에 전송
           scp -i private_key.pem -o StrictHostKeyChecking=no \
             ./egobookServer.jar Dockerfile docker-compose.yml \
             "$EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/"
-          
-          # EC2 접속 및 Firebase 키 생성 + Docker Compose 실행
           ssh -i private_key.pem -o StrictHostKeyChecking=no "$EC2_USERNAME@$EC2_HOST" "
             set -e
             cd /home/$EC2_USERNAME
-          
-            # 과거에 남은 jar 찌꺼기 제거
             rm -f Egobook_BE-*.jar
-          
+            sudo docker builder prune -af || true
+            sudo docker image prune -af || true
+            sudo docker container prune -f || true
             sudo rm -rf /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
             mkdir -p /home/$EC2_USERNAME/src/main/resources
             echo '$FIREBASE_KEY_BASE64' | base64 -d > /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
             chmod 600 /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
             REDIS_PASSWORD=$REDIS_PASSWORD sudo -E docker compose up -d --build --force-recreate
-            sudo docker image prune -f
+            sudo docker image prune -f || true
           "
           rm -f private_key.pem ./egobookServer.jar
