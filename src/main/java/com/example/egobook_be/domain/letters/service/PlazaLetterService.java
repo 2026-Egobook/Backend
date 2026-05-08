@@ -17,10 +17,14 @@ import com.example.egobook_be.domain.letters.repository.*;
 import com.example.egobook_be.domain.notification.enums.NotificationType;
 import com.example.egobook_be.domain.notification.service.NotificationService;
 import com.example.egobook_be.domain.user.entity.Ability;
+import com.example.egobook_be.domain.user.entity.AbilityLog;
+import com.example.egobook_be.domain.user.entity.AbilityLogReason;
+import com.example.egobook_be.domain.user.entity.AbilityLogType;
 import com.example.egobook_be.domain.user.entity.InkLog;
 import com.example.egobook_be.domain.user.entity.InkLogType;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.exception.UserErrorCode;
+import com.example.egobook_be.domain.user.repository.AbilityLogRepository;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
@@ -55,6 +59,7 @@ public class PlazaLetterService {
 
     private static final int REPLY_TEXT_LIMIT = 350;
     private static final int LETTER_TEXT_LIMIT = 360;
+    private static final ZoneId ASIA_SEOUL_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final PlazaLetterRepository plazaLetterRepository;
     private final PlazaLetterReplyRepository plazaLetterReplyRepository;
@@ -64,6 +69,7 @@ public class PlazaLetterService {
     private final UserRepository userRepository;
     private final MissionRepository missionRepository;
     private final AbilityRepository abilityRepository;
+    private final AbilityLogRepository abilityLogRepository;
     private final WordClientService wordClient;
     private final BadWordBlockLogRepository badWordBlockLogRepo;
     private final InkLogUtil inkLogUtil;
@@ -206,8 +212,19 @@ public class PlazaLetterService {
         PlazaLetter saved = plazaLetterRepository.save(letter);
 
 
+        // [AI-MOD] 편지 첫 작성 잉크 보상 중복 방지
         List<InkLog> inkLogs = new ArrayList<>();
-        inkLogUtil.addInkLogToList(inkLogs, user, 1, InkLogType.FIRST_LETTER_WRITE);
+        LocalDateTime startOfDay = getStartOfDay();
+        LocalDateTime endOfDay = getEndOfDay();
+        boolean alreadyRewardedFirstLetterWrite = inkLogRepository.existsByUserAndReasonAndCreatedAtBetween(
+                user,
+                InkLogType.FIRST_LETTER_WRITE,
+                startOfDay,
+                endOfDay
+        );
+        if (!alreadyRewardedFirstLetterWrite) {
+            inkLogUtil.addInkLogToList(inkLogs, user, 1, InkLogType.FIRST_LETTER_WRITE);
+        }
         if (userMission.updateDailyLetterMissionStatus(true)) {
             inkLogUtil.addInkLogToList(inkLogs, user, 1, InkLogType.DAILY_MISSION_REWARD);
             if (userMission.isWeeklyMissionCompleted()) {
@@ -336,14 +353,25 @@ public class PlazaLetterService {
 
 
     private void enforceDailyLimit(Long userId, LocalDateTime now) {
-        ZoneId zoneId = ZoneId.of("Asia/Seoul");
-        LocalDate today = LocalDate.now(zoneId);
-        LocalDateTime start = today.atStartOfDay(zoneId).toLocalDateTime();
-        LocalDateTime end = today.plusDays(1).atStartOfDay(zoneId).toLocalDateTime();
+        LocalDate today = now.atZone(ASIA_SEOUL_ZONE_ID).toLocalDate();
+        LocalDateTime start = today.atStartOfDay(ASIA_SEOUL_ZONE_ID).toLocalDateTime();
+        LocalDateTime end = today.plusDays(1).atStartOfDay(ASIA_SEOUL_ZONE_ID).toLocalDateTime();
 
         if (plazaLetterRepository.existsBySenderIdAndCreatedAtBetween(userId, start, end)) {
             throw new CustomException(LettersErrorCode.DAILY_LETTER_LIMIT);
         }
+    }
+
+    // [AI-GEN] 서울 기준 시작 시각 계산
+    private LocalDateTime getStartOfDay() {
+        LocalDate today = LocalDate.now(ASIA_SEOUL_ZONE_ID);
+        return today.atStartOfDay(ASIA_SEOUL_ZONE_ID).toLocalDateTime();
+    }
+
+    // [AI-GEN] 서울 기준 종료 시각 계산
+    private LocalDateTime getEndOfDay() {
+        LocalDate today = LocalDate.now(ASIA_SEOUL_ZONE_ID);
+        return today.plusDays(1).atStartOfDay(ASIA_SEOUL_ZONE_ID).toLocalDateTime();
     }
 
     private Long resolveReceiverId(Long userId, CreateLetterRequest request) {
@@ -463,10 +491,8 @@ public class PlazaLetterService {
         enforceWordAiOrThrow(content, userId, BlockType.REPLY);
 
         // 6. plazaLetterReplyRepository로 PlazaLetterReply를 저장하기 전, 해당 사용자가 답장한 편지가 오늘 처음 답장한 편지인지 확인한다.
-        ZoneId zoneId = ZoneId.of("Asia/Seoul");
-        LocalDate today = LocalDate.now(zoneId);
-        LocalDateTime startOfDay = today.atStartOfDay(zoneId).toLocalDateTime();
-        LocalDateTime endOfDay = today.plusDays(1).atStartOfDay(zoneId).toLocalDateTime();
+        LocalDateTime startOfDay = getStartOfDay();
+        LocalDateTime endOfDay = getEndOfDay();
         boolean isFirstReplyToday = !plazaLetterReplyRepository.existsByReplierIdAndCreatedAtBetween(userId, startOfDay, endOfDay);
 
         PlazaLetterReply reply = plazaLetterReplyRepository.save(PlazaLetterReply.builder()
@@ -501,44 +527,59 @@ public class PlazaLetterService {
                     letter.getSenderId(), reply.getReplyId(), e);
         }
 
-        // =============================================
-        // [ 보상 로직 ]
-        // =============================================
-        /*
-         * 1. 해당 사용자가 오늘 처음 편지 답장을 한 경우
-         * - 잉크 +1
-         * - 잉크 로그 작성
-         * - 공감성 +1
-         * + 레벨업 시 잉크 +1
-         */
+        // 답장 보상 로그 중복 지급 방지
         List<ReplyResponse.RewardDto> rewards = new ArrayList<>();
         List<InkLog> inkLogs = new ArrayList<>();
+        List<AbilityLog> abilityLogs = new ArrayList<>();
         if(isFirstReplyToday){
-            inkLogUtil.addInkLogToList(inkLogs, user, 1, InkLogType.FIRST_LETTER_REPLY); // 잉크 +1
-            rewards.add(ReplyResponse.RewardDto.builder()
-                    .kind(ReplyResponse.RewardKind.INK)
-                    .amount(1)
-                    .toastMessage("첫 답장 보상으로 잉크를 획득했어요!")
-                    .build());
+            boolean alreadyRewardedFirstReplyInk = inkLogRepository.existsByUserAndReasonAndCreatedAtBetween(
+                    user,
+                    InkLogType.FIRST_LETTER_REPLY,
+                    startOfDay,
+                    endOfDay
+            );
+            boolean alreadyRewardedFirstReplyEmpathy = abilityLogRepository.existsByUserAndReasonAndCreatedAtBetween(
+                    user,
+                    AbilityLogReason.FIRST_LETTER_REPLY,
+                    startOfDay,
+                    endOfDay
+            );
 
-            int earnedInk = userAbility.addEmpathy(1); // 공감성 +1
-            rewards.add(ReplyResponse.RewardDto.builder()
-                    .kind(ReplyResponse.RewardKind.EMPATHY) // [수정] SINCERITY -> EMPATHY
-                    .amount(1)
-                    .toastMessage("공감성 점수가 1 상승했어요.")
-                    .build());
-            // 1-1. 레벨업했는지 여부 확인
-            if(earnedInk == 1){
-                inkLogUtil.addInkLogToList(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
-                user.levelUp();
+            if (!alreadyRewardedFirstReplyInk) {
+                inkLogUtil.addInkLogToList(inkLogs, user, 1, InkLogType.FIRST_LETTER_REPLY);
                 rewards.add(ReplyResponse.RewardDto.builder()
-                        .kind(ReplyResponse.RewardKind.EMPATHY) // [수정] SINCERITY -> EMPATHY
+                        .kind(ReplyResponse.RewardKind.INK)
                         .amount(1)
-                        .toastMessage("공감성 레벨이 1 상승했어요.")
+                        .toastMessage("첫 답장 보상으로 잉크를 획득했어요!")
                         .build());
+            }
+
+            if (!alreadyRewardedFirstReplyEmpathy) {
+                int earnedInk = userAbility.addEmpathy(1);
+                abilityLogs.add(AbilityLog.builder()
+                        .user(user)
+                        .abilityType(AbilityLogType.EMPATHY)
+                        .amount(1)
+                        .reason(AbilityLogReason.FIRST_LETTER_REPLY)
+                        .build());
+                rewards.add(ReplyResponse.RewardDto.builder()
+                        .kind(ReplyResponse.RewardKind.EMPATHY)
+                        .amount(1)
+                        .toastMessage("공감성 점수가 1 상승했어요.")
+                        .build());
+                if(earnedInk == 1){
+                    inkLogUtil.addInkLogToList(inkLogs, user, earnedInk, InkLogType.LEVEL_UP);
+                    user.levelUp();
+                    rewards.add(ReplyResponse.RewardDto.builder()
+                            .kind(ReplyResponse.RewardKind.EMPATHY)
+                            .amount(1)
+                            .toastMessage("공감성 레벨이 1 상승했어요.")
+                            .build());
+                }
             }
         }
         inkLogRepository.saveAll(inkLogs);
+        abilityLogRepository.saveAll(abilityLogs);
 
         log.info("[PlazaLetterService] replyToLetter End - userId: {}, letterId: {}", userId, letterId);
         return ReplyResponse.builder()
