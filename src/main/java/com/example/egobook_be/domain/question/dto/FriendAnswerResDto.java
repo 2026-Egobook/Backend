@@ -9,6 +9,7 @@ public record FriendAnswerResDto(
         Long answerId,
         Long userId,
         String nickname,
+        Integer level,
         String content,
         LocalDateTime createdAt
 ) {

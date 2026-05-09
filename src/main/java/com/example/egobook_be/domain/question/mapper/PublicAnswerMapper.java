@@ -10,6 +10,7 @@ public class PublicAnswerMapper {
                 .answerId(answer.getId())
                 .userId(answer.getUser().getId())
                 .nickname(answer.getUser().getNickname())
+                .level(answer.getUser().getLevel())
                 .content(answer.getContent())
                 .createdAt(answer.getCreatedAt())
                 .build();

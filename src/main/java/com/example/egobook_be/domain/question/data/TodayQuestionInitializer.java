@@ -23,8 +23,8 @@ public class TodayQuestionInitializer {
             return;
         }
 
-        //26.01.27 부터 1번 질문 시작
-        LocalDate startDate = LocalDate.of(2026, 1, 27);
+        //26.05.10 부터 1번 질문 시작
+        LocalDate startDate = LocalDate.of(2026, 5, 5);
 
         List<TodayQuestion> questions = new ArrayList<>();
 
