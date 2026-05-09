@@ -10,6 +10,7 @@ public record PublicAnswerResDto(
         Long userId,
         String nickname,
         Integer level,
+        String topAbilityName,
         String content,
         LocalDateTime createdAt
 ) {
