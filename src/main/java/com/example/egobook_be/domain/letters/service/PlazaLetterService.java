@@ -16,6 +16,12 @@ import com.example.egobook_be.domain.letters.enums.BlockType;
 import com.example.egobook_be.domain.letters.repository.*;
 import com.example.egobook_be.domain.notification.enums.NotificationType;
 import com.example.egobook_be.domain.notification.service.NotificationService;
+import com.example.egobook_be.domain.shop.entity.Item;
+import com.example.egobook_be.domain.shop.entity.UserItem;
+import com.example.egobook_be.domain.shop.enums.ItemCategory;
+import com.example.egobook_be.domain.shop.enums.ShopErrorCode;
+import com.example.egobook_be.domain.shop.repository.ItemRepository;
+import com.example.egobook_be.domain.shop.repository.UserItemRepository;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.AbilityLog;
 import com.example.egobook_be.domain.user.entity.AbilityLogReason;
@@ -73,6 +79,8 @@ public class PlazaLetterService {
     private final WordClientService wordClient;
     private final BadWordBlockLogRepository badWordBlockLogRepo;
     private final InkLogUtil inkLogUtil;
+    private final UserItemRepository userItemRepository;  // 편지지 보유 확인용
+    private final ItemRepository itemRepository;          // 편지지 아이템 조회용
 
     private final PlazaLetterMapper plazaLetterMapper;
 
@@ -153,12 +161,10 @@ public class PlazaLetterService {
 
         PlazaLetterColor color = (request.getBackgroundColor() == null)
                 ? PlazaLetterColor.WHITE : request.getBackgroundColor();
-        int price = color.getPrice();
-        if (price > 0) {
-            user.useInk(price);
-            inkLogRepository.save(InkLog.builder()
-                    .user(user).amount(-price)
-                    .reason(InkLogType.LETTER_COLOR_PURCHASE).build());
+
+        // 유료 편지지면 보유 여부 확인 후 미보유 시 구매 처리
+        if (color != PlazaLetterColor.WHITE) {
+            purchaseLetterPaperIfNotOwned(user, color);
         }
 
         PlazaLetterThread thread = plazaLetterThreadRepository.save(PlazaLetterThread.createNow());
@@ -391,6 +397,31 @@ public class PlazaLetterService {
         return candidates.get(pick);
     }
 
+
+    /**
+     * 유료 편지지 영구 구매 처리
+     * - 이미 보유 중이면 아무것도 안 함 (영구 보유 → 재사용 가능)
+     * - 미보유 시 잉크 차감 후 UserItem에 저장
+     */
+    private void purchaseLetterPaperIfNotOwned(User user, PlazaLetterColor color) {
+        // 편지지 색상명으로 Item 조회 (name = "PINK" / "GREEN" / "BLUE" / "PURPLE")
+        Item item = itemRepository.findByCategoryAndName(ItemCategory.LETTER_PAPER, color.name())
+                .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_PAPER_NOT_FOUND));
+
+        // 이미 보유 중이면 바로 리턴 (영구 보유 → 무료 재사용)
+        if (userItemRepository.existsByUserIdAndItemId(user.getId(), item.getId())) {
+            return;
+        }
+
+        // 미보유 → 잉크 차감 후 UserItem 저장
+        user.useInk(color.getPrice());
+        inkLogRepository.save(InkLog.builder()
+                .user(user)
+                .amount(-color.getPrice())
+                .reason(InkLogType.LETTER_COLOR_PURCHASE)
+                .build());
+        userItemRepository.save(UserItem.create(user, item));
+    }
 
     private PlazaLetterColor resolveBackgroundColor(String requested) {
         if (requested == null || requested.isBlank()) {

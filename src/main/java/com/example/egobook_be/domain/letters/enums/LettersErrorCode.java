@@ -35,6 +35,7 @@ public enum LettersErrorCode implements BaseErrorCode {
     THREAD_NOT_FOUND(HttpStatus.NOT_FOUND, "PLAZA404_THREAD_NOT_FOUND", "스레드를 찾을 수 없어요"),
     NO_RECEIVER_AVAILABLE(HttpStatus.NOT_FOUND,"PLAZA404_NO_RECEIVER_AVAILABLE", "현재 편지를 받을 수 있는 유저가 없습니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND,"PLAZA404_USER_NOT_FOUND", "유저를 찾을 수 없어요."),
+    LETTER_PAPER_NOT_FOUND(HttpStatus.NOT_FOUND, "PLAZA404_LETTER_PAPER_NOT_FOUND", "해당 편지지 아이템을 찾을 수 없어요."),
 
 
 
