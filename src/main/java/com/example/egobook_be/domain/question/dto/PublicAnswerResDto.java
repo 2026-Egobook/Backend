@@ -9,6 +9,8 @@ public record PublicAnswerResDto(
         Long answerId,
         Long userId,
         String nickname,
+        Integer level,
+        String topAbilityName,
         String content,
         LocalDateTime createdAt
 ) {

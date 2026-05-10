@@ -9,8 +9,13 @@ public record FriendAnswerResDto(
         Long answerId,
         Long userId,
         String nickname,
+        Integer level,
         String content,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        String topAbilityName
 ) {
+    public FriendAnswerResDto(Long answerId, Long userId, String nickname, Integer level, String content, LocalDateTime createdAt) {
+        this(answerId, userId, nickname, level, content, createdAt, null);
+    }
 }
 

@@ -35,7 +35,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -179,25 +181,31 @@ public class TodayQuestionService {
 
         TodayQuestion todayQuestion = todayQuestionRepository
                 .findByQuestionDate(LocalDate.now())
-                .orElseThrow(() ->
-                        new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND)
-                );
+                .orElseThrow(() -> new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND));
 
         PageRequest pageable = PageRequest.of(
-                page -1,
+                page - 1,
                 size,
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
 
-        Slice<QuestionAnswer> slice =
-                questionAnswerRepository.findPublicAnswersWithUser(
-                        todayQuestion,
-                        AnswerVisibility.PUBLIC,
-                        pageable
-                );
+        Slice<QuestionAnswer> slice = questionAnswerRepository.findPublicAnswersWithUser(
+                todayQuestion,
+                AnswerVisibility.PUBLIC,
+                pageable
+        );
+
+        List<Long> userIds = slice.getContent().stream()
+                .map(qa -> qa.getUser().getId())
+                .toList();
+
+        Map<Long, Ability> abilityMap = abilityRepository.findByUserIdIn(userIds).stream()
+                .collect(Collectors.toMap(a -> a.getUser().getId(), a -> a));
 
         log.info("[TodayQuestionService] getPublicAnswers End");
-        return SliceResponse.of(slice, PublicAnswerMapper::toDto);
+        return SliceResponse.of(slice, qa ->
+                PublicAnswerMapper.toDto(qa, abilityMap.get(qa.getUser().getId()))
+        );
     }
 
     /** 답변 수정 **/
@@ -277,8 +285,32 @@ public class TodayQuestionService {
                         pageable
                 );
 
+        // ability 조회 후 topAbilityName 세팅
+        List<Long> userIds = slice.getContent().stream()
+                .map(FriendAnswerResDto::userId)
+                .toList();
+
+        Map<Long, Ability> abilityMap = abilityRepository.findByUserIdIn(userIds).stream()
+                .collect(Collectors.toMap(a -> a.getUser().getId(), a -> a));
+
+        Slice<FriendAnswerResDto> enrichedSlice = new SliceImpl<>(
+                slice.getContent().stream()
+                        .map(dto -> FriendAnswerResDto.builder()
+                                .answerId(dto.answerId())
+                                .userId(dto.userId())
+                                .nickname(dto.nickname())
+                                .level(dto.level())
+                                .topAbilityName(abilityMap.get(dto.userId()).getTopAbilityName())
+                                .content(dto.content())
+                                .createdAt(dto.createdAt())
+                                .build())
+                        .toList(),
+                pageable,
+                slice.hasNext()
+        );
+
         log.info("[TodayQuestionService] getFriendsAnswers End - userId: {}", userId);
-        return SliceResponse.of(slice);
+        return SliceResponse.of(enrichedSlice);
     }
 
     /** 내가 지금까지 작성한 모든 답변 조회 **/

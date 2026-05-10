@@ -1,6 +1,7 @@
 package com.example.egobook_be.domain.question.repository;
 
 import com.example.egobook_be.domain.question.dto.FriendAnswerResDto;
+import com.example.egobook_be.domain.question.dto.PublicAnswerResDto;
 import com.example.egobook_be.domain.question.entity.QuestionAnswer;
 import com.example.egobook_be.domain.question.entity.TodayQuestion;
 import com.example.egobook_be.domain.question.enums.AnswerVisibility;
@@ -34,6 +35,7 @@ public interface QuestionAnswerRepository extends JpaRepository<QuestionAnswer, 
             qa.id,
             u.id,
             u.nickname,
+            u.level,
             qa.content,
             qa.createdAt
         )
@@ -50,7 +52,6 @@ public interface QuestionAnswerRepository extends JpaRepository<QuestionAnswer, 
             @Param("friendIds") List<Long> friendIds,
             Pageable pageable
     );
-
     List<QuestionAnswer> findByUserOrderByCreatedAtDesc(User user);
 
     Optional<QuestionAnswer> findByIdAndUser(Long id, User user);

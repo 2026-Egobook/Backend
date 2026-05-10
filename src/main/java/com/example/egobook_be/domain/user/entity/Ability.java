@@ -3,6 +3,9 @@ package com.example.egobook_be.domain.user.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.Comparator;
+import java.util.Map;
+
 @Entity
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -86,4 +89,17 @@ public class Ability {
 
     public Integer addSelfEsteem(int amount) { return this.selfEsteem.addScore(amount); }
 
+    public String getTopAbilityName() {
+        Map<String, AbilityStat> map = Map.of(
+                "공감성", empathy,
+                "자존감", selfEsteem,
+                "성실함", diligence,
+                "긍정사고", positiveThinking,
+                "감정조절", emotionRegulation
+        );
+        return map.entrySet().stream()
+                .max(Comparator.comparingInt(e -> e.getValue().getScore()))
+                .map(Map.Entry::getKey)
+                .orElse("공감성");
+    }
 }
