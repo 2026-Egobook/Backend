@@ -13,7 +13,7 @@ public interface AdminStatRepository extends Repository<User, Long> {
 
     @Query(value = """
     SELECT DATE_FORMAT(u.created_at, :format) AS period, COUNT(u.id) AS count
-    FROM User u
+    FROM user u
     WHERE u.created_at >= :start 
       AND u.created_at < :end
     GROUP BY DATE_FORMAT(u.created_at, :format)
@@ -27,7 +27,7 @@ public interface AdminStatRepository extends Repository<User, Long> {
 
     @Query(value = """
     SELECT DATE_FORMAT(u.deleted_at, :format) AS period, COUNT(u.id) AS count
-    FROM User u
+    FROM user u
     WHERE u.deleted_at >= :start 
       AND u.deleted_at < :end
     GROUP BY DATE_FORMAT(u.deleted_at, :format)
