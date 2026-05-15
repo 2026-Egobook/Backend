@@ -32,12 +32,16 @@ public interface AdminUserControllerDocs {
             키워드 & 필터 검색을 통해 회원들을 리스트로 검색하는 API입니다.
             
             [**Query Parameter**]
+            1. Required
             - page: 페이지 번호 (1 ~ n)
             - size: 페이지 크기
-            - keyword: 검색창에 작성한 검색 키워드
+            2. Not Required
+            - keyword: 검색창에 작성한 검색 키워드 (빈칸 가능)
                 (검색할 수 있는 요소= ```Account Code``` & ```Email``` & ```Nickname```)
             - status: 검색할 사용자의 상태 필터
+                
                 (필터링할 수 있는 요소)
+                
                     1. ```ACTIVE``` (활동 상태)
                     2. ```DORMANT``` (휴면 상태)
                     3. ```WITHDRAW_PENDING``` (탈퇴 대기 상태)
@@ -58,11 +62,11 @@ public interface AdminUserControllerDocs {
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("")
     ResponseEntity<GlobalResponse<SliceResponse<SearchUserResDto>>> searchUserList(
-        @Parameter(description = "검색 키워드 (AccountCode | Email | Nickname", required = true)
-        @RequestParam("keyword") String keyword,
+        @Parameter(description = "검색 키워드 (AccountCode | Email | Nickname")
+        @RequestParam(value = "keyword", required = false) String keyword,
 
-        @Parameter(description = "사용자 상태 필터 키워드 (ACTIVE | DORMANT | WITHDRAW_PENDING | SUSPENDED)")
-        @RequestParam("status") UserStatus status,
+        @Parameter(description = "사용자 상태 필터 키워드 (ACTIVE | DORMANT | WITHDRAW_PENDING | SUSPENDED)", required = false)
+        @RequestParam(value = "status", required = false) UserStatus status,
 
         @Parameter(description = "Page 번호 (1 ~ N)", required = true)
         @RequestParam(value = "page", defaultValue = "1") Integer page,
