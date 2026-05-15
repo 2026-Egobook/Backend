@@ -78,8 +78,8 @@ public class AdminShopService {
                         item.getCategory(),
                         item.getName(),
                         item.getPrice(),
-                        item.getStatus(),
                         item.getFullUrl(cloudfrontDomain + "/shop"),
+                        item.getStatus(),
                         item.getCreatedAt()
                 )).toList();
 
