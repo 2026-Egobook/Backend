@@ -65,7 +65,16 @@ public class AdminUserService {
     @Transactional(readOnly = true)
     public SliceResponse<SearchUserResDto> searchUserList(String keyword, UserStatus status, Integer page, Integer size) {
         /*
-            1. Slicing을 위한 입력값 검증 & Pageable 객체 생성
+            1. pageable 객체 생성
+            - created_at 기준 내림차순
+         */
+        int validPage = getValidPage(page) - 1;
+        int validSize = getValidPageSize(size);
+        Pageable pageable = PageRequest.of(validPage, validSize, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Slice<SearchUserResDto> resDtos;
+
+        /*
+            2. Slicing을 위한 입력값 검증 & Pageable 객체 생성
             [검증]
                 (1) keyword null or 빈칸 아닌지
                 (2) Page 번호 1~n 범위인지
@@ -75,13 +84,19 @@ public class AdminUserService {
                 (2) Page 크기 너무 크다면 크기 조정
                 (3) Pageable 객체 생성 (우선 userId 기준으로 오름차순)
          */
-        if(isKeywordNullOrBlank(keyword)){throw new CustomException(AdminUserErrorCode.KEYWORD_IS_NULL_OR_BLANK);}
-        int validPage = getValidPage(page) - 1;
-        int validSize = getValidPageSize(size);
-        Pageable pageable = PageRequest.of(validPage, validSize, Sort.by(Sort.Direction.ASC, "id"));
+        if(isKeywordNullOrBlank(keyword)){
+            /*
+                Keyword가 없는 경우 status 값 기준으로 조회
+                - status값도 null인 경우: 전체 사용자 조회 (created_at 기반 내림차순)
+                - status값이 null이 아닌 경우: status 값 기준 전체 사용자 조회 (created_at 기반 내림차순)
+             */
+            resDtos = userRepository.findUsersByStatus(status, pageable);
+            log.info("관리자 회원 리스트 조회 성공 - keyword: {}, status: {}, page: {}, size: {}", keyword, status, validPage, validSize);
+            return SliceResponse.of(resDtos);
+        }
 
         // 2. 해당 pageable 조건에 맞는 정보 Dto Projection으로 Slice 조회 및 반환
-        Slice<SearchUserResDto> resDtos = userRepository.findUsersByKeywordAndStatus(keyword, status, pageable);
+        resDtos = userRepository.findUsersByKeywordAndStatus(keyword, status, pageable);
         log.info("관리자 회원 리스트 조회 성공 - keyword: {}, status: {}, page: {}, size: {}", keyword, status, validPage, validSize);
         return SliceResponse.of(resDtos);
     }

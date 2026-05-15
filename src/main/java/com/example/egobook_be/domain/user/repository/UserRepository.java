@@ -87,5 +87,11 @@ public interface UserRepository extends JpaRepository<User, Long>,UserRepository
             "and (:status is null or u.status = :status)")
     Slice<SearchUserResDto> findUsersByKeywordAndStatus(@Param("keyword")String keyword, @Param("status")UserStatus status, Pageable pageable);
 
+    @Query("select new com.example.egobook_be.domain.user.dto.SearchUserResDto(" +
+            "u.id, u.accountCode, u.email, u.nickname, u.status)" +
+            "from User u " +
+            "where (:status is null or u.status = :status)")
+    Slice<SearchUserResDto> findUsersByStatus(@Param("status") UserStatus status, Pageable pageable);
+
     Long countByCreatedAtBefore(LocalDateTime createdAtBefore);
 }
