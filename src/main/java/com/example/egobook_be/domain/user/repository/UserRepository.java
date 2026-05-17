@@ -79,7 +79,7 @@ public interface UserRepository extends JpaRepository<User, Long>,UserRepository
     Optional<User> findByEmail(String email);
 
     @Query("select new com.example.egobook_be.domain.user.dto.SearchUserResDto(" +
-            "u.id, u.accountCode, u.email, u.nickname, u.status)" +
+            "u.id, u.accountCode, u.email, u.nickname, u.status, u.lastLoginAt, u.createdAt)" +
             "from User u " +
             "where (u.nickname like concat('%', :keyword, '%') or " +
             "       u.email like concat('%', :keyword, '%') or " +
@@ -88,7 +88,7 @@ public interface UserRepository extends JpaRepository<User, Long>,UserRepository
     Slice<SearchUserResDto> findUsersByKeywordAndStatus(@Param("keyword")String keyword, @Param("status")UserStatus status, Pageable pageable);
 
     @Query("select new com.example.egobook_be.domain.user.dto.SearchUserResDto(" +
-            "u.id, u.accountCode, u.email, u.nickname, u.status)" +
+            "u.id, u.accountCode, u.email, u.nickname, u.status, u.lastLoginAt, u.createdAt)" +
             "from User u " +
             "where (:status is null or u.status = :status)")
     Slice<SearchUserResDto> findUsersByStatus(@Param("status") UserStatus status, Pageable pageable);
