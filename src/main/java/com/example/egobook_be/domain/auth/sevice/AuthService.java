@@ -166,7 +166,7 @@ public class AuthService {
         }
 
         // 2. 신규 User Entity 생성 (+ 처음 사용자가 회원가입했을 때 받아야할 것들 할당)
-        User user = userService.initializeAndRegisterUser(hashedDeviceUid);
+        User user = userService.initializeAndRegisterUser(null);
 
         // 3. AuthAccount 엔티티 생성 (Guest Provider)
         AuthAccount authAccount = createAuthAccount(user, Provider.GUEST, hashedDeviceUid);
