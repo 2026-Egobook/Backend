@@ -35,6 +35,7 @@ public class ItemInitializer implements ApplicationRunner {
     String PATH_DECOR_TWO = "decor2";
     String PATH_BACKGROUND = "background";
 
+    String PATH_LETTER_PAPER = "letter";
 
     @Override
     @Transactional
@@ -170,7 +171,20 @@ public class ItemInitializer implements ApplicationRunner {
         items.add(buildBackgroundItem("Blossom.png", 750));
         items.add(buildBackgroundItem("Beach.png", 1000));
 
+
+
+        items.add(buildLetterPaperItem("Blue.png", 150));
+        items.add(buildLetterPaperItem("Green.png", 100));
+        items.add(buildLetterPaperItem("Pink.png", 75));
+        items.add(buildLetterPaperItem("Purple.png", 175));
+
+
         return items;
+    }
+
+
+    private Item buildLetterPaperItem(String name, Integer price) {
+        return buildItem(PATH_LETTER_PAPER, ItemCategory.LETTER_PAPER, name, price);
     }
 
     /**
