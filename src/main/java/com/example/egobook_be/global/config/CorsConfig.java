@@ -38,6 +38,7 @@ public class CorsConfig {
         config.setAllowedOriginPatterns(List.of(
                 "http://localhost:5173", // 안드로이드는 cors 설정이 필요 없으나, 관리자용 웹 페이지를 위한 cors 설정을 남겨둠
                 "https://*.egobook.site", // 프론트 배포 도메인에 따라서 달라짐
+                "https://egobook.site",
                 "https://egobook.netlify.app"
         ));
 
