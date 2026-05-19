@@ -111,4 +111,7 @@ public class PlazaLetter {
         this.arrivedAt = arrivedAt;
     }
 
+    public void hide() {
+        this.status = PlazaLetterStatus.HIDDEN;
+    }
 }

@@ -2,6 +2,7 @@ package com.example.egobook_be.domain.letters.repository;
 
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReply;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReplyReport;
+import com.example.egobook_be.global.enums.ReportStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -65,4 +66,8 @@ public interface PlazaLetterReplyReportRepository extends JpaRepository<PlazaLet
     @Modifying(clearAutomatically = true)
     @Query("DELETE FROM PlazaLetterReplyReport r WHERE r.reply.replyId = :replyId")
     void deleteAllByReplyId(@Param("replyId") Long replyId);
+
+    @Query("SELECT COUNT(r) FROM PlazaLetterReplyReport r WHERE r.reply.replyId = :replyId AND r.status = :status")
+    long countByReplyIdAndStatus(@Param("replyId") Long replyId, @Param("status") ReportStatus status);
+
 }

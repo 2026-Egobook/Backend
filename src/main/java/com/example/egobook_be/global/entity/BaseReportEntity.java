@@ -28,5 +28,13 @@ public abstract class BaseReportEntity {
     @Column(nullable = false)
     private ReportStatus status;        // 공통 신고 상태
 
+    public void approve() {
+        this.status = ReportStatus.RESOLVED;
+    }
+
+    public void reject() {
+        this.status = ReportStatus.REFUSED;
+    }
+
     // reporterId는 도메인마다 타입이 달라서 각 자식에서 선언
 }

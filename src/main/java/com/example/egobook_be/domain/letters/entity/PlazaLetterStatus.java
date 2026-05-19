@@ -9,6 +9,7 @@ public enum PlazaLetterStatus {
     AI_REPLIED,
     SENT,
     ANALYZING,   //AI 분석 중
-    CANCELLED    //사용자가 취소함
+    CANCELLED,    //사용자가 취소함
+    HIDDEN
 }
 
