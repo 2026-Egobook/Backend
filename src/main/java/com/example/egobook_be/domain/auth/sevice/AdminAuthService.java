@@ -71,8 +71,8 @@ public class AdminAuthService {
         UserAuthDto userAuthDto = UserAuthDto.ofAdmin(admin.getId(), admin.getAdminId(), admin.getRole());
         CustomUserDetails customUserDetails = new CustomUserDetails(userAuthDto);
 
-        TokenInfo accessTokenInfo = jwtUtil.createAccessToken(customUserDetails);
-        TokenInfo refreshTokenInfo = jwtUtil.createRefreshToken(customUserDetails);
+        TokenInfo accessTokenInfo = jwtUtil.createAdminAccessToken(customUserDetails);
+        TokenInfo refreshTokenInfo = jwtUtil.createAdminRefreshToken(customUserDetails);
 
         String hashedRefreshToken = hashingUtil.hashingValue(refreshTokenInfo.token());
         RedisValue redisValue = RedisValue.builder()

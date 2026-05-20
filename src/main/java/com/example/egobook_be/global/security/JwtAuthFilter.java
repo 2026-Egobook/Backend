@@ -154,6 +154,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         // 2. Admin 분기: subject가 "ADMIN:"으로 시작
         if (subject.startsWith("ADMIN:")) {
             UserAuthDto userAuthDto = UserAuthDto.builder()
+                    .adminId(userId)
                     .subject(subject)
                     .role(RoleType.valueOf(roleString))
                     .build();
