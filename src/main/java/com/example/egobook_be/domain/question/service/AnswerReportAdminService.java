@@ -2,9 +2,11 @@ package com.example.egobook_be.domain.question.service;
 
 import com.example.egobook_be.domain.question.dto.AnswerReportAdminResDto;
 import com.example.egobook_be.domain.question.entity.AnswerReport;
+import com.example.egobook_be.domain.question.enums.AnswerVisibility;
 import com.example.egobook_be.domain.question.exception.QuestionErrorCode;
 import com.example.egobook_be.domain.question.repository.AnswerReportRepository;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
+import com.example.egobook_be.global.enums.ReportStatus;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
@@ -73,5 +75,36 @@ public class AnswerReportAdminService {
         answerReportRepository.deleteAllByAnswerId(answerId);   // 신고 내역 먼저 삭제
         questionAnswerRepository.deleteById(answerId);
         log.info("[AnswerReportAdminService] deleteAnswer End - answerId: {}", answerId);
+    }
+
+    @Transactional
+    public void approveReport(Long reportId) {
+        AnswerReport report = answerReportRepository.findByIdWithAnswerAndUser(reportId)
+                .orElseThrow(() -> new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND));
+
+        if (report.getStatus() != ReportStatus.PENDING) {
+            throw new CustomException(QuestionErrorCode.ALREADY_RESOLVED);
+        }
+
+        report.approve();
+
+        long approvedCount = answerReportRepository
+                .countByAnswerIdAndStatus(report.getAnswer().getId(), ReportStatus.RESOLVED);
+
+        if (approvedCount >= 3) {
+            report.getAnswer().update(report.getAnswer().getContent(), AnswerVisibility.PRIVATE);
+        }
+    }
+
+    @Transactional
+    public void rejectReport(Long reportId) {
+        AnswerReport report = answerReportRepository.findByIdWithAnswerAndUser(reportId)
+                .orElseThrow(() -> new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND));
+
+        if (report.getStatus() != ReportStatus.PENDING) {
+            throw new CustomException(QuestionErrorCode.ALREADY_RESOLVED);
+        }
+
+        report.reject();
     }
 }

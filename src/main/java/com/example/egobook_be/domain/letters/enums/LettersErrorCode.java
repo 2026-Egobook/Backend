@@ -21,7 +21,8 @@ public enum LettersErrorCode implements BaseErrorCode {
     ALREADY_REPORTED(HttpStatus.BAD_REQUEST, "PLAZA400_ALREADY_REPORTED", "이미 신고한 답장입니다."),
     NOT_FRIEND(HttpStatus.BAD_REQUEST, "PLAZA400_NOT_FRIEND", "친구 관계가 아닙니다."),
     INSUFFICIENT_INK(HttpStatus.BAD_REQUEST, "PLAZA400_INSUFFICIENT_INK", "잉크가 부족합니다."),
-
+    ALREADY_REPORTED_LETTER(HttpStatus.BAD_REQUEST, "PLAZA400_ALREADY_REPORTED_LETTER", "이미 처리된 편지입니다."),
+    ALREADY_REPORTED_REPLY(HttpStatus.BAD_REQUEST, "PLAZA400_ALREADY_REPORTED_REPLY", "이미 처리된 답장입니다."),
 
 
 

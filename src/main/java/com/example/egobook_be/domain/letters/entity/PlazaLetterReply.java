@@ -53,7 +53,11 @@ public class PlazaLetterReply {
     }
 
     public enum ReplyStatus {
-        AI_REPLIED, ARRIVED, SENT, DELETED
+        AI_REPLIED, ARRIVED, SENT, DELETED, HIDDEN
+    }
+
+    public void hide() {
+        this.status = ReplyStatus.HIDDEN;
     }
 }
 

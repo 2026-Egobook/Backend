@@ -49,11 +49,11 @@ public class AnswerReportService {
                         .build()
         );
 
-        // 3회 누적 신고 시 visibility → PRIVATE으로 변경
-        long reportCount = answerReportRepository.countByAnswer(answer);
-        if (reportCount >= 3) {
-            answer.update(answer.getContent(), AnswerVisibility.PRIVATE);
-        }
+//        // 3회 누적 신고 시 visibility → PRIVATE으로 변경
+//        long reportCount = answerReportRepository.countByAnswer(answer);
+//        if (reportCount >= 3) {
+//            answer.update(answer.getContent(), AnswerVisibility.PRIVATE);
+//        }
 
         return new AnswerReportResDto(
                 report.getId(),

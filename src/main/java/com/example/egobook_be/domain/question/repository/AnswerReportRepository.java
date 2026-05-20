@@ -3,6 +3,7 @@ package com.example.egobook_be.domain.question.repository;
 import com.example.egobook_be.domain.question.entity.AnswerReport;
 import com.example.egobook_be.domain.question.entity.QuestionAnswer;
 import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.global.enums.ReportStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -44,4 +45,8 @@ public interface AnswerReportRepository
     @Modifying(clearAutomatically = true)
     @Query("DELETE FROM AnswerReport ar WHERE ar.answer.id = :answerId")
     void deleteAllByAnswerId(@Param("answerId") Long answerId);
+
+    //승인 획수 카운트
+    @Query("SELECT COUNT(ar) FROM AnswerReport ar WHERE ar.answer.id = :answerId AND ar.status = :status")
+    long countByAnswerIdAndStatus(@Param("answerId") Long answerId, @Param("status") ReportStatus status);
 }

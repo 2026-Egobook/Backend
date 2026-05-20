@@ -9,6 +9,7 @@ import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReposito
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
+import com.example.egobook_be.global.enums.ReportStatus;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
@@ -132,5 +133,67 @@ public class LetterReportAdminService {
         }
         replyReportRepository.deleteAllByReplyId(replyId);      // 신고 내역 먼저 삭제
         replyRepository.deleteById(replyId);
+    }
+
+    @Transactional
+    public void approveLetterReport(Long reportId) {
+        PlazaLetterReport report = letterReportRepository.findByIdWithLetter(reportId)
+                .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+
+        if (report.getStatus() != ReportStatus.PENDING) {
+            throw new CustomException(LettersErrorCode.ALREADY_REPORTED_LETTER);
+        }
+
+        report.approve();
+
+        long approvedCount = letterReportRepository
+                .countByLetterIdAndStatus(report.getLetter().getLetterId(), ReportStatus.RESOLVED);
+
+        if (approvedCount >= 3) {
+            report.getLetter().hide();
+        }
+    }
+
+    @Transactional
+    public void rejectLetterReport(Long reportId) {
+        PlazaLetterReport report = letterReportRepository.findByIdWithLetter(reportId)
+                .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+
+        if (report.getStatus() != ReportStatus.PENDING) {
+            throw new CustomException(LettersErrorCode.ALREADY_REPORTED_LETTER);
+        }
+
+        report.reject();
+    }
+
+    @Transactional
+    public void approveReplyReport(Long reportId) {
+        PlazaLetterReplyReport report = replyReportRepository.findByIdWithReply(reportId)
+                .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+
+        if (report.getStatus() != ReportStatus.PENDING) {
+            throw new CustomException(LettersErrorCode.ALREADY_REPORTED_REPLY);
+        }
+
+        report.approve();
+
+        long approvedCount = replyReportRepository
+                .countByReplyIdAndStatus(report.getReply().getReplyId(), ReportStatus.RESOLVED);
+
+        if (approvedCount >= 3) {
+            report.getReply().hide();
+        }
+    }
+
+    @Transactional
+    public void rejectReplyReport(Long reportId) {
+        PlazaLetterReplyReport report = replyReportRepository.findByIdWithReply(reportId)
+                .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+
+        if (report.getStatus() != ReportStatus.PENDING) {
+            throw new CustomException(LettersErrorCode.ALREADY_REPORTED_REPLY);
+        }
+
+        report.reject();
     }
 }

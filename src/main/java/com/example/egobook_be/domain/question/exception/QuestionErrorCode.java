@@ -45,6 +45,11 @@ public enum QuestionErrorCode implements BaseErrorCode {
             "해당 id가 존재하지 않습니다."
     ),
 
+    ALREADY_RESOLVED(
+            HttpStatus.CONFLICT,
+            "이미 처리된 신고입니다."
+    ),
+
     DUPLICATE_QUESTION_DATE(
             HttpStatus.CONFLICT,
             "해당 날짜에는 이미 활성화된 질문이 존재합니다."

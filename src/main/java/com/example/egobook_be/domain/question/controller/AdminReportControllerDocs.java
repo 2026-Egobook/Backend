@@ -61,4 +61,22 @@ public interface AdminReportControllerDocs {
     ResponseEntity<GlobalResponse<Void>> deleteAnswer(
             @PathVariable Long answerId
     );
+
+    @Operation(summary = "[관리자] 편지 신고 승인", description = "승인 3회 누적 시 편지가 비공개 처리됩니다.")
+    ResponseEntity<GlobalResponse<Void>> approveLetterReport(@PathVariable Long reportId);
+
+    @Operation(summary = "[관리자] 편지 신고 거절")
+    ResponseEntity<GlobalResponse<Void>> rejectLetterReport(@PathVariable Long reportId);
+
+    @Operation(summary = "[관리자] 편지 답장 신고 승인", description = "승인 3회 누적 시 답장이 비공개 처리됩니다.")
+    ResponseEntity<GlobalResponse<Void>> approveReplyReport(@PathVariable Long reportId);
+
+    @Operation(summary = "[관리자] 편지 답장 신고 거절")
+    ResponseEntity<GlobalResponse<Void>> rejectReplyReport(@PathVariable Long reportId);
+
+    @Operation(summary = "[관리자] 오늘의 질문 답변 신고 승인", description = "승인 3회 누적 시 답변이 비공개 처리됩니다.")
+    ResponseEntity<GlobalResponse<Void>> approveAnswerReport(@PathVariable Long reportId);
+
+    @Operation(summary = "[관리자] 오늘의 질문 답변 신고 거절")
+    ResponseEntity<GlobalResponse<Void>> rejectAnswerReport(@PathVariable Long reportId);
 }
