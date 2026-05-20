@@ -93,7 +93,7 @@ public class ShopService {
          */
         return SliceResponse.of(sliceEntity, item -> {
             Boolean isPurchased = userItemMap.containsKey(item.getId());
-            return itemMapper.toShopItemInfoResDto(item, getShopCloudFrontDomain(), getMyCloudFrontDomain(), isPurchased, userItemMap.getOrDefault(item.getId(), false));
+            return itemMapper.toShopItemInfoResDto(item, getCloudFrontDomainByCategory(item.getCategory()), getMyCloudFrontDomain(), isPurchased, userItemMap.getOrDefault(item.getId(), false));
         });
     }
 
@@ -131,7 +131,7 @@ public class ShopService {
 
         log.info("[ShopService] purchaseItem End - userId: {}", userId);
         // 4. 아이템 구매 후, 해당 아이템에 대한 정보를 반환한다.
-        return userItemMapper.toItemInfoResDto(userItem, item, getShopCloudFrontDomain());
+        return userItemMapper.toItemInfoResDto(userItem, item, getCloudFrontDomainByCategory(item.getCategory()));
     }
 
     /**
@@ -157,7 +157,8 @@ public class ShopService {
 
         // 2. 멱등성 체크: 이미 원하는 상태라면 DB 변경 없이 바로 반환 (불필요한 쿼리 방지)
         if (targetUserItem.getIsEquipped() == targetStatus) {
-            return userItemMapper.toItemInfoResDto(targetUserItem, targetUserItem.getItem(), cloudfrontDomain);
+            return userItemMapper.toItemInfoResDto(targetUserItem, targetUserItem.getItem(),
+                    getCloudFrontDomainByCategory(targetUserItem.getItem().getCategory()));
         }
 
         /*
@@ -187,7 +188,8 @@ public class ShopService {
 
         log.info("[ShopService] equipItem End - userId: {}", userId);
         // 4. 변경된 정보 반환
-        return userItemMapper.toItemInfoResDto(targetUserItem, targetUserItem.getItem(), getMyCloudFrontDomain());
+        return userItemMapper.toItemInfoResDto(targetUserItem, targetUserItem.getItem(),
+                getCloudFrontDomainByCategory(targetUserItem.getItem().getCategory()));
     }
 
     /**
@@ -202,7 +204,8 @@ public class ShopService {
         log.info("[ShopService] getEquippedItems End - userId: {}", userId);
         // 2. 조회해온 각 아이템을 dto로 변환 (Fetch Join 썼으므로 N+1 발생 안함)
         return equippedItems.stream()
-                .map(userItem -> userItemMapper.toItemInfoResDto(userItem, userItem.getItem(), getMyCloudFrontDomain()))
+                .map(userItem -> userItemMapper.toItemInfoResDto(userItem, userItem.getItem(),
+                        getCloudFrontDomainByCategory(userItem.getItem().getCategory())))
                 .toList();
     }
 
@@ -211,5 +214,12 @@ public class ShopService {
     }
     private String getMyCloudFrontDomain(){
         return cloudfrontDomain+"/my";
+    }
+
+    private String getCloudFrontDomainByCategory(ItemCategory category) {
+        return switch (category) {
+            case LETTER_PAPER -> cloudfrontDomain + "/letter";
+            default -> cloudfrontDomain + "/shop";
+        };
     }
 }

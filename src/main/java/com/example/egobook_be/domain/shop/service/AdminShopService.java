@@ -40,6 +40,8 @@ public class AdminShopService {
         path = path.equals("decor_two") ? "decor2" : path;
         path = path.equals("decor_one") ? "decor1" : path;
 
+        path = path.equals("letter_paper") ? "letter" : path;
+
         // 이미지 s3에 업로드
         String imageUrl = s3ImageService.upload(reqDto.file(),path);
 
