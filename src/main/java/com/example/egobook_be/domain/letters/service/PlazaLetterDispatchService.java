@@ -1,7 +1,9 @@
 package com.example.egobook_be.domain.letters.service;
 
+import com.example.egobook_be.domain.letters.entity.LetterSendFailLog;
 import com.example.egobook_be.domain.letters.entity.PlazaLetter;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
+import com.example.egobook_be.domain.letters.repository.LetterSendFailLogRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.restriction.enums.RestrictionDomainType;
 import com.example.egobook_be.domain.restriction.service.RestrictionGuardService;
@@ -26,6 +28,7 @@ public class PlazaLetterDispatchService {
     private final PlazaLetterRepository plazaLetterRepository;
     private final UserRepository userRepository;
     private final RestrictionGuardService restrictionGuardService;
+    private final LetterSendFailLogRepository letterFailLogRepo;
 
     private static final int BATCH_SIZE = 20;
     private static final int RECEIVER_POOL_SIZE = 300;
@@ -49,7 +52,16 @@ public class PlazaLetterDispatchService {
                 PageRequest.of(0, RECEIVER_POOL_SIZE)
         );
 
-        if (receiverPool.isEmpty()) return;
+        if (receiverPool.isEmpty()) {
+            for (PlazaLetter letter : waitingLetters) {
+                letterFailLogRepo.save(LetterSendFailLog.builder()
+                        .letterId(letter.getLetterId())
+                        .failedAt(LocalDateTime.now())
+                        .reason("수신 가능한 유저 없음")
+                        .build());
+            }
+            return;
+        }
 
         // LETTER 제재 사용자 수신자 풀에서 제외
         Set<Long> restrictedIds = restrictionGuardService.getActivelyRestrictedUserIds(RestrictionDomainType.LETTER);
@@ -57,15 +69,31 @@ public class PlazaLetterDispatchService {
             receiverPool = receiverPool.stream()
                     .filter(id -> !restrictedIds.contains(id))
                     .collect(Collectors.toList());
-            if (receiverPool.isEmpty()) return;
+            if (receiverPool.isEmpty()) {
+                for (PlazaLetter letter : waitingLetters) {
+                    letterFailLogRepo.save(LetterSendFailLog.builder()
+                            .letterId(letter.getLetterId())
+                            .failedAt(LocalDateTime.now())
+                            .reason("수신 가능한 유저 없음")
+                            .build());
+                }
+                return;
+            }
         }
 
         for (PlazaLetter letter : waitingLetters) {
             Long senderId = letter.getSenderId();
-
             Long receiverId = pickRandomExcluding(receiverPool, senderId);
-            if (receiverId == null) continue;
 
+            if (receiverId == null) {
+                // 기존엔 그냥 continue → 실패 로그 저장 추가
+                letterFailLogRepo.save(LetterSendFailLog.builder()
+                        .letterId(letter.getLetterId())
+                        .failedAt(LocalDateTime.now())
+                        .reason("수신 가능한 유저 없음")
+                        .build());
+                continue;
+            }
             letter.assignReceiver(receiverId, now, now.plusHours(24));
         }
         log.info("[PlazaLetterDispatchService] dispatchWaitingLetters End");

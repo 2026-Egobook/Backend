@@ -28,6 +28,8 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
 
     List<PlazaLetter> findByLetterIdIn(List<Long> letterIds);
 
+    long countByStatus(PlazaLetterStatus status);
+
     Slice<PlazaLetter> findByReceiverIdOrderByArrivedAtDesc(
             Long receiverId,
             Pageable pageable
