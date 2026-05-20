@@ -99,6 +99,34 @@ public class JwtUtil {
                 JwtTokenType.RECOVER);
     }
 
+    /**
+     * Access Token 생성 함수 - DB에 있는 값 이용 (Access Token에는 다른 토큰들보다 2개의 Claim이 더 들어간다.)
+     * @param userDetails CustomUserDetails
+     * @return String 액세스 토큰
+     */
+    public TokenInfo createAdminAccessToken(CustomUserDetails userDetails) {
+        return createAdminToken(
+                userDetails.getUserAuthDto().adminId(),
+                userDetails.getUserAuthDto().subject(),
+                extractAuthorities(userDetails),
+                accessExpiration,
+                JwtTokenType.ACCESS);
+    }
+
+    /**
+     * Refresh Token 생성 함수 - DB에 있는 값 이용
+     * @param userDetails CustomUserDetails
+     * @return String Refresh 토큰
+     */
+    public TokenInfo createAdminRefreshToken(CustomUserDetails userDetails) {
+        return createAdminToken(
+                null,
+                userDetails.getUserAuthDto().subject(),
+                extractAuthorities(userDetails),
+                refreshExpiration,
+                JwtTokenType.REFRESH);
+    }
+
     // ===============================================================
     // 2. [Create] Redis 데이터(RedisValue)를 이용한 토큰 생성
     // ===============================================================
@@ -183,6 +211,57 @@ public class JwtUtil {
         if (JwtTokenType.ACCESS.equals(type)) {
             if (userId != null) builder.claim("userId", userId);
             if (authAccountId != null) builder.claim("authAccountId", authAccountId);
+        }
+
+        /*
+         * 7. TokenInfo로 묶어서 반환 (LocalDateTime 사용)
+         * Service에서 해당 토큰의 만료 시간을 알아야 하기에, TokenInfo Dto에 해당 값을 LocalDateTime으로 저장해서 반환한다.
+         */
+        return TokenInfo.builder()
+                .token(builder.compact())
+                .expiresAt(expiresAt)
+                .build();
+    }
+
+    /**
+     * JWT Token을 생성하는 함수
+     * @param adminId : 사용자 전용 PK
+     * @param expiration Duration. 유효기간
+     * @param type 해당 토큰의 유형.
+     * @return
+     */
+    private TokenInfo createAdminToken(Long adminId, String subject, String role, Duration expiration, JwtTokenType type) {
+        /*
+         * 1. 현재 순간의 정보들을 Instant로 가져온다.
+         * Instant: 타임라인 상의 특정 순간을 나타낸다.
+         * - 즉, 절대적인 시간을 다룰 때 사용하는 표준이다.
+         */
+        Instant now = Instant.now();
+        Instant expiresInstant = now.plus(expiration);
+
+        // 2. JWT 생성을 위한 Date 변환
+        Date nowDate = Date.from(now);
+        Date expirationDate = Date.from(expiresInstant);
+
+        // 3. Service/DB 반환을 위해, expirationDate을 Date -> LocalDateTime으로 변경한다.
+        LocalDateTime expiresAt = LocalDateTime.ofInstant(expiresInstant, ZoneId.systemDefault());
+
+        // 4. UUID를 생성하여 Jti로 할당
+        String jti = UUID.randomUUID().toString();
+
+        // 5. Jwt Builder 생성
+        JwtBuilder builder = Jwts.builder()
+                .id(jti) // Jwt Id 설정
+                .subject(subject)
+                .claim("role", role)     // Custom Claim: 사용자 권한
+                .claim("type", type.toString())     // Custom Claim: 토큰 타입
+                .issuedAt(nowDate)                     // 발행 시간
+                .expiration(expirationDate)            // 만료 시간
+                .signWith(secretKey);                   // 서명
+
+        // 6. Access Token일 때만 ID 정보들를 Claim에 추가한다.
+        if (JwtTokenType.ACCESS.equals(type)) {
+            if (adminId != null) builder.claim("userId", adminId);
         }
 
         /*
