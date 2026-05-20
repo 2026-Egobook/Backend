@@ -71,7 +71,7 @@ public interface AdminRestrictionControllerDocs {
     @PostMapping("/{userId}/restrictions")
     ResponseEntity<GlobalResponse<RestrictionCreateResDto>> createRestriction(
             @Parameter(hidden = true)
-            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long adminId,
+            @AuthenticationPrincipal(expression = "userAuthDto.adminId") Long adminId,
 
             @Parameter(description = "제재 대상 사용자 ID", required = true)
             @PathVariable Long userId,
