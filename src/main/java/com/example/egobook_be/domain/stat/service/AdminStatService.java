@@ -17,6 +17,7 @@ import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.domain.user.repository.WithdrawReasonRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -106,8 +107,10 @@ public class AdminStatService {
         Long total7 = userRepository.countByCreatedAtBefore(today.minusDays(7).atStartOfDay());
         Long total30 = userRepository.countByCreatedAtBefore(today.minusDays(30).atStartOfDay());
 
-        Long active7 = userActivityLogRepository.countRetainedUserOnDay(7);
-        Long active30 = userActivityLogRepository.countRetainedUserOnDay(30);
+        Long active7 = userActivityLogRepository.countRetainedUserWithinDays(7);
+        Long active30 = userActivityLogRepository.countRetainedUserWithinDays(30);
+
+        log.info("total7={}, total30={}, active7={}, active30={}", total7, total30, active7, active30);
 
         return AdminStatMapper.getRetentionResDto(total7, total30, active7, active30);
     }
