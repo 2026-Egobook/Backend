@@ -8,7 +8,6 @@ import com.example.egobook_be.domain.restriction.repository.RestrictionRepositor
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.user.repository.UserRepository;
-import com.example.egobook_be.global.enums.ReportReason;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -170,7 +169,7 @@ public class AdminRestrictionServiceIntegrationTest {
         RestrictionItemResDto dto = result.content().get(0);
         assertThat(dto.restrictionId()).isNotNull();
         assertThat(dto.domainType()).isEqualTo(RestrictionDomainType.LETTER);
-        assertThat(dto.reason()).isEqualTo(ReportReason.ABUSE);
+        assertThat(dto.reason()).isEqualTo("ABUSE");
         assertThat(dto.description()).isEqualTo("테스트 제재 사유");
         assertThat(dto.restrictionStatus()).isEqualTo(RestrictionStatus.CANCELED);
         assertThat(dto.createdAt()).isNotNull();
@@ -186,7 +185,7 @@ public class AdminRestrictionServiceIntegrationTest {
                 .adminId(1L)
                 .userId(userId)
                 .domainType(domainType)
-                .reason(ReportReason.ABUSE)
+                .reason("ABUSE")
                 .description("테스트 제재 사유")
                 .status(status)
                 .restrictionUntil(LocalDateTime.now().plusDays(7))

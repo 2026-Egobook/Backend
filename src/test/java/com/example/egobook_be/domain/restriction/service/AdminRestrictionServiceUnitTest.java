@@ -7,7 +7,6 @@ import com.example.egobook_be.domain.restriction.enums.RestrictionStatus;
 import com.example.egobook_be.domain.restriction.mapper.RestrictionMapper;
 import com.example.egobook_be.domain.restriction.repository.RestrictionRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
-import com.example.egobook_be.global.enums.ReportReason;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import org.junit.jupiter.api.DisplayName;
@@ -222,7 +221,7 @@ public class AdminRestrictionServiceUnitTest {
         lenient().when(restriction.getRestrictionId()).thenReturn(1L);
         lenient().when(restriction.getUserId()).thenReturn(userId);
         lenient().when(restriction.getDomainType()).thenReturn(RestrictionDomainType.LETTER);
-        lenient().when(restriction.getReason()).thenReturn(ReportReason.ABUSE);
+        lenient().when(restriction.getReason()).thenReturn("ABUSE");
         lenient().when(restriction.getDescription()).thenReturn("테스트 제재 사유");
         lenient().when(restriction.getStatus()).thenReturn(status);
         lenient().when(restriction.getCreatedAt()).thenReturn(LocalDateTime.now());
@@ -235,7 +234,7 @@ public class AdminRestrictionServiceUnitTest {
         return RestrictionItemResDto.builder()
                 .restrictionId(1L)
                 .domainType(RestrictionDomainType.LETTER)
-                .reason(ReportReason.ABUSE)
+                .reason("ABUSE")
                 .description("테스트 제재 사유")
                 .restrictionStatus(RestrictionStatus.ACTIVE)
                 .createdAt(LocalDateTime.now())
