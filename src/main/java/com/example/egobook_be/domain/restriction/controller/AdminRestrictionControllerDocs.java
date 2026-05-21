@@ -40,11 +40,7 @@ public interface AdminRestrictionControllerDocs {
             - ```domainType```: 제재 대상 도메인 타입
                 1. ```LETTER``` (편지)
                 2. ```QUESTION_ANSWER``` (오늘의 질문 답변)
-            - ```reason```: 제재 사유
-                1. ```ABUSE``` (비속어 및 모욕)
-                2. ```SPAM``` (광고 및 스팸)
-                3. ```INAPPROPRIATE``` (부적절한 콘텐츠)
-                4. ```OTHER``` (기타)
+            - ```reason```: 제재 사유 (임의의 문자열, 최대 50자)
             - ```description```: 제재 사유 상세 설명 (최대 500자)
 
             [**반환 정보**]
@@ -97,7 +93,7 @@ public interface AdminRestrictionControllerDocs {
             [**반환 정보**]
             - ```restrictionId```: Restriction 도메인 PK
             - ```domainType```: 제재 도메인 타입 (LETTER | QUESTION_ANSWER)
-            - ```reason```: 제재 사유 (ABUSE | SPAM | INAPPROPRIATE | OTHER)
+            - ```reason```: 제재 사유
             - ```description```: 제재 사유 상세 설명
             - ```restrictionStatus```: 제재 상태 (ACTIVE | CANCELED | EXPIRED)
             - ```createdAt```: 제재 생성 시각

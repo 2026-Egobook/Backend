@@ -3,7 +3,6 @@ package com.example.egobook_be.domain.restriction.entity;
 import com.example.egobook_be.domain.restriction.enums.RestrictionDomainType;
 import com.example.egobook_be.domain.restriction.enums.RestrictionStatus;
 import com.example.egobook_be.global.entity.BaseTimeEntity;
-import com.example.egobook_be.global.enums.ReportReason;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,9 +31,9 @@ public class Restriction extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private RestrictionDomainType domainType;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private ReportReason reason;
+    // [AI-MOD] 제재 사유를 문자열로 저장
+    @Column(nullable = false, length = 50)
+    private String reason;
 
     @Column(nullable = false, length = 500)
     private String description;
@@ -47,8 +46,9 @@ public class Restriction extends BaseTimeEntity {
     @Column(nullable = false)
     private LocalDateTime restrictionUntil;
 
+    // [AI-MOD] 제재 생성 reason 타입 문자열로 변경
     public static Restriction create(Long adminId, Long userId,
-            RestrictionDomainType domainType, ReportReason reason,
+            RestrictionDomainType domainType, String reason,
             String description) {
         return Restriction.builder()
                 .adminId(adminId)
