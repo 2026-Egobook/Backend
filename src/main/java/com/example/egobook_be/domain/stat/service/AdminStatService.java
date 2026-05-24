@@ -110,8 +110,6 @@ public class AdminStatService {
         Long active7 = userActivityLogRepository.countRetainedUserWithinDays(7);
         Long active30 = userActivityLogRepository.countRetainedUserWithinDays(30);
 
-        log.info("total7={}, total30={}, active7={}, active30={}", total7, total30, active7, active30);
-
         return AdminStatMapper.getRetentionResDto(total7, total30, active7, active30);
     }
 
