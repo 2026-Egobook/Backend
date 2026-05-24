@@ -74,16 +74,7 @@ public class AdminShopService {
         }
 
         List<AdminItemResDto> items = slice.getContent().stream()
-                .map(item -> new AdminItemResDto(
-                        item.getId(),
-                        item.getPath(),
-                        item.getCategory(),
-                        item.getName(),
-                        item.getPrice(),
-                        item.getFullUrl(cloudfrontDomain + "/shop"),
-                        item.getStatus(),
-                        item.getCreatedAt()
-                )).toList();
+                .map(this::convertToAdminResDto).toList();
 
         return new AdminItemListResDto(items, slice.hasNext());
     }
@@ -119,16 +110,7 @@ public class AdminShopService {
                 reqDto.status()
         );
 
-        return AdminItemResDto.builder()
-                .id(item.getId())
-                .path(item.getPath())
-                .category(item.getCategory())
-                .name(item.getName())
-                .price(item.getPrice())
-                .status(item.getStatus())
-                .imageUrl(cloudfrontDomain + "/shop/" + item.getPath() + "/" + item.getName())
-                .createdAt(item.getCreatedAt())
-                .build();
+        return convertToAdminResDto(itemRepository.save(item));
     }
 
     // 삭제
@@ -166,15 +148,30 @@ public class AdminShopService {
     }
 
     private AdminItemResDto convertToAdminResDto(Item item) {
-        return new AdminItemResDto(
-                item.getId(),
-                item.getPath(),
-                item.getCategory(),
-                item.getName(),
-                item.getPrice(),
-                item.getFullUrl(cloudfrontDomain + "/shop"),
-                item.getStatus(),
-                item.getCreatedAt()
-        );
+        AdminItemResDto resDto;
+        if(item.getCategory().equals(ItemCategory.LETTER_PAPER)){
+            resDto = AdminItemResDto.builder()
+                    .id(item.getId())
+                    .path(item.getPath())
+                    .category(item.getCategory())
+                    .name(item.getName())
+                    .price(item.getPrice())
+                    .imageUrl(item.getFullUrl(cloudfrontDomain))
+                    .status(item.getStatus())
+                    .createdAt(item.getCreatedAt())
+                    .build();
+        } else {
+            resDto = AdminItemResDto.builder()
+                    .id(item.getId())
+                    .path(item.getPath())
+                    .category(item.getCategory())
+                    .name(item.getName())
+                    .price(item.getPrice())
+                    .imageUrl(item.getFullUrl(cloudfrontDomain+"/shop"))
+                    .status(item.getStatus())
+                    .createdAt(item.getCreatedAt())
+                    .build();
+        }
+        return resDto;
     }
 }
