@@ -45,8 +45,8 @@ public interface AdminStatControllerDocs {
     @Operation(summary = "잔존율 조회", description = """
             7/30일 잔존율을 조회합니다.
             
-            - 7일 잔존율 : 전체 가입 유저 중 가입 후 7일째 되는 날 접속한 유저 비율
-            - 30일 잔존율 : 전체 가입 유저 중 가입 후 30일째 되는 날 접속한 유저 비율
+            - 7일 잔존율 : 전체 가입 유저 중 가입 후 7일 이내 접속한 유저 비율
+            - 30일 잔존율 : 전체 가입 유저 중 가입 후 30일 이내 접속한 유저 비율
             """)
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/users/retention")

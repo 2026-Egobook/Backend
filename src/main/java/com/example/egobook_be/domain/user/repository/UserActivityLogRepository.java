@@ -17,9 +17,10 @@ public interface UserActivityLogRepository extends JpaRepository<UserActivityLog
     SELECT COUNT(DISTINCT a.user_id)
     FROM user_activity_log a
     JOIN user u ON u.id = a.user_id
-    WHERE a.active_date = DATE(DATE_ADD(u.created_at, INTERVAL :days DAY))
+    WHERE a.active_date BETWEEN DATE(u.created_at) 
+      AND DATE(DATE_ADD(u.created_at, INTERVAL :days DAY))
     """, nativeQuery = true)
-    Long countRetainedUserOnDay(@Param("days") int days);
+    Long countRetainedUserWithinDays(@Param("days") int days);
 
     @Query(value = """
     SELECT active_date AS date, COUNT(DISTINCT user_id) AS count
