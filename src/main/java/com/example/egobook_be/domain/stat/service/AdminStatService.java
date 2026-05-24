@@ -104,11 +104,14 @@ public class AdminStatService {
     public AdminRetentionResDto getRetention() {
         LocalDate today = LocalDate.now();
 
-        Long total7 = userRepository.countByCreatedAtBefore(today.minusDays(7).atStartOfDay());
-        Long total30 = userRepository.countByCreatedAtBefore(today.minusDays(30).atStartOfDay());
+        LocalDateTime start7 = today.minusDays(7).atStartOfDay();
+        LocalDateTime start30 = today.minusDays(30).atStartOfDay();
 
-        Long active7 = userActivityLogRepository.countRetainedUserWithinDays(7);
-        Long active30 = userActivityLogRepository.countRetainedUserWithinDays(30);
+        Long total7 = userRepository.countByCreatedAtBefore(start7);
+        Long total30 = userRepository.countByCreatedAtBefore(start30);
+
+        Long active7 = userActivityLogRepository.countRetainedUserWithinDays(start7, 7);
+        Long active30 = userActivityLogRepository.countRetainedUserWithinDays(start30, 30);
 
         return AdminStatMapper.getRetentionResDto(total7, total30, active7, active30);
     }
