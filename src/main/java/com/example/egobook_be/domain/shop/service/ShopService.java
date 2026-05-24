@@ -205,7 +205,7 @@ public class ShopService {
         // 2. 조회해온 각 아이템을 dto로 변환 (Fetch Join 썼으므로 N+1 발생 안함)
         return equippedItems.stream()
                 .map(userItem -> userItemMapper.toItemInfoResDto(userItem, userItem.getItem(),
-                        getCloudFrontDomainByCategory(userItem.getItem().getCategory())))
+                        getMyCloudFrontDomain()))
                 .toList();
     }
 
