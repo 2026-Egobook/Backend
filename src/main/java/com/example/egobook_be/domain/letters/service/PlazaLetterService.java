@@ -90,6 +90,8 @@ public class PlazaLetterService {
 
     private final RestrictionGuardService restrictionGuardService;
 
+    private final BadWordBlockLogService badWordBlockLogService;
+
     @Value("${spring.cloud.aws.cloudfront.domain}")
     private String cloudfrontDomain;
 
@@ -115,14 +117,8 @@ public class PlazaLetterService {
         try {
             WordDetectResponse res = wordClient.detect(text);
             if (wordClient.shouldBlock(res)) {
-                badWordBlockLogRepo.save(BadWordBlockLog.builder()
-                        .userId(userId)
-                        .type(blockType)
-                        .originalText(text)
-                        .badWords(res.getBadWords() != null ? res.getBadWords() : List.of())
-                        .score(res.getPercentage() / 100.0)
-                        .blockedAt(LocalDateTime.now())
-                        .build());
+                badWordBlockLogService.saveBlockLog(userId, blockType, text,
+                        res.getBadWords(), res.getPercentage() / 100.0);
                 throw new CustomException(LettersErrorCode.AI_MODERATION_FAILED);
             }
         } catch (CustomException e) {
@@ -290,14 +286,8 @@ public class PlazaLetterService {
 
         if (wordClient.shouldBlock(result)) {
             // 욕설 감지 → 차단 로그 저장 후 편지 삭제
-            badWordBlockLogRepo.save(BadWordBlockLog.builder()
-                    .userId(letter.getSenderId())
-                    .type(BlockType.LETTER)
-                    .originalText(result.getText())
-                    .badWords(result.getBadWords() != null ? result.getBadWords() : List.of())
-                    .score(result.getPercentage() / 100.0)
-                    .blockedAt(LocalDateTime.now())
-                    .build());
+            badWordBlockLogService.saveBlockLog(letter.getSenderId(), BlockType.LETTER,
+                    result.getText(), result.getBadWords(), result.getPercentage() / 100.0);
             plazaLetterRepository.delete(letter);
             return;
         }

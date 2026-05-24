@@ -244,8 +244,7 @@ public class AdminContentService {
         long sentCount = plazaLetterRepo.countByCreatedAtBetweenAndStatuses(
                 start, end, List.of(PlazaLetterStatus.REPLIED, PlazaLetterStatus.AI_REPLIED));
 
-        long waitingCount = plazaLetterRepo.countByCreatedAtBetweenAndStatus(
-                start, end, PlazaLetterStatus.WAITING);
+        long waitingCount = plazaLetterRepo.countByStatus(PlazaLetterStatus.WAITING);
 
         long aiReplyCount = plazaLetterRepo.countByCreatedAtBetweenAndStatus(
                 start, end, PlazaLetterStatus.AI_REPLIED);
