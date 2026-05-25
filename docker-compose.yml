@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Spring Boot 애플리케이션
   egobook-api:
-    build: .
+    build: . # 현재 디렉토리의 Dockerfile을 이용해서 이미지를 빌드한 후 바로 사용하겠다는 뜻
     container_name: egobook-server
     ports:
       - "8080:8080"
