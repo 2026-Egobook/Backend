@@ -2,6 +2,7 @@ package com.example.egobook_be.domain.question.controller;
 
 import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReplyReportAdminResDto;
 import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReportAdminResDto;
+import com.example.egobook_be.domain.question.dto.AdminReportMemoReqDto;
 import com.example.egobook_be.domain.question.dto.AnswerReportAdminResDto;
 import com.example.egobook_be.global.response.GlobalResponse;
 import com.example.egobook_be.global.response.SliceResponse;
@@ -9,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @Tag(name = "Admin Report", description = "신고 조회 관리자 API")
@@ -63,20 +65,32 @@ public interface AdminReportControllerDocs {
     );
 
     @Operation(summary = "[관리자] 편지 신고 승인", description = "승인 3회 누적 시 편지가 비공개 처리됩니다.")
-    ResponseEntity<GlobalResponse<Void>> approveLetterReport(@PathVariable Long reportId);
-
+    ResponseEntity<GlobalResponse<Void>> approveLetterReport(
+            @PathVariable Long reportId,
+            @RequestBody(required = false) AdminReportMemoReqDto reqDto
+    );
     @Operation(summary = "[관리자] 편지 신고 거절")
-    ResponseEntity<GlobalResponse<Void>> rejectLetterReport(@PathVariable Long reportId);
-
+    ResponseEntity<GlobalResponse<Void>> rejectLetterReport(
+            @PathVariable Long reportId,
+            @RequestBody(required = false) AdminReportMemoReqDto reqDto
+    );
     @Operation(summary = "[관리자] 편지 답장 신고 승인", description = "승인 3회 누적 시 답장이 비공개 처리됩니다.")
-    ResponseEntity<GlobalResponse<Void>> approveReplyReport(@PathVariable Long reportId);
-
+    ResponseEntity<GlobalResponse<Void>> approveReplyReport(
+            @PathVariable Long reportId,
+            @RequestBody(required = false) AdminReportMemoReqDto reqDto
+    );
     @Operation(summary = "[관리자] 편지 답장 신고 거절")
-    ResponseEntity<GlobalResponse<Void>> rejectReplyReport(@PathVariable Long reportId);
-
+    ResponseEntity<GlobalResponse<Void>> rejectReplyReport(
+            @PathVariable Long reportId,
+            @RequestBody(required = false) AdminReportMemoReqDto reqDto
+    );
     @Operation(summary = "[관리자] 오늘의 질문 답변 신고 승인", description = "승인 3회 누적 시 답변이 비공개 처리됩니다.")
-    ResponseEntity<GlobalResponse<Void>> approveAnswerReport(@PathVariable Long reportId);
-
+    ResponseEntity<GlobalResponse<Void>> approveAnswerReport(
+            @PathVariable Long reportId,
+            @RequestBody(required = false) AdminReportMemoReqDto reqDto
+    );
     @Operation(summary = "[관리자] 오늘의 질문 답변 신고 거절")
-    ResponseEntity<GlobalResponse<Void>> rejectAnswerReport(@PathVariable Long reportId);
-}
+    ResponseEntity<GlobalResponse<Void>> rejectAnswerReport(
+            @PathVariable Long reportId,
+            @RequestBody(required = false) AdminReportMemoReqDto reqDto
+    );}

@@ -111,43 +111,61 @@ public class AdminReportController implements AdminReportControllerDocs {
 
     @Override
     @PatchMapping("/letters/{reportId}/approve")
-    public ResponseEntity<GlobalResponse<Void>> approveLetterReport(@PathVariable Long reportId) {
-        letterReportAdminService.approveLetterReport(reportId);
+    public ResponseEntity<GlobalResponse<Void>> approveLetterReport(
+            @PathVariable Long reportId,
+            @RequestBody(required = false) AdminReportMemoReqDto reqDto
+    ) {
+        letterReportAdminService.approveLetterReport(reportId, reqDto != null ? reqDto.adminMemo() : null);
         return ResponseEntity.ok(GlobalResponse.success("편지 신고 승인 성공", null));
     }
 
     @Override
     @PatchMapping("/letters/{reportId}/reject")
-    public ResponseEntity<GlobalResponse<Void>> rejectLetterReport(@PathVariable Long reportId) {
-        letterReportAdminService.rejectLetterReport(reportId);
+    public ResponseEntity<GlobalResponse<Void>> rejectLetterReport(
+            @PathVariable Long reportId,
+            @RequestBody(required = false) AdminReportMemoReqDto reqDto
+    ) {
+        letterReportAdminService.rejectLetterReport(reportId, reqDto != null ? reqDto.adminMemo() : null);
         return ResponseEntity.ok(GlobalResponse.success("편지 신고 거절 성공", null));
     }
 
     @Override
     @PatchMapping("/replies/{reportId}/approve")
-    public ResponseEntity<GlobalResponse<Void>> approveReplyReport(@PathVariable Long reportId) {
-        letterReportAdminService.approveReplyReport(reportId);
+    public ResponseEntity<GlobalResponse<Void>> approveReplyReport(
+            @PathVariable Long reportId,
+            @RequestBody(required = false) AdminReportMemoReqDto reqDto
+    ) {
+        letterReportAdminService.approveReplyReport(reportId, reqDto != null ? reqDto.adminMemo() : null);
         return ResponseEntity.ok(GlobalResponse.success("편지 답장 신고 승인 성공", null));
     }
 
     @Override
     @PatchMapping("/replies/{reportId}/reject")
-    public ResponseEntity<GlobalResponse<Void>> rejectReplyReport(@PathVariable Long reportId) {
-        letterReportAdminService.rejectReplyReport(reportId);
+    public ResponseEntity<GlobalResponse<Void>> rejectReplyReport(
+            @PathVariable Long reportId,
+            @RequestBody(required = false) AdminReportMemoReqDto reqDto
+    ) {
+        letterReportAdminService.rejectReplyReport(reportId, reqDto != null ? reqDto.adminMemo() : null);
         return ResponseEntity.ok(GlobalResponse.success("편지 답장 신고 거절 성공", null));
     }
 
     @Override
     @PatchMapping("/answers/{reportId}/approve")
-    public ResponseEntity<GlobalResponse<Void>> approveAnswerReport(@PathVariable Long reportId) {
-        answerReportAdminService.approveReport(reportId);
+    public ResponseEntity<GlobalResponse<Void>> approveAnswerReport(
+            @PathVariable Long reportId,
+            @RequestBody(required = false) AdminReportMemoReqDto reqDto
+    ) {
+        answerReportAdminService.approveReport(reportId, reqDto != null ? reqDto.adminMemo() : null);
         return ResponseEntity.ok(GlobalResponse.success("답변 신고 승인 성공", null));
     }
 
     @Override
     @PatchMapping("/answers/{reportId}/reject")
-    public ResponseEntity<GlobalResponse<Void>> rejectAnswerReport(@PathVariable Long reportId) {
-        answerReportAdminService.rejectReport(reportId);
+    public ResponseEntity<GlobalResponse<Void>> rejectAnswerReport(
+            @PathVariable Long reportId,
+            @RequestBody(required = false) AdminReportMemoReqDto reqDto
+    ) {
+        answerReportAdminService.rejectReport(reportId, reqDto != null ? reqDto.adminMemo() : null);
         return ResponseEntity.ok(GlobalResponse.success("답변 신고 거절 성공", null));
     }
 }
