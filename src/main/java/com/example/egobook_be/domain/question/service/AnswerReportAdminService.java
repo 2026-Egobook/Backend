@@ -51,6 +51,8 @@ public class AnswerReportAdminService {
                 report.getReason(),
                 report.getDescription(),
                 reportCount,
+                report.getStatus(),
+                report.getAdminMemo(),
                 report.getCreatedAt()
         );
     }
@@ -78,7 +80,7 @@ public class AnswerReportAdminService {
     }
 
     @Transactional
-    public void approveReport(Long reportId) {
+    public void approveReport(Long reportId, String adminMemo) {
         AnswerReport report = answerReportRepository.findByIdWithAnswerAndUser(reportId)
                 .orElseThrow(() -> new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND));
 
@@ -86,7 +88,7 @@ public class AnswerReportAdminService {
             throw new CustomException(QuestionErrorCode.ALREADY_RESOLVED);
         }
 
-        report.approve();
+        report.approve(adminMemo);
 
         long approvedCount = answerReportRepository
                 .countByAnswerIdAndStatus(report.getAnswer().getId(), ReportStatus.RESOLVED);
@@ -97,7 +99,7 @@ public class AnswerReportAdminService {
     }
 
     @Transactional
-    public void rejectReport(Long reportId) {
+    public void rejectReport(Long reportId, String adminMemo) {
         AnswerReport report = answerReportRepository.findByIdWithAnswerAndUser(reportId)
                 .orElseThrow(() -> new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND));
 
@@ -105,6 +107,6 @@ public class AnswerReportAdminService {
             throw new CustomException(QuestionErrorCode.ALREADY_RESOLVED);
         }
 
-        report.reject();
+        report.reject(adminMemo);
     }
 }

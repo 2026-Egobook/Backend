@@ -36,5 +36,17 @@ public abstract class BaseReportEntity {
         this.status = ReportStatus.REFUSED;
     }
 
+    @Column(length = 500)
+    private String adminMemo;
+
+    public void approve(String adminMemo) {
+        this.status = ReportStatus.RESOLVED;
+        this.adminMemo = adminMemo;
+    }
+
+    public void reject(String adminMemo) {
+        this.status = ReportStatus.REFUSED;
+        this.adminMemo = adminMemo;
+    }
     // reporterId는 도메인마다 타입이 달라서 각 자식에서 선언
 }

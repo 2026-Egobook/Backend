@@ -47,6 +47,7 @@ public class LetterReportAdminService {
                 report.getReason(),
                 report.getDescription(),
                 report.getStatus(),
+                report.getAdminMemo(),
                 reportCount,
                 report.getCreatedAt()
             );
@@ -71,6 +72,7 @@ public class LetterReportAdminService {
                 report.getReason(),
                 report.getDescription(),
                 report.getStatus(),
+                report.getAdminMemo(),
                 reportCount,
                 report.getCreatedAt()
             );
@@ -92,6 +94,7 @@ public class LetterReportAdminService {
             report.getReason(),
             report.getDescription(),
             report.getStatus(),
+            report.getAdminMemo(),
             reportCount,
             report.getCreatedAt()
         );
@@ -111,6 +114,7 @@ public class LetterReportAdminService {
             report.getReason(),
             report.getDescription(),
             report.getStatus(),
+            report.getAdminMemo(),
             reportCount,
             report.getCreatedAt()
         );
@@ -136,15 +140,15 @@ public class LetterReportAdminService {
     }
 
     @Transactional
-    public void approveLetterReport(Long reportId) {
+    public void approveLetterReport(Long reportId, String adminMemo) {
         PlazaLetterReport report = letterReportRepository.findByIdWithLetter(reportId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
 
         if (report.getStatus() != ReportStatus.PENDING) {
-            throw new CustomException(LettersErrorCode.ALREADY_REPORTED_LETTER);
+            throw new CustomException(LettersErrorCode.REPORT_ALREADY_RESOLVED);
         }
 
-        report.approve();
+        report.approve(adminMemo);
 
         long approvedCount = letterReportRepository
                 .countByLetterIdAndStatus(report.getLetter().getLetterId(), ReportStatus.RESOLVED);
@@ -155,27 +159,27 @@ public class LetterReportAdminService {
     }
 
     @Transactional
-    public void rejectLetterReport(Long reportId) {
+    public void rejectLetterReport(Long reportId, String adminMemo) {
         PlazaLetterReport report = letterReportRepository.findByIdWithLetter(reportId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
 
         if (report.getStatus() != ReportStatus.PENDING) {
-            throw new CustomException(LettersErrorCode.ALREADY_REPORTED_LETTER);
+            throw new CustomException(LettersErrorCode.REPORT_ALREADY_RESOLVED);
         }
 
-        report.reject();
+        report.reject(adminMemo);
     }
 
     @Transactional
-    public void approveReplyReport(Long reportId) {
+    public void approveReplyReport(Long reportId, String adminMemo) {
         PlazaLetterReplyReport report = replyReportRepository.findByIdWithReply(reportId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
 
         if (report.getStatus() != ReportStatus.PENDING) {
-            throw new CustomException(LettersErrorCode.ALREADY_REPORTED_REPLY);
+            throw new CustomException(LettersErrorCode.REPORT_ALREADY_RESOLVED);
         }
 
-        report.approve();
+        report.approve(adminMemo);
 
         long approvedCount = replyReportRepository
                 .countByReplyIdAndStatus(report.getReply().getReplyId(), ReportStatus.RESOLVED);
@@ -186,14 +190,15 @@ public class LetterReportAdminService {
     }
 
     @Transactional
-    public void rejectReplyReport(Long reportId) {
+    public void rejectReplyReport(Long reportId, String adminMemo) {
         PlazaLetterReplyReport report = replyReportRepository.findByIdWithReply(reportId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
 
         if (report.getStatus() != ReportStatus.PENDING) {
-            throw new CustomException(LettersErrorCode.ALREADY_REPORTED_REPLY);
+            throw new CustomException(LettersErrorCode.REPORT_ALREADY_RESOLVED);
         }
 
-        report.reject();
+        report.reject(adminMemo);
     }
+
 }
