@@ -13,12 +13,14 @@ import com.example.egobook_be.global.enums.ReportStatus;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -140,7 +142,7 @@ public class LetterReportAdminService {
     }
 
     @Transactional
-    public void approveLetterReport(Long reportId, String adminMemo) {
+    public void approveLetterReport(Long reportId) {
         PlazaLetterReport report = letterReportRepository.findByIdWithLetter(reportId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
 
@@ -148,7 +150,7 @@ public class LetterReportAdminService {
             throw new CustomException(LettersErrorCode.REPORT_ALREADY_RESOLVED);
         }
 
-        report.approve(adminMemo);
+        report.approve();
 
         long approvedCount = letterReportRepository
                 .countByLetterIdAndStatus(report.getLetter().getLetterId(), ReportStatus.RESOLVED);
@@ -159,7 +161,7 @@ public class LetterReportAdminService {
     }
 
     @Transactional
-    public void rejectLetterReport(Long reportId, String adminMemo) {
+    public void rejectLetterReport(Long reportId) {
         PlazaLetterReport report = letterReportRepository.findByIdWithLetter(reportId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
 
@@ -167,11 +169,11 @@ public class LetterReportAdminService {
             throw new CustomException(LettersErrorCode.REPORT_ALREADY_RESOLVED);
         }
 
-        report.reject(adminMemo);
+        report.reject();
     }
 
     @Transactional
-    public void approveReplyReport(Long reportId, String adminMemo) {
+    public void approveReplyReport(Long reportId) {
         PlazaLetterReplyReport report = replyReportRepository.findByIdWithReply(reportId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
 
@@ -179,7 +181,7 @@ public class LetterReportAdminService {
             throw new CustomException(LettersErrorCode.REPORT_ALREADY_RESOLVED);
         }
 
-        report.approve(adminMemo);
+        report.approve();
 
         long approvedCount = replyReportRepository
                 .countByReplyIdAndStatus(report.getReply().getReplyId(), ReportStatus.RESOLVED);
@@ -190,7 +192,7 @@ public class LetterReportAdminService {
     }
 
     @Transactional
-    public void rejectReplyReport(Long reportId, String adminMemo) {
+    public void rejectReplyReport(Long reportId) {
         PlazaLetterReplyReport report = replyReportRepository.findByIdWithReply(reportId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
 
@@ -198,7 +200,22 @@ public class LetterReportAdminService {
             throw new CustomException(LettersErrorCode.REPORT_ALREADY_RESOLVED);
         }
 
-        report.reject(adminMemo);
+        report.reject();
     }
 
+    @Transactional
+    public void updateLetterReportMemo(Long reportId, String memo) {
+        log.debug("[LetterReportAdminService] updateLetterReportMemo START - reportId: {}, memo: {}", reportId, memo);
+        PlazaLetterReport letterReport = letterReportRepository.findById(reportId).orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+        letterReport.updateAdminMemo(memo);
+        log.debug("[LetterReportAdminService] updateLetterReportMemo END - reportId: {}, memo: {}", reportId, memo);
+    }
+
+    @Transactional
+    public void updateLetterReplyReportMemo(Long reportId, String memo) {
+        log.debug("[LetterReportReplyAdminService] updateLetterReplyReportMemo START - reportId: {}, memo: {}", reportId, memo);
+        PlazaLetterReplyReport letterReplyReport = replyReportRepository.findById(reportId).orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+        letterReplyReport.updateAdminMemo(memo);
+        log.debug("[LetterReportReplyAdminService] updateLetterReplyReportMemo END - reportId: {}, memo: {}", reportId, memo);
+    }
 }

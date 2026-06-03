@@ -1,5 +1,7 @@
 package com.example.egobook_be.domain.question.service;
 
+import com.example.egobook_be.domain.letters.entity.PlazaLetterReport;
+import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.question.dto.AnswerReportAdminResDto;
 import com.example.egobook_be.domain.question.entity.AnswerReport;
 import com.example.egobook_be.domain.question.enums.AnswerVisibility;
@@ -80,7 +82,7 @@ public class AnswerReportAdminService {
     }
 
     @Transactional
-    public void approveReport(Long reportId, String adminMemo) {
+    public void approveAnswerReport(Long reportId) {
         AnswerReport report = answerReportRepository.findByIdWithAnswerAndUser(reportId)
                 .orElseThrow(() -> new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND));
 
@@ -88,7 +90,7 @@ public class AnswerReportAdminService {
             throw new CustomException(QuestionErrorCode.ALREADY_RESOLVED);
         }
 
-        report.approve(adminMemo);
+        report.approve();
 
         long approvedCount = answerReportRepository
                 .countByAnswerIdAndStatus(report.getAnswer().getId(), ReportStatus.RESOLVED);
@@ -99,7 +101,7 @@ public class AnswerReportAdminService {
     }
 
     @Transactional
-    public void rejectReport(Long reportId, String adminMemo) {
+    public void rejectAnswerReport(Long reportId) {
         AnswerReport report = answerReportRepository.findByIdWithAnswerAndUser(reportId)
                 .orElseThrow(() -> new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND));
 
@@ -107,6 +109,14 @@ public class AnswerReportAdminService {
             throw new CustomException(QuestionErrorCode.ALREADY_RESOLVED);
         }
 
-        report.reject(adminMemo);
+        report.reject();
+    }
+
+    @Transactional
+    public void updateAnswerReportMemo(Long reportId, String memo) {
+        log.debug("[AnswerReportAdminService] updateAnswerReportMemo START - reportId: {}, memo: {}", reportId, memo);
+        AnswerReport answerReport = answerReportRepository.findById(reportId).orElseThrow(() -> new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND));
+        answerReport.updateAdminMemo(memo);
+        log.debug("[AnswerReportAdminService] updateAnswerReportMemo END - reportId: {}, memo: {}", reportId, memo);
     }
 }
