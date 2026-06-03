@@ -28,6 +28,9 @@ public abstract class BaseReportEntity {
     @Column(nullable = false)
     private ReportStatus status;        // 공통 신고 상태
 
+    @Column(length = 500, nullable = true)
+    private String adminMemo;
+
     public void approve() {
         this.status = ReportStatus.RESOLVED;
     }
@@ -36,16 +39,7 @@ public abstract class BaseReportEntity {
         this.status = ReportStatus.REFUSED;
     }
 
-    @Column(length = 500)
-    private String adminMemo;
-
-    public void approve(String adminMemo) {
-        this.status = ReportStatus.RESOLVED;
-        this.adminMemo = adminMemo;
-    }
-
-    public void reject(String adminMemo) {
-        this.status = ReportStatus.REFUSED;
+    public void updateAdminMemo(String adminMemo) {
         this.adminMemo = adminMemo;
     }
     // reporterId는 도메인마다 타입이 달라서 각 자식에서 선언
