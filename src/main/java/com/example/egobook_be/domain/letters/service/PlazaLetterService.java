@@ -395,7 +395,7 @@ public class PlazaLetterService {
      */
     private void purchaseLetterPaperIfNotOwned(User user, PlazaLetterColor color) {
         // 편지지 색상명으로 Item 조회 (name = "PINK" / "GREEN" / "BLUE" / "PURPLE")
-        Item item = itemRepository.findByCategoryAndName(ItemCategory.LETTER_PAPER, color.name())
+        Item item = itemRepository.findByCategoryAndName(ItemCategory.LETTER_PAPER, color.getImageName())
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_PAPER_NOT_FOUND));
 
         // 이미 보유 중이면 바로 리턴 (영구 보유 → 무료 재사용)
