@@ -50,7 +50,7 @@ public class SecurityConfig {
             "/admin/auth/login",
             "/test-google-oauth.html",
             "/app-ads.txt",
-            "/google-site-verification"
+            "/google367253fce86fba31.html"
     };
 
     /**
