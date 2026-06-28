@@ -48,7 +48,8 @@ public class SecurityConfig {
             "/admin/auth/refresh",
             "/admin/auth/register",
             "/admin/auth/login",
-            "/test-google-oauth.html"
+            "/test-google-oauth.html",
+            "/app-ads.txt"
     };
 
     /**
