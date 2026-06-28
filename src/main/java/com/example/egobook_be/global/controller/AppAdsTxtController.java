@@ -17,4 +17,9 @@ public class AppAdsTxtController {
     public ResponseEntity<String> googleSiteVerification() {
         return ResponseEntity.ok("google-site-verification: Z9OYphMMuoGMhcYamomvVRdiRwxv-Fd9nyNEQQV8hDk");
     }
+
+    @GetMapping(value = "/google367253fce86fba31.html", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> googleSiteVerificationHtml() {
+        return ResponseEntity.ok("google-site-verification: google367253fce86fba31.html");
+    }
 }
