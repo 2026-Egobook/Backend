@@ -10,7 +10,7 @@ import java.time.LocalDate;
     private final UserRepository userRepository;
 
 
-    @Scheduled(cron = "0 0 3 * * *")
+    @Scheduled(cron = "0 0 2 * * *")
     public void updateDailyUserStats() {
         log.info("매일 새벽 3시마다 스케줄링");
         LocalDate now = LocalDate.now();

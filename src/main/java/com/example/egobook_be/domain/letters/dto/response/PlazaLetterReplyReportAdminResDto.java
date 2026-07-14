@@ -15,5 +15,6 @@ public record PlazaLetterReplyReportAdminResDto(
         ReportStatus status,
         String adminMemo,
         long reportCount,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        String reportedUserAccountCode
 ) {}

@@ -41,6 +41,27 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
     """)
     List<DailyEmotionCount> findDailyEmotions(User user, LocalDate start, LocalDate end);
 
+    //  날짜별 일간 칭찬서 발송 대상자 수 집계 (관리자 API용)
+    /**
+     * 날짜별로 그날 일기를 작성했고 daily_praise=true인 유저 수 집계
+     * - 관리자 API에서 "실제 일간 칭찬서 발송 대상자 수(scheduledCount)"를 계산하기 위해 사용
+     * @param startDate : 조회 시작일
+     * @param endDate : 조회 종료일
+     * @return : [날짜, 발송 대상 유저 수] 리스트
+     */
+    @Query("""
+        SELECT d.date, COUNT(DISTINCT d.user.id)
+        FROM Diary d
+        WHERE d.date BETWEEN :startDate AND :endDate
+          AND d.user.dailyPraise = true
+        GROUP BY d.date
+        ORDER BY d.date ASC
+    """)
+    List<Object[]> countDailyPraiseTargetsByDateRange(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
     @Query("""
     SELECT DISTINCT d
     FROM Diary d

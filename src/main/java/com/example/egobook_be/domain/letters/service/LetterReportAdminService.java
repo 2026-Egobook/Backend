@@ -9,6 +9,8 @@ import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReposito
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
+import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.enums.ReportStatus;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
@@ -30,6 +32,13 @@ public class LetterReportAdminService {
     private final PlazaLetterReplyReportRepository replyReportRepository;
     private final PlazaLetterRepository letterRepository;
     private final PlazaLetterReplyRepository replyRepository;
+    private final UserRepository userRepository;
+
+    // 신고당한 유저(letter senderId / reply replierId)의 accountCode 조회, 탈퇴 등으로 id가 null이면 null 반환
+    private String findAccountCode(Long userId) {
+        if (userId == null) return null;
+        return userRepository.findById(userId).map(User::getAccountCode).orElse(null);
+    }
 
     public SliceResponse<PlazaLetterReportAdminResDto> getReportedLetters(int page, int size) {
         int safePage = Math.max(page, 1);
@@ -51,7 +60,8 @@ public class LetterReportAdminService {
                 report.getStatus(),
                 report.getAdminMemo(),
                 reportCount,
-                report.getCreatedAt()
+                report.getCreatedAt(),
+                findAccountCode(report.getSenderId())
             );
         });
     }
@@ -76,7 +86,8 @@ public class LetterReportAdminService {
                 report.getStatus(),
                 report.getAdminMemo(),
                 reportCount,
-                report.getCreatedAt()
+                report.getCreatedAt(),
+                findAccountCode(report.getReplierId())
             );
         });
     }
@@ -98,7 +109,8 @@ public class LetterReportAdminService {
             report.getStatus(),
             report.getAdminMemo(),
             reportCount,
-            report.getCreatedAt()
+            report.getCreatedAt(),
+            findAccountCode(report.getSenderId())
         );
     }
 
@@ -118,7 +130,8 @@ public class LetterReportAdminService {
             report.getStatus(),
             report.getAdminMemo(),
             reportCount,
-            report.getCreatedAt()
+            report.getCreatedAt(),
+            findAccountCode(report.getReplierId())
         );
     }
 

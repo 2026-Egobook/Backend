@@ -8,6 +8,8 @@ import com.example.egobook_be.domain.question.enums.AnswerVisibility;
 import com.example.egobook_be.domain.question.exception.QuestionErrorCode;
 import com.example.egobook_be.domain.question.repository.AnswerReportRepository;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
+import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.enums.ReportStatus;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
@@ -25,6 +27,13 @@ public class AnswerReportAdminService {
 
     private final AnswerReportRepository answerReportRepository;
     private final QuestionAnswerRepository questionAnswerRepository;
+    private final UserRepository userRepository;
+
+    // 신고당한 유저(답변 작성자)의 accountCode 조회, 탈퇴 등으로 id가 null이면 null 반환
+    private String findAccountCode(Long userId) {
+        if (userId == null) return null;
+        return userRepository.findById(userId).map(User::getAccountCode).orElse(null);
+    }
 
     @Transactional(readOnly = true)
     public SliceResponse<AnswerReportAdminResDto> getReportedAnswers(
@@ -55,7 +64,8 @@ public class AnswerReportAdminService {
                 reportCount,
                 report.getStatus(),
                 report.getAdminMemo(),
-                report.getCreatedAt()
+                report.getCreatedAt(),
+                findAccountCode(report.getAnswer().getUser().getId())
         );
     }
 
