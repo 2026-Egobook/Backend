@@ -34,6 +34,9 @@ public class Notification extends BaseTimeEntity {
     @Column(nullable = false)
     private Long targetId;
 
+    @Column(name = "link_url", length = 500)
+    private String linkUrl;
+
     @Column(nullable = false)
     @Builder.Default
     private boolean isRead = false;

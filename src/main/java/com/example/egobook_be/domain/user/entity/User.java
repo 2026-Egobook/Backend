@@ -66,6 +66,9 @@ public class User extends BaseTimeEntity {
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
+    @Column(name = "last_notification_checked_at")
+    private LocalDateTime lastNotificationCheckedAt;
+
     @Column(name = "level", nullable = false)
     @Builder.Default
     private Integer level = 1;
@@ -128,6 +131,13 @@ public class User extends BaseTimeEntity {
     }
 
     /**
+     * 알림 목록 조회 또는 개별 알림 확인 시 호출되어, 레드닷 판단 기준 시각을 현재로 갱신한다.
+     */
+    public void updateLastNotificationCheckedAt() {
+        this.lastNotificationCheckedAt = LocalDateTime.now();
+    }
+
+    /**
      * 사용자가 login 했을 때 User Entity 스스로 자신의 상태를 최신으로 갱신하는 함수
      * - 접속 시간 갱신
      * - 현재 상태가 DORMANT 이면 ACTIVE 상태로 변경
@@ -171,12 +181,11 @@ public class User extends BaseTimeEntity {
         this.notificationEnabled = true;
     }
 
-    // [AI-GEN] restrict user status
+
     public void suspend() {
         this.status = UserStatus.SUSPENDED;
     }
-
-    // [AI-GEN] restore user status
+    
     public void activate() {
         this.status = UserStatus.ACTIVE;
     }

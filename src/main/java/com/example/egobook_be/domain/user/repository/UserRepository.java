@@ -58,6 +58,9 @@ public interface UserRepository extends JpaRepository<User, Long>,UserRepository
     List<User> findByDailyPraiseTrue();
     List<User> findAllByWeeklyAnalysisEnabledTrue();
 
+    /** 공지사항 브로드캐스트 대상(활성 유저) 조회 */
+    List<User> findAllByStatus(UserStatus status);
+
 
     // 편지 수신 가능으로 변한 유저 찾기
     @Query("""
