@@ -22,12 +22,13 @@ public interface AnswerReportRepository
     long countByAnswer(QuestionAnswer answer);
 
     //  승인 처리된 신고는 관리 목록에서 제외 (PENDING만 노출)
-    @Query("""
+    `@Query`("""
         SELECT ar
         FROM AnswerReport ar
         JOIN FETCH ar.answer a
         JOIN FETCH ar.user u
         WHERE ar.status = com.example.egobook_be.global.enums.ReportStatus.PENDING
+        ORDER BY ar.createdAt DESC, ar.id DESC
     """)
     Page<AnswerReport> findAllWithAnswerAndUser(Pageable pageable);
 
