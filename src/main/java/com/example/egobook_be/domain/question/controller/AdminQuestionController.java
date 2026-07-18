@@ -3,12 +3,16 @@ package com.example.egobook_be.domain.question.controller;
 import com.example.egobook_be.domain.question.dto.AdminQuestionReqDto;
 import com.example.egobook_be.domain.question.dto.AdminQuestionResDto;
 import com.example.egobook_be.domain.question.dto.AdminQuestionListResDto;
+import com.example.egobook_be.domain.question.dto.AdminTodayAnswerListResDto;
 import com.example.egobook_be.domain.question.service.AdminQuestionService;
 import com.example.egobook_be.global.response.GlobalResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequiredArgsConstructor
@@ -66,5 +70,24 @@ public class AdminQuestionController {
     public GlobalResponse<Void> deleteQuestion(@PathVariable Long questionId) {
         adminQuestionService.deleteQuestion(questionId);
         return GlobalResponse.success("질문 삭제 성공", null);
+    }
+
+    @Operation(
+            summary = "이벤트 관리 - 오늘의 답변 조회",
+            description = """
+                    기간 내 오늘의 질문과, 그 질문에 답변 공개 동의(PUBLIC)를 한 유저의 답변을 함께 조회합니다.
+
+                    - startDate/endDate 미입력 시 오늘이 속한 달(1일 ~ 말일)이 기본값입니다.
+                    - 질문은 날짜 내림차순(최신 날짜가 상단)으로 정렬됩니다.
+                    - 각 질문 안의 답변은 작성일 내림차순으로 정렬됩니다.
+                    - 공개 동의(PUBLIC)를 하지 않은 유저의 답변은 조회되지 않습니다.
+                    """
+    )
+    @GetMapping("/answers")
+    public GlobalResponse<AdminTodayAnswerListResDto> getTodayAnswers(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        return GlobalResponse.success("오늘의 답변 조회 성공", adminQuestionService.getTodayAnswers(startDate, endDate));
     }
 }

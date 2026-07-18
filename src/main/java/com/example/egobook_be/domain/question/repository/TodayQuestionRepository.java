@@ -6,6 +6,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public interface TodayQuestionRepository extends JpaRepository<TodayQuestion, Long> {
@@ -16,4 +17,8 @@ public interface TodayQuestionRepository extends JpaRepository<TodayQuestion, Lo
 
     // 삭제되지 않은 질문들만 페이징 조회
     Slice<TodayQuestion> findAllByDeletedAtIsNull(Pageable pageable);
+
+    List<TodayQuestion> findAllByQuestionDateBetweenAndDeletedAtIsNullOrderByQuestionDateDesc(
+            LocalDate startDate, LocalDate endDate
+    );
 }

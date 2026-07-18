@@ -13,6 +13,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -100,5 +101,28 @@ public interface QuestionAnswerRepository extends JpaRepository<QuestionAnswer, 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM QuestionAnswer qa WHERE qa.user IN :users")
     void bulkDeleteByUserIn(@Param("users") List<User> users);
+
+    /**
+     * 기간 내 질문에 달린 PUBLIC 답변을 질문 날짜 내림차순, 답변 작성일 내림차순으로 조회한다.
+     * @param startDate : 조회 시작일 (질문 날짜 기준)
+     * @param endDate : 조회 종료일 (질문 날짜 기준)
+     * @param visibility : 조회할 공개 범위 (PUBLIC 고정 사용)
+     * @return : 질문+유저가 함께 fetch된 QuestionAnswer 목록
+     */
+    @Query("""
+        select qa
+        from QuestionAnswer qa
+        join fetch qa.user u
+        join fetch qa.question q
+        where q.questionDate between :startDate and :endDate
+          and q.deletedAt is null
+          and qa.visibility = :visibility
+        order by q.questionDate desc, qa.createdAt desc
+    """)
+    List<QuestionAnswer> findAllByQuestionDateBetweenAndVisibility(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("visibility") AnswerVisibility visibility
+    );
 
 }
