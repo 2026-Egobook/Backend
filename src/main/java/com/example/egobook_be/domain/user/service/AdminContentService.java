@@ -67,7 +67,7 @@ public class AdminContentService {
 
         Map<LocalDate, Long> successMap = toDateCountMap(successByDate);
         Map<LocalDate, Long> failMap = toDateCountMap(failByDate);
-        
+
         List<Object[]> scheduledByDate = diaryRepository.countDailyPraiseTargetsByDateRange(startDate, endDate);
         Map<LocalDate, Long> scheduledMap = toDateCountMap(scheduledByDate);
         List<LocalDate> dateRange = buildDateRange(startDate, endDate);

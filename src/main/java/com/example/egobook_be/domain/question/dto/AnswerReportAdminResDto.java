@@ -17,5 +17,6 @@ public record AnswerReportAdminResDto(
         ReportStatus status,
         String adminMemo,
         LocalDateTime reportedAt,
+        Long reportedUserId,
         String reportedUserAccountCode
 ) {}

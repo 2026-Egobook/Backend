@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface AnswerReportRepository
@@ -20,15 +21,17 @@ public interface AnswerReportRepository
 
     long countByAnswer(QuestionAnswer answer);
 
+    //  승인 처리된 신고는 관리 목록에서 제외 (PENDING만 노출)
     @Query("""
         SELECT ar
         FROM AnswerReport ar
         JOIN FETCH ar.answer a
         JOIN FETCH ar.user u
+        WHERE ar.status = com.example.egobook_be.global.enums.ReportStatus.PENDING
     """)
     Page<AnswerReport> findAllWithAnswerAndUser(Pageable pageable);
 
-    //상세 조회
+    //상세 조회 (reportId 단건 - 승인/반려 처리용)
     @Query("""
         SELECT ar
         FROM AnswerReport ar
@@ -37,6 +40,18 @@ public interface AnswerReportRepository
         WHERE ar.id = :reportId
     """)
     Optional<AnswerReport> findByIdWithAnswerAndUser(@Param("reportId") Long reportId);
+
+    // 신고 상세보기: 신고된 컨텐츠(answerId) 기준으로 해당 컨텐츠에 달린 모든 신고 내역을 조회
+    @Query("""
+        SELECT ar
+        FROM AnswerReport ar
+        JOIN FETCH ar.answer a
+        JOIN FETCH a.user
+        JOIN FETCH ar.user u
+        WHERE ar.answer.id = :answerId
+        ORDER BY ar.createdAt DESC
+    """)
+    List<AnswerReport> findAllByAnswerId(@Param("answerId") Long answerId);
 
     @Query("SELECT COUNT(ar) FROM AnswerReport ar WHERE ar.answer.id = :answerId")
     long countByAnswerId(@Param("answerId") Long answerId);

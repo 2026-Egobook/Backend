@@ -1,9 +1,12 @@
 package com.example.egobook_be.domain.report.service;
 
 import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReplyReportAdminResDto;
+import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReplyReportDetailResDto;
 import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReportAdminResDto;
+import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReportDetailResDto;
 import com.example.egobook_be.domain.letters.service.LetterReportAdminService;
 import com.example.egobook_be.domain.question.dto.AnswerReportAdminResDto;
+import com.example.egobook_be.domain.question.dto.AnswerReportDetailResDto;
 import com.example.egobook_be.domain.question.service.AnswerReportAdminService;
 import com.example.egobook_be.domain.report.dto.AdminReportMemoReqDto;
 import com.example.egobook_be.domain.report.enums.ReportErrorCode;
@@ -36,16 +39,17 @@ public class AdminReportService {
         return answerReportAdminService.getReportedAnswers(page, size);
     }
 
-    public PlazaLetterReportAdminResDto getReportedLetterDetail(Long reportId) {
-        return letterReportAdminService.getReportedLetterDetail(reportId);
+
+    public PlazaLetterReportDetailResDto getReportedLetterDetail(Long letterId) {
+        return letterReportAdminService.getReportedLetterDetail(letterId);
     }
 
-    public PlazaLetterReplyReportAdminResDto getReportedReplyDetail(Long reportId) {
-        return letterReportAdminService.getReportedReplyDetail(reportId);
+    public PlazaLetterReplyReportDetailResDto getReportedReplyDetail(Long replyId) {
+        return letterReportAdminService.getReportedReplyDetail(replyId);
     }
 
-    public AnswerReportAdminResDto getReportedAnswerDetail(Long reportId) {
-        return answerReportAdminService.getReportedAnswerDetail(reportId);
+    public AnswerReportDetailResDto getReportedAnswerDetail(Long answerId) {
+        return answerReportAdminService.getReportedAnswerDetail(answerId);
     }
 
     public void deleteLetter(Long letterId) {
