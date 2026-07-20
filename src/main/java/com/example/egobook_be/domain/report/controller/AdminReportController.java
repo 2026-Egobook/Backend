@@ -1,7 +1,9 @@
 package com.example.egobook_be.domain.report.controller;
 
 import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReplyReportAdminResDto;
+import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReplyReportDetailResDto;
 import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReportAdminResDto;
+import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReportDetailResDto;
 import com.example.egobook_be.domain.letters.service.LetterReportAdminService;
 import com.example.egobook_be.domain.question.dto.*;
 import com.example.egobook_be.domain.question.service.AnswerReportAdminService;
@@ -53,33 +55,34 @@ public class AdminReportController implements AdminReportControllerDocs {
         );
     }
 
+
     @Override
-    @GetMapping("/letters/{reportId}")
-    public ResponseEntity<GlobalResponse<PlazaLetterReportAdminResDto>> getReportedLetterDetail(
-            @PathVariable Long reportId
+    @GetMapping("/letters/{letterId}")
+    public ResponseEntity<GlobalResponse<PlazaLetterReportDetailResDto>> getReportedLetterDetail(
+            @PathVariable Long letterId
     ) {
         return ResponseEntity.ok(
-                GlobalResponse.success("신고된 편지 상세 조회 성공", adminReportService.getReportedLetterDetail(reportId))
+                GlobalResponse.success("신고된 편지 상세 조회 성공", adminReportService.getReportedLetterDetail(letterId))
         );
     }
 
     @Override
-    @GetMapping("/replies/{reportId}")
-    public ResponseEntity<GlobalResponse<PlazaLetterReplyReportAdminResDto>> getReportedReplyDetail(
-            @PathVariable Long reportId
+    @GetMapping("/replies/{replyId}")
+    public ResponseEntity<GlobalResponse<PlazaLetterReplyReportDetailResDto>> getReportedReplyDetail(
+            @PathVariable Long replyId
     ) {
         return ResponseEntity.ok(
-                GlobalResponse.success("신고된 답장 상세 조회 성공", adminReportService.getReportedReplyDetail(reportId))
+                GlobalResponse.success("신고된 답장 상세 조회 성공", adminReportService.getReportedReplyDetail(replyId))
         );
     }
 
     @Override
-    @GetMapping("/answers/{reportId}")
-    public ResponseEntity<GlobalResponse<AnswerReportAdminResDto>> getReportedAnswerDetail(
-            @PathVariable Long reportId
+    @GetMapping("/answers/{answerId}")
+    public ResponseEntity<GlobalResponse<AnswerReportDetailResDto>> getReportedAnswerDetail(
+            @PathVariable Long answerId
     ) {
         return ResponseEntity.ok(
-                GlobalResponse.success("신고된 답변 상세 조회 성공", adminReportService.getReportedAnswerDetail(reportId))
+                GlobalResponse.success("신고된 답변 상세 조회 성공", adminReportService.getReportedAnswerDetail(answerId))
         );
     }
 

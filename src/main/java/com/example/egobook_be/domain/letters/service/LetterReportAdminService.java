@@ -1,7 +1,9 @@
 package com.example.egobook_be.domain.letters.service;
 
 import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReportAdminResDto;
+import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReportDetailResDto;
 import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReplyReportAdminResDto;
+import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReplyReportDetailResDto;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReport;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReplyReport;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
@@ -9,6 +11,9 @@ import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReposito
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
+import com.example.egobook_be.domain.report.dto.ReportEntryResDto;
+import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.enums.ReportStatus;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
@@ -20,6 +25,8 @@ import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -30,6 +37,13 @@ public class LetterReportAdminService {
     private final PlazaLetterReplyReportRepository replyReportRepository;
     private final PlazaLetterRepository letterRepository;
     private final PlazaLetterReplyRepository replyRepository;
+    private final UserRepository userRepository;
+
+    // 신고당한 유저(letter senderId / reply replierId)의 accountCode 조회, 탈퇴 등으로 id가 null이면 null 반환
+    private String findAccountCode(Long userId) {
+        if (userId == null) return null;
+        return userRepository.findById(userId).map(User::getAccountCode).orElse(null);
+    }
 
     public SliceResponse<PlazaLetterReportAdminResDto> getReportedLetters(int page, int size) {
         int safePage = Math.max(page, 1);
@@ -51,7 +65,9 @@ public class LetterReportAdminService {
                 report.getStatus(),
                 report.getAdminMemo(),
                 reportCount,
-                report.getCreatedAt()
+                report.getCreatedAt(),
+                report.getSenderId(),
+                findAccountCode(report.getSenderId())
             );
         });
     }
@@ -76,49 +92,69 @@ public class LetterReportAdminService {
                 report.getStatus(),
                 report.getAdminMemo(),
                 reportCount,
-                report.getCreatedAt()
+                report.getCreatedAt(),
+                report.getReplierId(),
+                findAccountCode(report.getReplierId())
             );
         });
     }
 
-    //상세 조회
-    public PlazaLetterReportAdminResDto getReportedLetterDetail(Long reportId) {
-        PlazaLetterReport report = letterReportRepository.findByIdWithLetter(reportId)
-                .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+    // 상세 조회 기준을 reportId(개별 신고건)에서 letterId(신고된 컨텐츠)로 변경
+    // - 같은 편지를 여러 명이 신고한 경우, 그 편지에 달린 모든 신고 내역을 리스트로 함께 반환
+    public PlazaLetterReportDetailResDto getReportedLetterDetail(Long letterId) {
+        List<PlazaLetterReport> reports = letterReportRepository.findAllByLetterId(letterId);
+        if (reports.isEmpty()) {
+            throw new CustomException(LettersErrorCode.LETTER_NOT_FOUND);
+        }
+        PlazaLetterReport first = reports.get(0);
 
-        long reportCount = letterReportRepository.countByLetter_LetterId(report.getLetter().getLetterId());
+        List<ReportEntryResDto> entries = reports.stream()
+                .map(r -> ReportEntryResDto.builder()
+                        .reportId(r.getReportId())
+                        .reporterId(r.getReporterId())
+                        .reason(r.getReason())
+                        .description(r.getDescription())
+                        .status(r.getStatus())
+                        .createdAt(r.getCreatedAt())
+                        .build())
+                .toList();
 
-        return new PlazaLetterReportAdminResDto(
-            report.getReportId(),
-            report.getLetter().getLetterId(),
-            report.getLetter().getContent(),
-            report.getReporterId(),
-            report.getReason(),
-            report.getDescription(),
-            report.getStatus(),
-            report.getAdminMemo(),
-            reportCount,
-            report.getCreatedAt()
+        return new PlazaLetterReportDetailResDto(
+                letterId,
+                first.getLetter().getContent(),
+                first.getSenderId(),
+                findAccountCode(first.getSenderId()),
+                entries.size(),
+                entries
         );
     }
 
-    public PlazaLetterReplyReportAdminResDto getReportedReplyDetail(Long reportId) {
-        PlazaLetterReplyReport report = replyReportRepository.findByIdWithReply(reportId)
-                .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+    // 상세 조회 기준을 reportId(개별 신고건)에서 replyId(신고된 컨텐츠)로 변경
+    public PlazaLetterReplyReportDetailResDto getReportedReplyDetail(Long replyId) {
+        List<PlazaLetterReplyReport> reports = replyReportRepository.findAllByReplyId(replyId);
+        if (reports.isEmpty()) {
+            throw new CustomException(LettersErrorCode.LETTER_NOT_FOUND);
+        }
+        PlazaLetterReplyReport first = reports.get(0);
 
-        long reportCount = replyReportRepository.countByReply_ReplyId(report.getReply().getReplyId());
+        List<ReportEntryResDto> entries = reports.stream()
+                .map(r -> ReportEntryResDto.builder()
+                        .reportId(r.getReportId())
+                        .reporterId(r.getReporterId())
+                        .reason(r.getReason())
+                        .description(r.getDescription())
+                        .status(r.getStatus())
+                        .createdAt(r.getCreatedAt())
+                        .build())
+                .toList();
 
-        return new PlazaLetterReplyReportAdminResDto(
-            report.getReportId(),
-            report.getReply().getReplyId(),
-            report.getReply().getContent(),
-            report.getReporterId(),
-            report.getReason(),
-            report.getDescription(),
-            report.getStatus(),
-            report.getAdminMemo(),
-            reportCount,
-            report.getCreatedAt()
+        return new PlazaLetterReplyReportDetailResDto(
+                replyId,
+                first.getReply().getContent(),
+                first.getReplierId(),
+                findAccountCode(first.getReplierId()),
+                entries.size(),
+                entries
         );
     }
 
@@ -161,6 +197,7 @@ public class LetterReportAdminService {
     }
 
     @Transactional
+    // 반려 시 상태 변경 대신 신고 이력 자체를 삭제
     public void rejectLetterReport(Long reportId) {
         PlazaLetterReport report = letterReportRepository.findByIdWithLetter(reportId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
@@ -169,7 +206,7 @@ public class LetterReportAdminService {
             throw new CustomException(LettersErrorCode.REPORT_ALREADY_RESOLVED);
         }
 
-        report.reject();
+        letterReportRepository.delete(report);
     }
 
     @Transactional
@@ -192,6 +229,7 @@ public class LetterReportAdminService {
     }
 
     @Transactional
+    // 반려 시 상태 변경 대신 신고 이력 자체를 삭제
     public void rejectReplyReport(Long reportId) {
         PlazaLetterReplyReport report = replyReportRepository.findByIdWithReply(reportId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
@@ -200,7 +238,7 @@ public class LetterReportAdminService {
             throw new CustomException(LettersErrorCode.REPORT_ALREADY_RESOLVED);
         }
 
-        report.reject();
+        replyReportRepository.delete(report);
     }
 
     @Transactional

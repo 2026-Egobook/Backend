@@ -3,11 +3,15 @@ package com.example.egobook_be.domain.question.service;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReport;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.question.dto.AnswerReportAdminResDto;
+import com.example.egobook_be.domain.question.dto.AnswerReportDetailResDto;
 import com.example.egobook_be.domain.question.entity.AnswerReport;
 import com.example.egobook_be.domain.question.enums.AnswerVisibility;
 import com.example.egobook_be.domain.question.exception.QuestionErrorCode;
 import com.example.egobook_be.domain.question.repository.AnswerReportRepository;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
+import com.example.egobook_be.domain.report.dto.ReportEntryResDto;
+import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.enums.ReportStatus;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
@@ -18,6 +22,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -25,6 +31,13 @@ public class AnswerReportAdminService {
 
     private final AnswerReportRepository answerReportRepository;
     private final QuestionAnswerRepository questionAnswerRepository;
+    private final UserRepository userRepository;
+
+    // 신고당한 유저(답변 작성자)의 accountCode 조회, 탈퇴 등으로 id가 null이면 null 반환
+    private String findAccountCode(Long userId) {
+        if (userId == null) return null;
+        return userRepository.findById(userId).map(User::getAccountCode).orElse(null);
+    }
 
     @Transactional(readOnly = true)
     public SliceResponse<AnswerReportAdminResDto> getReportedAnswers(
@@ -55,18 +68,42 @@ public class AnswerReportAdminService {
                 reportCount,
                 report.getStatus(),
                 report.getAdminMemo(),
-                report.getCreatedAt()
+                report.getCreatedAt(),
+                report.getAnswer().getUser().getId(),
+                findAccountCode(report.getAnswer().getUser().getId())
         );
     }
 
-    @Transactional(readOnly = true)
-    public AnswerReportAdminResDto getReportedAnswerDetail(Long reportId) {
-        log.info("[AnswerReportAdminService] getReportedAnswers Start - reportId: {}", reportId);
-        AnswerReport report = answerReportRepository.findByIdWithAnswerAndUser(reportId)
-                .orElseThrow(() -> new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND));
 
-        log.info("[AnswerReportAdminService] getReportedAnswers End - reportId: {}", reportId);
-        return toDto(report);
+    @Transactional(readOnly = true)
+    public AnswerReportDetailResDto getReportedAnswerDetail(Long answerId) {
+        log.info("[AnswerReportAdminService] getReportedAnswerDetail Start - answerId: {}", answerId);
+        List<AnswerReport> reports = answerReportRepository.findAllByAnswerId(answerId);
+        if (reports.isEmpty()) {
+            throw new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND);
+        }
+        AnswerReport first = reports.get(0);
+
+        List<ReportEntryResDto> entries = reports.stream()
+                .map(r -> ReportEntryResDto.builder()
+                        .reportId(r.getId())
+                        .reporterId(r.getUser().getId())
+                        .reason(r.getReason())
+                        .description(r.getDescription())
+                        .status(r.getStatus())
+                        .createdAt(r.getCreatedAt())
+                        .build())
+                .toList();
+
+        log.info("[AnswerReportAdminService] getReportedAnswerDetail End - answerId: {}", answerId);
+        return new AnswerReportDetailResDto(
+                answerId,
+                first.getAnswer().getContent(),
+                first.getAnswer().getUser().getId(),
+                findAccountCode(first.getAnswer().getUser().getId()),
+                entries.size(),
+                entries
+        );
     }
 
     //수동 삭제
@@ -100,6 +137,7 @@ public class AnswerReportAdminService {
         }
     }
 
+
     @Transactional
     public void rejectAnswerReport(Long reportId) {
         AnswerReport report = answerReportRepository.findByIdWithAnswerAndUser(reportId)
@@ -109,7 +147,7 @@ public class AnswerReportAdminService {
             throw new CustomException(QuestionErrorCode.ALREADY_RESOLVED);
         }
 
-        report.reject();
+        answerReportRepository.delete(report);
     }
 
     @Transactional

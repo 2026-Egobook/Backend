@@ -45,15 +45,17 @@ public interface PlazaLetterReplyReportRepository extends JpaRepository<PlazaLet
     @Query("SELECT COUNT(r) FROM PlazaLetterReplyReport r WHERE r.reply.replyId = :replyId")
     long countByReply_ReplyId(@Param("replyId") Long replyId);
 
+    // 승인 처리된 신고는 관리 목록에서 제외 (PENDING만 노출, 반려는 DB에서도 삭제)
     @Query("""
         SELECT r
         FROM PlazaLetterReplyReport r
         JOIN FETCH r.reply
+        WHERE r.status = com.example.egobook_be.global.enums.ReportStatus.PENDING
         ORDER BY r.createdAt DESC
     """)
     Slice<PlazaLetterReplyReport> findAllWithReply(Pageable pageable);
 
-    //상세 조회
+    //상세 조회 (reportId 단건 - 승인/반려 처리용)
     @Query("""
         SELECT r
         FROM PlazaLetterReplyReport r
@@ -61,6 +63,16 @@ public interface PlazaLetterReplyReportRepository extends JpaRepository<PlazaLet
         WHERE r.reportId = :reportId
     """)
     Optional<PlazaLetterReplyReport> findByIdWithReply(@Param("reportId") Long reportId);
+
+    // 신고 상세보기: 신고된 컨텐츠(replyId) 기준으로 해당 컨텐츠에 달린 모든 신고 내역을 조회
+    @Query("""
+        SELECT r
+        FROM PlazaLetterReplyReport r
+        JOIN FETCH r.reply
+        WHERE r.reply.replyId = :replyId
+        ORDER BY r.createdAt DESC
+    """)
+    List<PlazaLetterReplyReport> findAllByReplyId(@Param("replyId") Long replyId);
 
     //수동 삭제
     @Modifying(clearAutomatically = true)

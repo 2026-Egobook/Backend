@@ -7,6 +7,7 @@ import com.example.egobook_be.domain.ego_room.repository.DailyPraiseRepository;
 import com.example.egobook_be.domain.ego_room.repository.WeeklyCounselRepository;
 import com.example.egobook_be.domain.ego_room.repository.WeeklyReportSendFailLogRepository;
 import com.example.egobook_be.domain.ego_room.service.EgoRoomService;
+import com.example.egobook_be.domain.diary.repository.DiaryRepository;
 import com.example.egobook_be.domain.letters.entity.BadWordBlockLog;
 import com.example.egobook_be.domain.letters.entity.LetterSendFailLog;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
@@ -45,6 +46,7 @@ public class AdminContentService {
     private final UserRepository userRepository;
     private final EgoRoomService egoRoomService;
     private final AiRequestCountLogRepository aiRequestCountLogRepo;
+    private final DiaryRepository diaryRepository;
 
     // ─────────────────────────────────────────────────────────────────────────
     // B1. AI 일간 칭찬서
@@ -66,23 +68,24 @@ public class AdminContentService {
         Map<LocalDate, Long> successMap = toDateCountMap(successByDate);
         Map<LocalDate, Long> failMap = toDateCountMap(failByDate);
 
-        // scheduledCount = dailyPraise=true 유저 수 (현재 기준)
-        long scheduledPerDay = userRepository.findByDailyPraiseTrue().size();
+        List<Object[]> scheduledByDate = diaryRepository.countDailyPraiseTargetsByDateRange(startDate, endDate);
+        Map<LocalDate, Long> scheduledMap = toDateCountMap(scheduledByDate);
         List<LocalDate> dateRange = buildDateRange(startDate, endDate);
 
         List<DailyStat> dailyStats = dateRange.stream()
                 .map(date -> DailyStat.builder()
                         .date(date)
-                        .scheduledCount(scheduledPerDay)
+                        .scheduledCount(scheduledMap.getOrDefault(date, 0L))
                         .successCount(successMap.getOrDefault(date, 0L))
                         .failCount(failMap.getOrDefault(date, 0L))
                         .build())
                 .collect(Collectors.toList());
 
         long totalSuccess = successMap.values().stream().mapToLong(Long::longValue).sum();
+        long totalScheduled = scheduledMap.values().stream().mapToLong(Long::longValue).sum();
 
         SummaryWithDaily summary = SummaryWithDaily.builder()
-                .scheduledCount(scheduledPerDay * dateRange.size())
+                .scheduledCount(totalScheduled)
                 .successCount(totalSuccess)
                 .failCount(failLogs.size())
                 .build();
