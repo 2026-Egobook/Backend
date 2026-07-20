@@ -28,6 +28,7 @@ public interface AnswerReportRepository
         JOIN FETCH ar.answer a
         JOIN FETCH ar.user u
         WHERE ar.status = com.example.egobook_be.global.enums.ReportStatus.PENDING
+        ORDER BY ar.createdAt DESC, ar.id DESC
     """)
     Page<AnswerReport> findAllWithAnswerAndUser(Pageable pageable);
 
