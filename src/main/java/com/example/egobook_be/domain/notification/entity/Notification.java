@@ -14,7 +14,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "notification")
+@Table(name = "notification", indexes = @Index(name = "idx_notification_user_created", columnList = "user_id, created_at"))
 public class Notification extends BaseTimeEntity {
 
     @Id

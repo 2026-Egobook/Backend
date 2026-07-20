@@ -6,6 +6,7 @@ import com.example.egobook_be.domain.notice.dto.NoticeUpdateReqDto;
 import com.example.egobook_be.domain.notice.service.AdminNoticeService;
 import com.example.egobook_be.global.response.GlobalResponse;
 import com.example.egobook_be.global.response.SliceResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,7 @@ public class AdminNoticeController implements AdminNoticeControllerDocs {
 
     @Override
     @PostMapping
-    public ResponseEntity<GlobalResponse<NoticeAdminResDto>> createNotice(@RequestBody NoticeCreateReqDto reqDto) {
+    public ResponseEntity<GlobalResponse<NoticeAdminResDto>> createNotice(@Valid @RequestBody NoticeCreateReqDto reqDto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(GlobalResponse.success(201, "공지사항 등록 성공", adminNoticeService.createNotice(reqDto)));
     }
@@ -40,7 +41,7 @@ public class AdminNoticeController implements AdminNoticeControllerDocs {
     @PatchMapping("/{noticeId}")
     public ResponseEntity<GlobalResponse<NoticeAdminResDto>> updateNotice(
             @PathVariable Long noticeId,
-            @RequestBody NoticeUpdateReqDto reqDto
+            @Valid @RequestBody NoticeUpdateReqDto reqDto
     ) {
         return ResponseEntity.ok(
                 GlobalResponse.success("공지사항 수정 성공", adminNoticeService.updateNotice(noticeId, reqDto))
