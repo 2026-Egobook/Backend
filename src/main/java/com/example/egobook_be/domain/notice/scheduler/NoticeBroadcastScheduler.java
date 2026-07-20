@@ -8,6 +8,7 @@ import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +27,9 @@ public class NoticeBroadcastScheduler {
     private final NotificationService notificationService;
 
     // 매분 정각마다 발행 시각이 지난 미발송 공지를 확인
+    // 서버가 여러 대여도 한 인스턴스만 브로드캐스트를 수행하도록 보장
     @Scheduled(cron = "0 * * * * *")
+    @SchedulerLock(name = "noticeBroadcastScheduler", lockAtMostFor = "PT5M", lockAtLeastFor = "PT10S")
     @Transactional
     public void broadcastDueNotices() {
         List<Notice> dueNotices = noticeRepository.findAllByPublishedAtLessThanEqualAndBroadcastedFalse(LocalDateTime.now());
