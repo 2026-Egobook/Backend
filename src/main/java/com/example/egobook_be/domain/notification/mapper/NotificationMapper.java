@@ -16,6 +16,7 @@ public class NotificationMapper {
                 .isRead(notification.isRead())
                 .targetId(notification.getTargetId())
                 .createdAt(notification.getCreatedAt())
+                .linkUrl(notification.getLinkUrl())
                 .build();
     }
 

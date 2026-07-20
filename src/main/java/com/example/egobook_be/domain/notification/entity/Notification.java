@@ -14,14 +14,15 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "notification")
+@Table(name = "notification", indexes = @Index(name = "idx_notification_user_created", columnList = "user_id, created_at"))
 public class Notification extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    
+    @Column(nullable = false, columnDefinition = "VARCHAR(30)")
     @Enumerated(EnumType.STRING)
     private NotificationType type;
 
@@ -33,6 +34,9 @@ public class Notification extends BaseTimeEntity {
 
     @Column(nullable = false)
     private Long targetId;
+
+    @Column(name = "link_url", length = 500)
+    private String linkUrl;
 
     @Column(nullable = false)
     @Builder.Default

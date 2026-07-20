@@ -17,11 +17,12 @@ public interface NotificationControllerDocs {
 
     @Operation(summary = "알림 목록 조회", description = """
             알림은 최신순으로 확인 가능합니다.
-            
+
             - 편지 답장
             - 친구에게 온 편지
             - AI 칭찬서
             - AI 상담서
+            - 공지사항 (NOTICE 타입 - 발행 시점에 브로드캐스트됨, linkUrl에 노션 링크 포함)
             """)
     @GetMapping
     ResponseEntity<GlobalResponse<SliceResponse<NotificationResDto>>> getNotifications(

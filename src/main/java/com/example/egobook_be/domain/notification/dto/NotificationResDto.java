@@ -13,5 +13,6 @@ public record NotificationResDto(
         String content,
         Boolean isRead,
         Long targetId,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        String linkUrl
 ) {}

@@ -62,8 +62,12 @@ public class HomeService {
          */
         User user = userRepository.findByIdWithLock(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
 
-        // 2. 사용자가 아직 읽지 않은 알림 개수 확인
-        Integer unReadNotificationCount = notificationRepository.countByUserAndIsReadIsFalse(user);
+        // 레드닷 판단 기준을 isRead 여부 대신 "마지막으로 알림을 확인한 시각 이후 새로 생긴 알림이 있는가"로 변경
+        // - 개별 알림의 읽음(isRead) 상태와는 무관하게, 목록을 열거나 푸시로 확인한 시점 이후 새 알림 존재 여부만 확인
+        LocalDateTime lastCheckedAt = user.getLastNotificationCheckedAt() != null
+                ? user.getLastNotificationCheckedAt()
+                : LocalDateTime.of(1970, 1, 1, 0, 0);
+        Integer unReadNotificationCount = notificationRepository.countByUserAndCreatedAtAfter(user, lastCheckedAt);
 
         // 3. 사용자가 열지 않은 오늘의 심리 지식 여부
         Boolean hasUnopenedPsychology = hasUnopenedPsychologyKnowledge(user);

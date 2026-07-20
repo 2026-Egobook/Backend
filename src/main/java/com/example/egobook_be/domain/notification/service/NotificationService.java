@@ -75,8 +75,34 @@ public class NotificationService {
         log.info("[NotificationService] createNotification End - userId: {}, targetId: {}", userId, targetId);
     }
 
-    /** 알림 목록 */
-    @Transactional(readOnly = true)
+    /**
+     * 공지사항을 특정 유저에게 NOTICE 타입 알림으로 생성한다 
+     * - 일반 알림 생성(createNotification)과 달리 content 미리보기가 없고, 노션 링크(linkUrl)를 직접 싣는다.
+     * @param user : 알림을 받을 유저 (알림 설정 꺼져있으면 생성하지 않음)
+     * @param noticeId : 대상 공지 PK
+     * @param title : 공지 제목
+     * @param notionUrl : 공지 노션 링크
+     */
+    @Transactional
+    public void createNoticeNotification(User user, Long noticeId, String title, String notionUrl) {
+        if (!user.isNotificationEnabled()) {
+            return;
+        }
+
+        Notification notification = Notification.builder()
+                .user(user)
+                .type(NotificationType.NOTICE)
+                .title(NotificationType.NOTICE.format(title))
+                .targetId(noticeId)
+                .linkUrl(notionUrl)
+                .build();
+
+        notificationRepository.save(notification);
+        fcmService.sendPushNotification(user, notification);
+    }
+
+    /** 알림 목록 (공지사항은 발행 시 일반 알림으로 브로드캐스트되어 이 목록에 함께 포함됨) */
+    @Transactional
     public SliceResponse<NotificationResDto> getNotifications(Long userId, int page, int size) {
         log.info("[NotificationService] getNotifications Start - userId: {}", userId);
         User user = userRepository.findById(userId)
@@ -96,7 +122,11 @@ public class NotificationService {
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
 
+        // 응답에 담길 스냅샷은 갱신 전 상태를 기준으로 조회 (목록 내 개별 읽음 표시는 isRead로 그대로 유지)
         Slice<Notification> slice = notificationRepository.findAllByUser(user, pageable);
+
+        // 알림 목록을 연 시점을 기록 - 레드닷은 이 시각 이후 새 알림이 있는지로 판단 (isRead와 무관)
+        user.updateLastNotificationCheckedAt();
 
         log.info("[NotificationService] getNotifications End - userId: {}", userId);
         return SliceResponse.of(slice, NotificationMapper::toNotificationDto);
@@ -116,6 +146,9 @@ public class NotificationService {
 
         notification.markAsRead();
         notificationRepository.save(notification);
+
+        // 목록 화면을 거치지 않고 푸시로 직접 확인한 경우에도 레드닷 기준 시각 갱신
+        notification.getUser().updateLastNotificationCheckedAt();
 
         log.info("[NotificationService] readNotification End - userId: {}, notificationId: {}", userId, notificationId);
         return NotificationMapper.toNotificationReadDto(notification);

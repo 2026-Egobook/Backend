@@ -72,7 +72,7 @@ class HomeServiceUnitTest {
 
         // 2. Stub
         when(userRepository.findByIdWithLock(anyLong())).thenReturn(Optional.of(mockUser));
-        when(notificationRepository.countByUserAndIsReadIsFalse(any(User.class))).thenReturn(2);
+        when(notificationRepository.countByUserAndCreatedAtAfter(any(User.class), any(LocalDateTime.class))).thenReturn(2);
         when(inkLogRepository.existsByUserAndReasonAndCreatedAtAfter(eq(mockUser), eq(InkLogType.FIRST_PSYCHOLOGY_VIEW), any(LocalDateTime.class)))
                 .thenReturn(false); // 심리 지식을 열람하지 않은 상태 세팅 (exists가 false 반환)
         when(homeMapper.toHomeResDto(any(User.class), anyInt(), anyBoolean(), anyInt())).thenReturn(mockResDto); // Mapper 동작 세팅
@@ -123,7 +123,7 @@ class HomeServiceUnitTest {
 
         // 2. Stub
         when(userRepository.findByIdWithLock(anyLong())).thenReturn(Optional.of(mockUser));
-        when(notificationRepository.countByUserAndIsReadIsFalse(any(User.class))).thenReturn(0);
+        when(notificationRepository.countByUserAndCreatedAtAfter(any(User.class), any(LocalDateTime.class))).thenReturn(0);
         when(inkLogRepository.existsByUserAndReasonAndCreatedAtAfter(eq(mockUser), eq(InkLogType.FIRST_PSYCHOLOGY_VIEW), any(LocalDateTime.class)))
                 .thenReturn(true); // 이미 심리 지식을 열람한 상태 세팅
         when(homeMapper.toHomeResDto(any(User.class), anyInt(), anyBoolean(), anyInt())).thenReturn(mockResDto);
