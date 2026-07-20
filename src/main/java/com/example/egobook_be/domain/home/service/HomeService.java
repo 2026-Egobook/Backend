@@ -66,7 +66,7 @@ public class HomeService {
         // - 개별 알림의 읽음(isRead) 상태와는 무관하게, 목록을 열거나 푸시로 확인한 시점 이후 새 알림 존재 여부만 확인
         LocalDateTime lastCheckedAt = user.getLastNotificationCheckedAt() != null
                 ? user.getLastNotificationCheckedAt()
-                : LocalDateTime.MIN;
+                : LocalDateTime.of(1970, 1, 1, 0, 0);
         Integer unReadNotificationCount = notificationRepository.countByUserAndCreatedAtAfter(user, lastCheckedAt);
 
         // 3. 사용자가 열지 않은 오늘의 심리 지식 여부
