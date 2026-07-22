@@ -202,11 +202,11 @@ public class TodayQuestionService {
         Map<Long, Ability> abilityMap = abilityRepository.findByUserIdIn(userIds).stream()
                 .collect(Collectors.toMap(a -> a.getUser().getId(), a -> a));
 
-        Map<Long, String> turtleImageMap = userRepository.findAllById(userIds).stream()
+        List<User> users = userRepository.findAllById(userIds);
+        Map<Long, String> turtleImageMap = users.stream()
                 .filter(u -> u.getTurtleImageUrl() != null)
                 .collect(Collectors.toMap(User::getId, User::getTurtleImageUrl));
-
-        Map<Long, String> backgroundImageMap = userRepository.findAllById(userIds).stream()
+        Map<Long, String> backgroundImageMap = users.stream()
                 .filter(u -> u.getBackgroundImageUrl() != null)
                 .collect(Collectors.toMap(User::getId, User::getBackgroundImageUrl));
 
@@ -288,11 +288,11 @@ public class TodayQuestionService {
         Map<Long, Ability> abilityMap = abilityRepository.findByUserIdIn(userIds).stream()
                 .collect(Collectors.toMap(a -> a.getUser().getId(), a -> a));
 
-        Map<Long, String> turtleImageMap = userRepository.findAllById(userIds).stream()
+        List<User> users = userRepository.findAllById(userIds);
+        Map<Long, String> turtleImageMap = users.stream()
                 .filter(u -> u.getTurtleImageUrl() != null)
                 .collect(Collectors.toMap(User::getId, User::getTurtleImageUrl));
-
-        Map<Long, String> backgroundImageMap = userRepository.findAllById(userIds).stream()
+        Map<Long, String> backgroundImageMap = users.stream()
                 .filter(u -> u.getBackgroundImageUrl() != null)
                 .collect(Collectors.toMap(User::getId, User::getBackgroundImageUrl));
 
