@@ -143,7 +143,7 @@ public interface ShopControllerDocs {
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
     );
 
-    @Operation(summary = "프로필 이미지 합성 확정", description = """
+    @Operation(summary = "프로필 이미지 생성", description = """
         현재 착용 중인 아이템을 기반으로 프로필 이미지를 합성하여 저장하는 API입니다.
         
         [**기능**]
@@ -163,7 +163,7 @@ public interface ShopControllerDocs {
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자입니다.", content = @Content),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.", content = @Content)
     })
-    @PostMapping("/shop/profile/confirm")
+    @PostMapping("/profile/confirm")
     ResponseEntity<GlobalResponse<ProfileImageResDto>> confirmProfile(
             @Parameter(hidden = true)
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId

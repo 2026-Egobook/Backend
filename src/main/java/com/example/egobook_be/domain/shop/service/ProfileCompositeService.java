@@ -54,7 +54,6 @@ public class ProfileCompositeService {
     private static final int CANVAS_H = 197;
 
     public ProfileImageResDto compositeAndUpload(Long userId) {
-        log.info("[ProfileCompositeService] compositeAndUpload Start - userId: {}", userId);
 
         List<UserItem> equippedItems = userItemRepository.findEquippedItems(userId)
                 .stream()
@@ -97,11 +96,9 @@ public class ProfileCompositeService {
                     if ((item.getCategory() == ItemCategory.DECOR_ONE ||
                             item.getCategory() == ItemCategory.DECOR_TWO)
                             && item.getName().equals("Default.png")) {
-                        log.info("[ProfileCompositeService] 기본 데코 스킵 - key: {}", s3ItemKey);
                         continue;
                     }
 
-                    log.info("[ProfileCompositeService] s3Key 확인 - key: {}", s3ItemKey);
                     try {
                         byte[] imageBytes = s3Client.getObjectAsBytes(
                                 GetObjectRequest.builder().bucket(bucketName).key(s3ItemKey).build()
@@ -135,7 +132,6 @@ public class ProfileCompositeService {
             }
         }
 
-        log.info("[ProfileCompositeService] compositeAndUpload End - userId: {}", userId);
         return new ProfileImageResDto(turtleImageUrl, backgroundImageUrl);
     }
 
@@ -144,6 +140,17 @@ public class ProfileCompositeService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+
+        if (user.getTurtleImageUrl() != null) {
+            try {
+                String oldKey = "files/" + user.getTurtleImageUrl()
+                        .replace(cloudfrontDomain + "/", "");
+                s3Template.deleteObject(bucketName, oldKey);
+            } catch (Exception e) {
+                log.warn("[ProfileCompositeService] 기존 프로필 이미지 삭제 실패: {}", e.getMessage());
+            }
+        }
+
         user.updateProfileImages(result.turtleImageUrl(), result.backgroundImageUrl());
         userRepository.save(user);
 
