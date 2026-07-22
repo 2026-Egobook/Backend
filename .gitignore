@@ -4,6 +4,7 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+*.jar
 
 ### STS ###
 .apt_generated
@@ -55,3 +56,6 @@ CLAUDE.md
 
 ### CODEX ###
 AGENTS.md
+
+### redis ###
+redis/data/
