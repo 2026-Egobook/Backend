@@ -1,9 +1,6 @@
 package com.example.egobook_be.domain.shop.controller;
 
-import com.example.egobook_be.domain.shop.dto.EquipItemReqDto;
-import com.example.egobook_be.domain.shop.dto.ItemInfoResDto;
-import com.example.egobook_be.domain.shop.dto.PurchaseItemReqDto;
-import com.example.egobook_be.domain.shop.dto.ShopItemInfoResDto;
+import com.example.egobook_be.domain.shop.dto.*;
 import com.example.egobook_be.domain.shop.enums.ItemCategory;
 import com.example.egobook_be.domain.shop.service.ShopService;
 import com.example.egobook_be.global.response.GlobalResponse;
@@ -100,4 +97,18 @@ public class ShopController implements ShopControllerDocs{
                 .body(GlobalResponse.success("사용자가 장착하고 있는 아이템 리스트 조회 완료", equippedItems));
     }
 
+    /**
+     * [프로필 이미지 확정]
+     * POST /shop/profile/confirm
+     */
+    @Override
+    public ResponseEntity<GlobalResponse<ProfileImageResDto>> confirmProfile(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    ) {
+        ProfileImageResDto result = shopService.confirmProfile(userId);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(GlobalResponse.success("프로필 이미지 생성 완료", result));
+    }
 }

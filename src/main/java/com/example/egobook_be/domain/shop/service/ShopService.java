@@ -40,6 +40,7 @@ public class ShopService {
     private final UserRepository userRepository;
     private final ItemMapper itemMapper;
     private final UserItemMapper userItemMapper;
+    private final ProfileCompositeService profileCompositeService;
 
     // 프론트가 접속할 cloudfront의 도메인 주소
     @Value("${spring.cloud.aws.cloudfront.domain}")
@@ -207,6 +208,17 @@ public class ShopService {
                 .map(userItem -> userItemMapper.toItemInfoResDto(userItem, userItem.getItem(),
                         getMyCloudFrontDomain()))
                 .toList();
+    }
+
+    /**
+     * 아바타 프로필 이미지 확정
+     * POST /shop/profile/confirm
+     */
+    public ProfileImageResDto confirmProfile(Long userId) {
+        log.info("[ShopService] confirmProfile Start - userId: {}", userId);
+        ProfileImageResDto result = profileCompositeService.confirmProfile(userId);
+        log.info("[ShopService] confirmProfile End - userId: {}", userId);
+        return result;
     }
 
     private String getShopCloudFrontDomain(){

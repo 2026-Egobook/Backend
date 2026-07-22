@@ -7,5 +7,6 @@ public record FriendSearchResDto(
         Long userId,
         String nickname,
         Integer level,
-        String profileImageUrl
+        String turtleImageUrl,
+        String backgroundImageUrl
 ) {}

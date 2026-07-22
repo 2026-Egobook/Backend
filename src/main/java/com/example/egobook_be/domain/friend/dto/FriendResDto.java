@@ -6,6 +6,8 @@ import lombok.Builder;
 public record FriendResDto(
         Long friendId,
         String nickname,
-        Integer level
+        Integer level,
+        String turtleImageUrl,
+        String backgroundImageUrl
 ) {
 }

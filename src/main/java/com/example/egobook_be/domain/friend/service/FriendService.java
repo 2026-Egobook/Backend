@@ -237,57 +237,50 @@ public class FriendService {
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
         log.info("[FriendService] getIncomingRequests End - userId: {}", userId);
-        return friendRequestRepository.findByReceiverAndStatus(
-                        receiver,
-                        FriendRequestStatus.PENDING
-                )
+        return friendRequestRepository.findByReceiverAndStatus(receiver, FriendRequestStatus.PENDING)
                 .stream()
                 .map(req -> {
                     User sender = req.getSender();
-
                     return FriendRequestListResDto.builder()
                             .requestId(req.getId())
                             .userId(sender.getId())
                             .nickname(sender.getNickname())
                             .level(sender.getLevel())
+                            .turtleImageUrl(sender.getTurtleImageUrl())
+                            .backgroundImageUrl(sender.getBackgroundImageUrl())
                             .requestedAt(req.getCreatedAt())
                             .build();
                 })
                 .toList();
     }
 
-
-    /** 내가 보낸 친구 신청 목록 **/
     @Transactional(readOnly = true)
     public List<FriendRequestListResDto> getOutgoingRequests(Long userId) {
         log.info("[FriendService] getOutgoingRequests Start - userId: {}", userId);
-
         User sender = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
         log.info("[FriendService] getOutgoingRequests End - userId: {}", userId);
-        return friendRequestRepository
-                .findBySenderAndStatusWithReceiver(sender, FriendRequestStatus.PENDING)
+        return friendRequestRepository.findBySenderAndStatusWithReceiver(sender, FriendRequestStatus.PENDING)
                 .stream()
                 .map(req -> {
                     User receiver = req.getReceiver();
-
                     return FriendRequestListResDto.builder()
                             .requestId(req.getId())
                             .userId(receiver.getId())
                             .nickname(receiver.getNickname())
                             .level(receiver.getLevel())
+                            .turtleImageUrl(receiver.getTurtleImageUrl())
+                            .backgroundImageUrl(receiver.getBackgroundImageUrl())
                             .requestedAt(req.getCreatedAt())
                             .build();
                 })
                 .toList();
     }
 
-    /** 친구 리스트 **/
     @Transactional(readOnly = true)
     public FriendListResDto getFriends(Long userId) {
         log.info("[FriendService] getFriends Start - userId: {}", userId);
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
@@ -295,11 +288,12 @@ public class FriendService {
                 .stream()
                 .map(friend -> {
                     User friendUser = friend.getFriend();
-
                     return FriendResDto.builder()
                             .friendId(friendUser.getId())
                             .nickname(friendUser.getNickname())
                             .level(friendUser.getLevel())
+                            .turtleImageUrl(friendUser.getTurtleImageUrl())
+                            .backgroundImageUrl(friendUser.getBackgroundImageUrl())
                             .build();
                 })
                 .toList();
@@ -311,11 +305,9 @@ public class FriendService {
                 .build();
     }
 
-    /** 친구 검색 **/
     @Transactional(readOnly = true)
     public List<FriendSearchResDto> searchFriends(Long userId, String keyword) {
         log.info("[FriendService] searchFriends Start - userId: {}, keyword: {}", userId, keyword);
-
         User me = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
@@ -323,14 +315,14 @@ public class FriendService {
         return userRepository
                 .findByNicknameContainingIgnoreCaseOrAccountCodeContainingIgnoreCase(keyword, keyword)
                 .stream()
-                // 자기 자신 제외
                 .filter(user -> !user.getId().equals(userId))
-                // 이미 친구인 경우 제외
                 .filter(user -> !friendRepository.existsByUserAndFriend(me, user))
                 .map(user -> FriendSearchResDto.builder()
                         .userId(user.getId())
                         .nickname(user.getNickname())
                         .level(user.getLevel())
+                        .turtleImageUrl(user.getTurtleImageUrl())
+                        .backgroundImageUrl(user.getBackgroundImageUrl())
                         .build()
                 )
                 .toList();
