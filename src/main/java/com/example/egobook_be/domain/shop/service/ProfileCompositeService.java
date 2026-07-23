@@ -4,6 +4,7 @@ import com.example.egobook_be.domain.shop.dto.ProfileImageResDto;
 import com.example.egobook_be.domain.shop.entity.Item;
 import com.example.egobook_be.domain.shop.entity.UserItem;
 import com.example.egobook_be.domain.shop.enums.ItemCategory;
+import com.example.egobook_be.domain.shop.exception.ShopErrorCode;
 import com.example.egobook_be.domain.shop.repository.UserItemRepository;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.exception.UserErrorCode;
@@ -105,12 +106,13 @@ public class ProfileCompositeService {
                         ).asByteArray();
                         BufferedImage layer = ImageIO.read(new ByteArrayInputStream(imageBytes));
                         if (layer == null) {
-                            log.warn("[ProfileCompositeService] 이미지 로드 실패 - key: {}", s3ItemKey);
-                            continue;
+                            throw new CustomException(ShopErrorCode.PROFILE_IMAGE_LOAD_FAILED);
                         }
                         g.drawImage(layer, 0, 0, CANVAS_W, CANVAS_H, null);
+                    } catch (CustomException e) {
+                        throw e;
                     } catch (Exception e) {
-                        log.warn("[ProfileCompositeService] 레이어 스킵 - key: {}, error: {}", s3ItemKey, e.getMessage());
+                        throw new CustomException(ShopErrorCode.PROFILE_IMAGE_LOAD_FAILED);
                     }
                 }
             } finally {

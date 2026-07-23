@@ -3,7 +3,7 @@ package com.example.egobook_be.domain.shop.service;
 import com.example.egobook_be.domain.shop.dto.PurchaseItemReqDto;
 import com.example.egobook_be.domain.shop.entity.Item;
 import com.example.egobook_be.domain.shop.enums.ItemCategory;
-import com.example.egobook_be.domain.shop.enums.ShopErrorCode;
+import com.example.egobook_be.domain.shop.exception.ShopErrorCode;
 import com.example.egobook_be.domain.shop.repository.ItemRepository;
 import com.example.egobook_be.domain.shop.repository.UserItemRepository;
 import com.example.egobook_be.domain.user.entity.User;

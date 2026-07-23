@@ -4,7 +4,7 @@ import com.example.egobook_be.domain.shop.dto.*;
 import com.example.egobook_be.domain.shop.entity.Item;
 import com.example.egobook_be.domain.shop.entity.UserItem;
 import com.example.egobook_be.domain.shop.enums.ItemCategory;
-import com.example.egobook_be.domain.shop.enums.ShopErrorCode;
+import com.example.egobook_be.domain.shop.exception.ShopErrorCode;
 import com.example.egobook_be.domain.shop.mapper.ItemMapper;
 import com.example.egobook_be.domain.shop.mapper.UserItemMapper;
 import com.example.egobook_be.domain.shop.repository.ItemRepository;
