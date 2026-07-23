@@ -161,6 +161,7 @@ public interface ShopControllerDocs {
             @ApiResponse(responseCode = "200", description = "프로필 이미지가 성공적으로 생성되었습니다.",
                     content = @Content(schema = @Schema(implementation = ProfileImageResDto.class))),
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자입니다.", content = @Content),
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없습니다.", content = @Content),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.", content = @Content)
     })
     @PostMapping("/profile/confirm")
