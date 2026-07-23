@@ -4,12 +4,12 @@ import lombok.Builder;
 
 import java.time.LocalDate;
 
-
 @Builder
 public record TodayQuestionResDto(
         Long questionId,
         String content,
         LocalDate date,
         boolean answered,
+        boolean marketingEnabled,
         MyTodayAnswerResDto myAnswer
 ) {}

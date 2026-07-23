@@ -24,6 +24,20 @@ public interface TodayQuestionControllerDocs {
     );
 
     @Operation(
+            summary = "마케팅 동의 상태 변경",
+            description = """
+                오늘의 질문 답변 공개 마케팅 동의 상태를 변경합니다.
+                
+                - enabled=true: 동의 (프론트에서 팝업 후 호출)
+                - enabled=false: 미동의 (팝업 없이 바로 호출)
+                """
+    )
+    ResponseEntity<GlobalResponse<Void>> updateMarketingEnabled(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestParam boolean enabled
+    );
+
+    @Operation(
             summary = "오늘의 질문 답변 작성",
             description = """
                 오늘의 질문에 대한 답변을 작성합니다.

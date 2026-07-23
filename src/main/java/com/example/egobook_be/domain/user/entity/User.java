@@ -131,6 +131,14 @@ public class User extends BaseTimeEntity {
     @Builder.Default
     private List<UserItem> userItems = new ArrayList<>();
 
+    @Column(name = "marketing_enabled", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
+    @Builder.Default
+    private Boolean marketingEnabled = false;
+
+    public void updateMarketingEnabled(boolean enabled) {
+        this.marketingEnabled = enabled;
+    }
+
     public void updateProfileImages(String turtleImageUrl, String backgroundImageUrl) {
         this.turtleImageUrl = turtleImageUrl;
         this.backgroundImageUrl = backgroundImageUrl;

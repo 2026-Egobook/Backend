@@ -66,9 +66,14 @@ public class TodayQuestionService {
                 );
 
         boolean answered = false;
+        boolean marketingEnabled = false;
         MyTodayAnswerResDto myAnswer = null;
 
         if (userId != null) {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+            marketingEnabled = Boolean.TRUE.equals(user.getMarketingEnabled());
+
             Optional<QuestionAnswer> answerOpt =
                     questionAnswerRepository.findByUserIdAndQuestionIdWithQuestion(
                             userId,
@@ -94,6 +99,7 @@ public class TodayQuestionService {
                 .content(question.getContent())
                 .date(question.getQuestionDate())
                 .answered(answered)
+                .marketingEnabled(marketingEnabled)
                 .myAnswer(myAnswer)
                 .build();
     }
@@ -367,5 +373,12 @@ public class TodayQuestionService {
 
         questionAnswerRepository.delete(answer);
         log.info("[TodayQuestionService] deleteAnswer End - userId: {}, answerId: {}", userId, answerId);
+    }
+
+    @Transactional
+    public void updateMarketingEnabled(Long userId, boolean enabled) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+        user.updateMarketingEnabled(enabled);
     }
 }
