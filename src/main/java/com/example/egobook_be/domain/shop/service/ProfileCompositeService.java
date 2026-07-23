@@ -143,10 +143,17 @@ public class ProfileCompositeService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
 
+        String oldKey = null;
         if (user.getTurtleImageUrl() != null) {
+            oldKey = "files/" + user.getTurtleImageUrl()
+                    .replace(cloudfrontDomain + "/", "");
+        }
+
+        user.updateProfileImages(result.turtleImageUrl(), result.backgroundImageUrl());
+        userRepository.save(user);
+
+        if (oldKey != null) {
             try {
-                String oldKey = "files/" + user.getTurtleImageUrl()
-                        .replace(cloudfrontDomain + "/", "");
                 s3Template.deleteObject(bucketName, oldKey);
             } catch (Exception e) {
                 log.warn("[ProfileCompositeService] 기존 프로필 이미지 삭제 실패: {}", e.getMessage());
