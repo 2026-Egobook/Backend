@@ -10,6 +10,8 @@ public record FriendRequestListResDto(
         Long userId,
         String nickname,
         Integer level,
+        String turtleImageUrl,
+        String backgroundImageUrl,
         LocalDateTime requestedAt
 ) {
 }

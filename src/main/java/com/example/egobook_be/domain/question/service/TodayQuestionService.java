@@ -202,9 +202,22 @@ public class TodayQuestionService {
         Map<Long, Ability> abilityMap = abilityRepository.findByUserIdIn(userIds).stream()
                 .collect(Collectors.toMap(a -> a.getUser().getId(), a -> a));
 
+        List<User> users = userRepository.findAllById(userIds);
+        Map<Long, String> turtleImageMap = users.stream()
+                .filter(u -> u.getTurtleImageUrl() != null)
+                .collect(Collectors.toMap(User::getId, User::getTurtleImageUrl));
+        Map<Long, String> backgroundImageMap = users.stream()
+                .filter(u -> u.getBackgroundImageUrl() != null)
+                .collect(Collectors.toMap(User::getId, User::getBackgroundImageUrl));
+
         log.info("[TodayQuestionService] getPublicAnswers End");
         return SliceResponse.of(slice, qa ->
-                PublicAnswerMapper.toDto(qa, abilityMap.get(qa.getUser().getId()))
+                PublicAnswerMapper.toDto(
+                        qa,
+                        abilityMap.get(qa.getUser().getId()),
+                        turtleImageMap.get(qa.getUser().getId()),
+                        backgroundImageMap.get(qa.getUser().getId())
+                )
         );
     }
 
@@ -240,24 +253,15 @@ public class TodayQuestionService {
 
     /** 친구 답변 조회 **/
     @Transactional(readOnly = true)
-    public SliceResponse<FriendAnswerResDto> getFriendsAnswers(
-            Long userId,
-            int page,
-            int size
-    ) {
+    public SliceResponse<FriendAnswerResDto> getFriendsAnswers(Long userId, int page, int size) {
         log.info("[TodayQuestionService] getFriendsAnswers Start - userId: {}", userId);
         User me = userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다.")
-                );
+                .orElseThrow(() -> new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다."));
 
         TodayQuestion todayQuestion = todayQuestionRepository
                 .findByQuestionDate(LocalDate.now())
-                .orElseThrow(() ->
-                        new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND)
-                );
+                .orElseThrow(() -> new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND));
 
-        // 친구 ID만 조회
         List<Long> friendIds = friendRepository.findFriendIdsByUser(me);
 
         Pageable pageable = PageRequest.of(
@@ -266,32 +270,31 @@ public class TodayQuestionService {
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
 
-        // 친구 없으면 빈 Slice 반환
         if (friendIds.isEmpty()) {
-            Slice<FriendAnswerResDto> emptySlice =
-                    new SliceImpl<>(List.of(), pageable, false);
-
-            return SliceResponse.of(emptySlice);
+            return SliceResponse.of(new SliceImpl<>(List.of(), pageable, false));
         }
 
-        Slice<FriendAnswerResDto> slice =
-                questionAnswerRepository.findFriendsAnswersSlice(
-                        todayQuestion,
-                        List.of(
-                                AnswerVisibility.PUBLIC,
-                                AnswerVisibility.FRIEND
-                        ),
-                        friendIds,
-                        pageable
-                );
+        Slice<FriendAnswerResDto> slice = questionAnswerRepository.findFriendsAnswersSlice(
+                todayQuestion,
+                List.of(AnswerVisibility.PUBLIC, AnswerVisibility.FRIEND),
+                friendIds,
+                pageable
+        );
 
-        // ability 조회 후 topAbilityName 세팅
         List<Long> userIds = slice.getContent().stream()
                 .map(FriendAnswerResDto::userId)
                 .toList();
 
         Map<Long, Ability> abilityMap = abilityRepository.findByUserIdIn(userIds).stream()
                 .collect(Collectors.toMap(a -> a.getUser().getId(), a -> a));
+
+        List<User> users = userRepository.findAllById(userIds);
+        Map<Long, String> turtleImageMap = users.stream()
+                .filter(u -> u.getTurtleImageUrl() != null)
+                .collect(Collectors.toMap(User::getId, User::getTurtleImageUrl));
+        Map<Long, String> backgroundImageMap = users.stream()
+                .filter(u -> u.getBackgroundImageUrl() != null)
+                .collect(Collectors.toMap(User::getId, User::getBackgroundImageUrl));
 
         Slice<FriendAnswerResDto> enrichedSlice = new SliceImpl<>(
                 slice.getContent().stream()
@@ -300,7 +303,13 @@ public class TodayQuestionService {
                                 .userId(dto.userId())
                                 .nickname(dto.nickname())
                                 .level(dto.level())
-                                .topAbilityName(abilityMap.get(dto.userId()).getTopAbilityName())
+                                .topAbilityName(
+                                        abilityMap.get(dto.userId()) != null
+                                                ? abilityMap.get(dto.userId()).getTopAbilityName()
+                                                : null
+                                )
+                                .turtleImageUrl(turtleImageMap.get(dto.userId()))
+                                .backgroundImageUrl(backgroundImageMap.get(dto.userId()))
                                 .content(dto.content())
                                 .createdAt(dto.createdAt())
                                 .build())

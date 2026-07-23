@@ -1,9 +1,6 @@
 package com.example.egobook_be.domain.shop.controller;
 
-import com.example.egobook_be.domain.shop.dto.EquipItemReqDto;
-import com.example.egobook_be.domain.shop.dto.ItemInfoResDto;
-import com.example.egobook_be.domain.shop.dto.PurchaseItemReqDto;
-import com.example.egobook_be.domain.shop.dto.ShopItemInfoResDto;
+import com.example.egobook_be.domain.shop.dto.*;
 import com.example.egobook_be.domain.shop.enums.ItemCategory;
 import com.example.egobook_be.global.response.GlobalResponse;
 import com.example.egobook_be.global.response.SliceResponse;
@@ -142,6 +139,33 @@ public interface ShopControllerDocs {
     })
     @GetMapping("/items/equipped")
     ResponseEntity<GlobalResponse<List<ItemInfoResDto>>> getEquippedItems(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    );
+
+    @Operation(summary = "프로필 이미지 생성", description = """
+        현재 착용 중인 아이템을 기반으로 프로필 이미지를 합성하여 저장하는 API입니다.
+        
+        [**기능**]
+        - 현재 착용(`isEquipped = true`) 중인 아이템을 레이어 순서대로 합성합니다.
+        - 합성된 고북이 이미지(turtleImageUrl)와 배경 이미지 URL(backgroundImageUrl)을 반환합니다.
+        
+        [**비즈니스 로직**]
+        - 합성 순서: BACK → SKIN → DECOR_ONE → DECOR_TWO
+        - BACKGROUND는 합성 없이 CloudFront URL만 반환합니다.
+        - 기본 데코(Default.png)는 합성에서 제외됩니다.
+        - 합성된 이미지는 S3에 업로드 후 User 엔티티에 저장됩니다.
+        - 장착 아이템이 없을 경우 turtleImageUrl과 backgroundImageUrl 모두 null을 반환합니다.
+        """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "프로필 이미지가 성공적으로 생성되었습니다.",
+                    content = @Content(schema = @Schema(implementation = ProfileImageResDto.class))),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자입니다.", content = @Content),
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없습니다.", content = @Content),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.", content = @Content)
+    })
+    @PostMapping("/profile/confirm")
+    ResponseEntity<GlobalResponse<ProfileImageResDto>> confirmProfile(
             @Parameter(hidden = true)
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
     );

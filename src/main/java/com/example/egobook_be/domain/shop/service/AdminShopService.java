@@ -5,7 +5,7 @@ import com.example.egobook_be.domain.shop.dto.AdminItemReqDto;
 import com.example.egobook_be.domain.shop.dto.AdminItemResDto;
 import com.example.egobook_be.domain.shop.entity.Item;
 import com.example.egobook_be.domain.shop.enums.ItemCategory;
-import com.example.egobook_be.domain.shop.enums.ShopErrorCode;
+import com.example.egobook_be.domain.shop.exception.ShopErrorCode;
 import com.example.egobook_be.domain.shop.repository.ItemRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.infra.s3.S3ImageService;

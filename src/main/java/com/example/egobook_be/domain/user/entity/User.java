@@ -107,6 +107,12 @@ public class User extends BaseTimeEntity {
     @Column(length = 500)
     private String fcmToken;
 
+    @Column(name = "turtle_image_url", length = 500)
+    private String turtleImageUrl;
+
+    @Column(name = "background_image_url", length = 500)
+    private String backgroundImageUrl;
+
     @Column(name = "letter_receive_blocked_until")
     private LocalDateTime letterReceiveBlockedUntil;
 
@@ -124,6 +130,11 @@ public class User extends BaseTimeEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<UserItem> userItems = new ArrayList<>();
+
+    public void updateProfileImages(String turtleImageUrl, String backgroundImageUrl) {
+        this.turtleImageUrl = turtleImageUrl;
+        this.backgroundImageUrl = backgroundImageUrl;
+    }
 
     public void updateCounselingTone(CounselTone toneStyle) {
         this.counselingTone = toneStyle;

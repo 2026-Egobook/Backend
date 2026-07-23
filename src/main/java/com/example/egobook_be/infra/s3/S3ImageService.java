@@ -1,6 +1,6 @@
 package com.example.egobook_be.infra.s3;
 
-import com.example.egobook_be.domain.shop.enums.ShopErrorCode;
+import com.example.egobook_be.domain.shop.exception.ShopErrorCode;
 import com.example.egobook_be.domain.shop.repository.ItemRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.exception.GlobalErrorCode;
@@ -15,7 +15,6 @@ import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.UUID;
 
 @Slf4j
 @Service
