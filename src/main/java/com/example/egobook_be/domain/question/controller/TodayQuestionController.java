@@ -30,6 +30,15 @@ public class TodayQuestionController implements TodayQuestionControllerDocs {
         return ResponseEntity.ok(GlobalResponse.success("오늘의 질문 조회 성공", todayQuestionService.getTodayQuestion(userId)));
     }
 
+    @PatchMapping("/marketing-consent")
+    public ResponseEntity<GlobalResponse<Void>> updateMarketingEnabled(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @RequestParam boolean enabled
+    ) {
+        todayQuestionService.updateMarketingEnabled(userId, enabled);
+        return ResponseEntity.ok(GlobalResponse.success("마케팅 동의 상태 변경 완료", null));
+    }
+
     @PostMapping("/answers")
     public ResponseEntity<GlobalResponse<Void>> createAnswer(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
