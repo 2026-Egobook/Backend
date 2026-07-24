@@ -16,4 +16,15 @@ public interface TodayQuestionRepository extends JpaRepository<TodayQuestion, Lo
 
     // 삭제되지 않은 질문들만 페이징 조회
     Slice<TodayQuestion> findAllByDeletedAtIsNull(Pageable pageable);
+
+    /**
+     * 기간 내 삭제되지 않은 질문을 날짜 내림차순으로 페이징 조회한다.
+     * @param startDate : 조회 시작일
+     * @param endDate : 조회 종료일
+     * @param pageable : 페이징 정보
+     * @return : Slice<TodayQuestion>
+     */
+    Slice<TodayQuestion> findAllByQuestionDateBetweenAndDeletedAtIsNullOrderByQuestionDateDesc(
+            LocalDate startDate, LocalDate endDate, Pageable pageable
+    );
 }

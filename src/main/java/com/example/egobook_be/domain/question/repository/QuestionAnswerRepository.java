@@ -101,4 +101,24 @@ public interface QuestionAnswerRepository extends JpaRepository<QuestionAnswer, 
     @Query("DELETE FROM QuestionAnswer qa WHERE qa.user IN :users")
     void bulkDeleteByUserIn(@Param("users") List<User> users);
 
+    /**
+     * 질문 ID 목록에 달린 PUBLIC 답변을 답변 작성일 내림차순으로 조회한다.
+     * - 페이징된 질문 목록의 ID만 넘겨받아 조회 범위를 그 페이지로 한정한다.
+     * @param questionIds : 조회할 질문 ID 목록
+     * @param visibility : 조회할 공개 범위 (PUBLIC 고정 사용)
+     * @return : 유저가 함께 fetch된 QuestionAnswer 목록
+     */
+    @Query("""
+        select qa
+        from QuestionAnswer qa
+        join fetch qa.user u
+        where qa.question.id in :questionIds
+          and qa.visibility = :visibility
+        order by qa.createdAt desc
+    """)
+    List<QuestionAnswer> findAllByQuestionIdInAndVisibility(
+            @Param("questionIds") List<Long> questionIds,
+            @Param("visibility") AnswerVisibility visibility
+    );
+
 }

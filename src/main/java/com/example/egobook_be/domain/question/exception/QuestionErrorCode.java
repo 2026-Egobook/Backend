@@ -53,6 +53,16 @@ public enum QuestionErrorCode implements BaseErrorCode {
     DUPLICATE_QUESTION_DATE(
             HttpStatus.CONFLICT,
             "해당 날짜에는 이미 활성화된 질문이 존재합니다."
+    ),
+
+    INVALID_DATE_RANGE(
+            HttpStatus.BAD_REQUEST,
+            "시작일이 종료일보다 늦을 수 없습니다."
+    ),
+
+    DATE_RANGE_TOO_WIDE(
+            HttpStatus.BAD_REQUEST,
+            "조회 기간은 최대 92일까지 가능합니다."
     );
 
     private final HttpStatus status;
