@@ -58,6 +58,11 @@ public enum QuestionErrorCode implements BaseErrorCode {
     INVALID_DATE_RANGE(
             HttpStatus.BAD_REQUEST,
             "시작일이 종료일보다 늦을 수 없습니다."
+    ),
+
+    DATE_RANGE_TOO_WIDE(
+            HttpStatus.BAD_REQUEST,
+            "조회 기간은 최대 92일까지 가능합니다."
     );
 
     private final HttpStatus status;

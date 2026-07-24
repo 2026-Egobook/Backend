@@ -78,7 +78,8 @@ public class AdminQuestionController {
                     기간 내 오늘의 질문과, 그 질문에 답변 공개 동의(PUBLIC)를 한 유저의 답변을 함께 조회합니다.
 
                     - startDate/endDate 미입력 시 오늘이 속한 달(1일 ~ 말일)이 기본값입니다.
-                    - 질문은 날짜 내림차순(최신 날짜가 상단)으로 정렬됩니다.
+                    - 조회 기간은 최대 92일까지 가능합니다.
+                    - 질문은 날짜 내림차순(최신 날짜가 상단)으로 한 페이지에 size개씩 조회됩니다. page: 1~
                     - 각 질문 안의 답변은 작성일 내림차순으로 정렬됩니다.
                     - 공개 동의(PUBLIC)를 하지 않은 유저의 답변은 조회되지 않습니다.
                     """
@@ -86,8 +87,10 @@ public class AdminQuestionController {
     @GetMapping("/answers")
     public GlobalResponse<AdminTodayAnswerListResDto> getTodayAnswers(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size
     ) {
-        return GlobalResponse.success("오늘의 답변 조회 성공", adminQuestionService.getTodayAnswers(startDate, endDate));
+        return GlobalResponse.success("오늘의 답변 조회 성공", adminQuestionService.getTodayAnswers(startDate, endDate, page, size));
     }
 }

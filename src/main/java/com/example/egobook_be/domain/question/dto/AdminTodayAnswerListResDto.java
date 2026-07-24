@@ -6,5 +6,6 @@ import java.util.List;
 public record AdminTodayAnswerListResDto(
         LocalDate startDate,
         LocalDate endDate,
-        List<AdminTodayAnswerGroupResDto> questions
+        List<AdminTodayAnswerGroupResDto> questions,
+        Boolean hasNext
 ) {}
