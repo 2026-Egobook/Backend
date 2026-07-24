@@ -12,10 +12,12 @@ public record FriendAnswerResDto(
         Integer level,
         String content,
         LocalDateTime createdAt,
-        String topAbilityName
+        String topAbilityName,
+        String turtleImageUrl,
+        String backgroundImageUrl
 ) {
-    public FriendAnswerResDto(Long answerId, Long userId, String nickname, Integer level, String content, LocalDateTime createdAt) {
-        this(answerId, userId, nickname, level, content, createdAt, null);
+    public FriendAnswerResDto(Long answerId, Long userId, String nickname, Integer level,
+                              String content, LocalDateTime createdAt) {
+        this(answerId, userId, nickname, level, content, createdAt, null, null, null);
     }
 }
-

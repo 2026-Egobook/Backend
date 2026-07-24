@@ -1,4 +1,4 @@
-package com.example.egobook_be.domain.shop.enums;
+package com.example.egobook_be.domain.shop.exception;
 
 import com.example.egobook_be.global.exception.model.BaseErrorCode;
 import lombok.Getter;
@@ -24,7 +24,12 @@ public enum ShopErrorCode implements BaseErrorCode {
      * 409 CONFLICT (충돌)
      */
     ALREADY_PURCHASED_ITEM(HttpStatus.CONFLICT, "이미 구매된 아이템입니다."),
-    ALREADY_EXIST_ITEM(HttpStatus.CONFLICT,"이미 같은 경로/파일명이 존재합니다.");
+    ALREADY_EXIST_ITEM(HttpStatus.CONFLICT,"이미 같은 경로/파일명이 존재합니다."),
+
+    /*
+     * 500 SERVER
+     */
+    PROFILE_IMAGE_LOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "프로필 이미지 레이어 로드에 실패했습니다.");
     private final HttpStatus status;
     private final String message;
 }

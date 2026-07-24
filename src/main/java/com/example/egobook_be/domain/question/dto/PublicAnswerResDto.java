@@ -11,6 +11,8 @@ public record PublicAnswerResDto(
         String nickname,
         Integer level,
         String topAbilityName,
+        String turtleImageUrl,
+        String backgroundImageUrl,
         String content,
         LocalDateTime createdAt
 ) {
