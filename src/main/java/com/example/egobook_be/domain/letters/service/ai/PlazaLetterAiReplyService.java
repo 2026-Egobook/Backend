@@ -57,8 +57,10 @@ public class PlazaLetterAiReplyService {
         PlazaLetter letter = plazaLetterRepository.findById(letterId).orElse(null);
         if (letter == null) return false;
 
-        // 상태가 이미 REPLIED 또는 AI_REPLIED인 경우 건너뛰기
-        if (letter.getStatus() == PlazaLetterStatus.REPLIED || letter.getStatus() == PlazaLetterStatus.AI_REPLIED) {
+        // 상태가 이미 REPLIED, AI_REPLIED 또는 CANCELLED인 경우 건너뛰기
+        if (letter.getStatus() == PlazaLetterStatus.REPLIED
+                || letter.getStatus() == PlazaLetterStatus.AI_REPLIED
+                || letter.getStatus() == PlazaLetterStatus.CANCELLED) {
             return false;
         }
 
