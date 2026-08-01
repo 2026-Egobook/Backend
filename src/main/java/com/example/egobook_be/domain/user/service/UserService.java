@@ -230,7 +230,7 @@ public class UserService {
         }
 
         // 3. 회원 탈퇴 이유가 "기타(Others)"인 경우, text 필드가 비어있다면 예외 발생 (기타인 경우에느 반드시 text 필드가 채워져있어야 함)
-        if(reqDto.reasonType().equals(WithdrawReasonType.OTHER) && reqDto.text() != null && reqDto.text().isBlank()){
+        if(reqDto.reasonType().equals(WithdrawReasonType.OTHER) && !StringUtils.hasText(reqDto.text())){
             throw new CustomException(UserErrorCode.WITHDRAW_REASON_OTHER_TEXT_FIELD_EMPTY);
         }
 

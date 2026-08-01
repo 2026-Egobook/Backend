@@ -351,7 +351,7 @@ public class PlazaLetterService {
         LocalDateTime start = today.atStartOfDay(ASIA_SEOUL_ZONE_ID).toLocalDateTime();
         LocalDateTime end = today.plusDays(1).atStartOfDay(ASIA_SEOUL_ZONE_ID).toLocalDateTime();
 
-        if (plazaLetterRepository.existsBySenderIdAndCreatedAtBetween(userId, start, end)) {
+        if (plazaLetterRepository.existsBySenderIdAndStatusNotAndCreatedAtBetween(userId, PlazaLetterStatus.CANCELLED, start, end)) {
             throw new CustomException(LettersErrorCode.DAILY_LETTER_LIMIT);
         }
     }

@@ -147,7 +147,7 @@ class PlazaLetterServiceTest {
 
         given(userRepository.findById(userId)).willReturn(Optional.of(sender));
         given(missionRepository.findByUser(sender)).willReturn(Optional.of(mission));
-        given(plazaLetterRepository.existsBySenderIdAndCreatedAtBetween(eq(userId), any(), any()))
+        given(plazaLetterRepository.existsBySenderIdAndStatusNotAndCreatedAtBetween(eq(userId), any(), any(), any()))
                 .willReturn(false);
         given(wordClient.detectAsync(anyString())).willReturn(Mono.empty());
 
@@ -231,7 +231,7 @@ class PlazaLetterServiceTest {
 
         given(userRepository.findById(userId)).willReturn(Optional.of(sender));
         given(missionRepository.findByUser(sender)).willReturn(Optional.of(mission));
-        given(plazaLetterRepository.existsBySenderIdAndCreatedAtBetween(eq(userId), any(), any()))
+        given(plazaLetterRepository.existsBySenderIdAndStatusNotAndCreatedAtBetween(eq(userId), any(), any(), any()))
                 .willReturn(false);
         given(userRepository.findById(friendId)).willReturn(Optional.of(receiver));
         given(friendRepository.existsByUserAndFriend(sender, receiver)).willReturn(false);
@@ -328,7 +328,7 @@ class PlazaLetterServiceTest {
 
         given(userRepository.findById(userId)).willReturn(Optional.of(sender));
         given(missionRepository.findByUser(sender)).willReturn(Optional.of(mission));
-        given(plazaLetterRepository.existsBySenderIdAndCreatedAtBetween(eq(userId), any(), any())).willReturn(false);
+        given(plazaLetterRepository.existsBySenderIdAndStatusNotAndCreatedAtBetween(eq(userId), any(), any(), any())).willReturn(false);
         given(inkLogRepository.existsByUserAndReasonAndCreatedAtBetween(eq(sender), eq(InkLogType.FIRST_LETTER_WRITE), any(), any()))
                 .willReturn(true);
         given(wordClient.detectAsync(anyString())).willReturn(Mono.empty());
@@ -515,7 +515,7 @@ class PlazaLetterServiceTest {
 
         given(userRepository.findById(userId)).willReturn(Optional.of(sender));
         given(missionRepository.findByUser(sender)).willReturn(Optional.of(mission));
-        given(plazaLetterRepository.existsBySenderIdAndCreatedAtBetween(eq(userId), any(), any())).willReturn(false);
+        given(plazaLetterRepository.existsBySenderIdAndStatusNotAndCreatedAtBetween(eq(userId), any(), any(), any())).willReturn(false);
         given(wordClient.detectAsync(anyString())).willReturn(Mono.empty());
         given(userRepository.findHighReplyRateCandidates(userId, 50)).willReturn(List.of(restrictedCandidateId));
         given(restrictionGuardService.getActivelyRestrictedUserIds(RestrictionDomainType.LETTER))
