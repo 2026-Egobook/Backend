@@ -40,6 +40,7 @@ public class PlazaLetterAiReplyService {
                 cutoff,
                 PlazaLetterStatus.REPLIED,
                 PlazaLetterStatus.AI_REPLIED,
+                PlazaLetterStatus.CANCELLED,
                 PageRequest.of(0, batchSize)
         );
 

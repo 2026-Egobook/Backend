@@ -82,7 +82,7 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
         select l
         from PlazaLetter l
         where l.createdAt <= :cutoff
-          and l.status not in (:replied, :aiReplied)
+          and l.status not in (:replied, :aiReplied, :cancelled)
           and not exists (
               select 1
               from PlazaLetterReply r
@@ -94,6 +94,7 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
             @Param("cutoff") LocalDateTime cutoff,
             @Param("replied") PlazaLetterStatus replied,
             @Param("aiReplied") PlazaLetterStatus aiReplied,
+            @Param("cancelled") PlazaLetterStatus cancelled,
             Pageable pageable
     );
 
