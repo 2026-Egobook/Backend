@@ -82,7 +82,7 @@ public class AdminUserServiceUnitTest {
             Integer page = 2;
             Integer size = 7;
 
-            SearchUserResDto mockDto = new SearchUserResDto(1L, "CODE123", "test@example.com", "닉네임", UserStatus.ACTIVE);
+            SearchUserResDto mockDto = new SearchUserResDto(1L, "CODE123", "test@example.com", "닉네임", UserStatus.ACTIVE, null, null);
             Slice<SearchUserResDto> mockSlice = new SliceImpl<>(List.of(mockDto));
 
             given(userRepository.findUsersByKeywordAndStatus(eq(keyword), eq(status), any(Pageable.class)))

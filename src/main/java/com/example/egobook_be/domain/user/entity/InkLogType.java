@@ -15,5 +15,6 @@ public enum InkLogType {
     LETTER_COLOR_PURCHASE,
     // 능력치 보상 확인을 위한 기록
     FIRST_CONCERN_DIARY,
-    FIRST_POSITIVE_DIARY
+    FIRST_POSITIVE_DIARY,
+    COUPON
 }
