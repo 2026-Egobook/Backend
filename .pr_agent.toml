@@ -1,0 +1,3 @@
+[github_app]
+pr_commands = []
+handle_push_trigger = false
