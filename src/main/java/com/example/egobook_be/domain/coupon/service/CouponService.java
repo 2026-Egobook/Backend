@@ -13,6 +13,7 @@ import com.example.egobook_be.domain.coupon.repository.CouponRepository;
 import com.example.egobook_be.domain.coupon.repository.UserCouponRepository;
 import com.example.egobook_be.domain.shop.entity.Item;
 import com.example.egobook_be.domain.shop.entity.UserItem;
+import com.example.egobook_be.domain.shop.exception.ShopErrorCode;
 import com.example.egobook_be.domain.shop.repository.ItemRepository;
 import com.example.egobook_be.domain.shop.repository.UserItemRepository;
 import com.example.egobook_be.domain.user.entity.InkLog;
@@ -26,6 +27,7 @@ import com.example.egobook_be.global.util.InkLogUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -101,7 +103,7 @@ public class CouponService {
 
             } else if (reward.getRewardType() == CouponRewardType.ITEM) {
                 Item item = itemRepository.findById(reward.getItemId())
-                        .orElseThrow(() -> new CustomException(CouponErrorCode.COUPON_NOT_FOUND));
+                        .orElseThrow(() -> new CustomException(ShopErrorCode.ITEM_NOT_FOUND));
 
                 if (!userItemRepository.existsByUserIdAndItemId(userId, item.getId())) {
                     userItemRepository.save(UserItem.create(user, item));
@@ -118,11 +120,15 @@ public class CouponService {
 
         inkLogRepository.saveAll(inkLogs);
 
-        // 7. 사용 기록 저장
-        userCouponRepository.save(UserCoupon.builder()
-                .user(user)
-                .coupon(coupon)
-                .build());
+        // 7. 사용 기록 저장 (유니크 제약 위반 시 동시 중복 요청으로 처리)
+        try {
+            userCouponRepository.saveAndFlush(UserCoupon.builder()
+                    .user(user)
+                    .coupon(coupon)
+                    .build());
+        } catch (DataIntegrityViolationException e) {
+            throw new CustomException(CouponErrorCode.COUPON_ALREADY_USED);
+        }
 
         log.info("[CouponService] useCoupon() - END | userId: {}, rewardCount: {}", userId, rewardResults.size());
         return CouponUseResDto.builder()

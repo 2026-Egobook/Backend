@@ -114,7 +114,7 @@ public class CouponServiceUnitTest {
             assertThat(result.rewards().get(0).inkAmount()).isEqualTo(100);
             verify(inkLogUtil, times(1)).addInkLogToList(any(), eq(mockUser), eq(100), any());
             verify(inkLogRepository, times(1)).saveAll(any());
-            verify(userCouponRepository, times(1)).save(any(UserCoupon.class));
+            verify(userCouponRepository, times(1)).saveAndFlush(any(UserCoupon.class));
         }
 
         @Test
@@ -291,7 +291,7 @@ public class CouponServiceUnitTest {
                     () -> couponService.useCoupon(userId, new CouponUseReqDto("EXPIRED")));
 
             assertThat(exception.getErrorCode()).isEqualTo(CouponErrorCode.COUPON_EXPIRED);
-            verify(userCouponRepository, never()).save(any());
+            verify(userCouponRepository, never()).saveAndFlush(any());
         }
 
         @Test
@@ -313,7 +313,7 @@ public class CouponServiceUnitTest {
                     () -> couponService.useCoupon(userId, new CouponUseReqDto("PRIVATE")));
 
             assertThat(exception.getErrorCode()).isEqualTo(CouponErrorCode.COUPON_NOT_FOR_USER);
-            verify(userCouponRepository, never()).save(any());
+            verify(userCouponRepository, never()).saveAndFlush(any());
         }
 
         @Test
@@ -334,7 +334,7 @@ public class CouponServiceUnitTest {
 
             assertThat(exception.getErrorCode()).isEqualTo(CouponErrorCode.COUPON_ALREADY_USED);
             verify(inkLogRepository, never()).saveAll(any());
-            verify(userCouponRepository, never()).save(any());
+            verify(userCouponRepository, never()).saveAndFlush(any());
         }
     }
 }
