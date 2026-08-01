@@ -18,7 +18,7 @@ public interface PlazaLetterRepository extends JpaRepository<PlazaLetter, Long> 
 
     Integer countBySenderId(Long senderId);
 
-    boolean existsBySenderIdAndCreatedAtBetween(Long senderId, LocalDateTime start, LocalDateTime end);
+    boolean existsBySenderIdAndStatusNotAndCreatedAtBetween(Long senderId, PlazaLetterStatus status, LocalDateTime start, LocalDateTime end);
 
     Optional<PlazaLetter> findByThreadId(Long threadId);
 
