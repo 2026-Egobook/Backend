@@ -16,7 +16,7 @@ spring:
       root: INFO
   data:
     redis:
-      host: localhost # 같은 EC2 안에 있으므로 localhost
+      host: redis-db
       port: 6379
       password: ${PROD_REDIS_PW}
   cloud:
