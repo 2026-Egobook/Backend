@@ -168,6 +168,9 @@ jobs:
           scp -i private_key.pem -o StrictHostKeyChecking=no \
             ./egobookServer.jar Dockerfile docker-compose.yml \
             "$EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/"
+          scp -i private_key.pem -o StrictHostKeyChecking=no -r \
+            ./nginx/conf.d \
+            "$EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/nginx/"
           ssh -i private_key.pem -o StrictHostKeyChecking=no "$EC2_USERNAME@$EC2_HOST" "
             set -e
             cd /home/$EC2_USERNAME
