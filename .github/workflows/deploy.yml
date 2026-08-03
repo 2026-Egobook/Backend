@@ -153,6 +153,8 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           WORD_AI_BASE_URL: ${{ secrets.WORD_AI_BASE_URL }}
           FIREBASE_KEY_BASE64: ${{ secrets.FIREBASE_KEY_BASE64 }}
+          NGINX_CERT_BASE64: ${{ secrets.NGINX_CERT_BASE64 }}
+          NGINX_KEY_BASE64: ${{ secrets.NGINX_KEY_BASE64 }}
           # => github secrets에 설정해놓은 값들 env로 가져오기
 
         run: |
@@ -165,6 +167,8 @@ jobs:
             exit 1
           fi
           cp "$jar_file" ./egobookServer.jar
+          ssh -i private_key.pem -o StrictHostKeyChecking=no "$EC2_USERNAME@$EC2_HOST" \
+            "mkdir -p /home/$EC2_USERNAME/nginx/conf.d"
           scp -i private_key.pem -o StrictHostKeyChecking=no \
             ./egobookServer.jar Dockerfile docker-compose.yml \
             "$EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/"
@@ -182,6 +186,10 @@ jobs:
             mkdir -p /home/$EC2_USERNAME/src/main/resources
             echo '$FIREBASE_KEY_BASE64' | base64 -d > /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
             chmod 600 /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
+            mkdir -p /home/$EC2_USERNAME/nginx/certs
+            echo '$NGINX_CERT_BASE64' | base64 -d > /home/$EC2_USERNAME/nginx/certs/egobook.pem
+            echo '$NGINX_KEY_BASE64' | base64 -d > /home/$EC2_USERNAME/nginx/certs/egobook.key
+            chmod 600 /home/$EC2_USERNAME/nginx/certs/egobook.key
             REDIS_PASSWORD=$REDIS_PASSWORD sudo -E docker compose up -d --build --force-recreate
             sudo docker image prune -f || true
           "
