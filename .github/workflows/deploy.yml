@@ -187,8 +187,18 @@ jobs:
             echo '$FIREBASE_KEY_BASE64' | base64 -d > /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
             chmod 600 /home/$EC2_USERNAME/src/main/resources/firebase-service-account.json
             mkdir -p /home/$EC2_USERNAME/nginx/certs
-            echo '$NGINX_CERT_BASE64' | base64 -d > /home/$EC2_USERNAME/nginx/certs/egobook.pem
-            echo '$NGINX_KEY_BASE64' | base64 -d > /home/$EC2_USERNAME/nginx/certs/egobook.key
+            echo '$NGINX_CERT_BASE64' | base64 -d > /tmp/egobook.pem.tmp
+            echo '$NGINX_KEY_BASE64' | base64 -d > /tmp/egobook.key.tmp
+            openssl x509 -in /tmp/egobook.pem.tmp -noout -subject
+            openssl pkey -in /tmp/egobook.key.tmp -noout -check
+            CERT_MD5=\$(openssl x509 -noout -modulus -in /tmp/egobook.pem.tmp | openssl md5)
+            KEY_MD5=\$(openssl rsa -noout -modulus -in /tmp/egobook.key.tmp | openssl md5)
+            if [ \"\$CERT_MD5\" != \"\$KEY_MD5\" ]; then
+              echo '인증서와 개인키가 일치하지 않습니다.'
+              exit 1
+            fi
+            mv /tmp/egobook.pem.tmp /home/$EC2_USERNAME/nginx/certs/egobook.pem
+            mv /tmp/egobook.key.tmp /home/$EC2_USERNAME/nginx/certs/egobook.key
             chmod 600 /home/$EC2_USERNAME/nginx/certs/egobook.key
             REDIS_PASSWORD=$REDIS_PASSWORD sudo -E docker compose up -d --build --force-recreate
             sudo docker image prune -f || true
