@@ -75,33 +75,7 @@ public class NotificationService {
         log.info("[NotificationService] createNotification End - userId: {}, targetId: {}", userId, targetId);
     }
 
-    /**
-     * 공지사항을 특정 유저에게 NOTICE 타입 알림으로 생성한다 
-     * - 일반 알림 생성(createNotification)과 달리 content 미리보기가 없고, 노션 링크(linkUrl)를 직접 싣는다.
-     * @param user : 알림을 받을 유저 (알림 설정 꺼져있으면 생성하지 않음)
-     * @param noticeId : 대상 공지 PK
-     * @param title : 공지 제목
-     * @param notionUrl : 공지 노션 링크
-     */
-    @Transactional
-    public void createNoticeNotification(User user, Long noticeId, String title, String notionUrl) {
-        if (!user.isNotificationEnabled()) {
-            return;
-        }
-
-        Notification notification = Notification.builder()
-                .user(user)
-                .type(NotificationType.NOTICE)
-                .title(NotificationType.NOTICE.format(title))
-                .targetId(noticeId)
-                .linkUrl(notionUrl)
-                .build();
-
-        notificationRepository.save(notification);
-        fcmService.sendPushNotification(user, notification);
-    }
-
-    /** 알림 목록 (공지사항은 발행 시 일반 알림으로 브로드캐스트되어 이 목록에 함께 포함됨) */
+    /** 알림 목록 (공지사항은 /notices API로 분리되어 있음) */
     @Transactional
     public SliceResponse<NotificationResDto> getNotifications(Long userId, int page, int size) {
         log.info("[NotificationService] getNotifications Start - userId: {}", userId);

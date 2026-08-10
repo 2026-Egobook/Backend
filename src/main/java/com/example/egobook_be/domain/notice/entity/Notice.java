@@ -31,18 +31,9 @@ public class Notice extends BaseTimeEntity {
     @Column(name = "published_at", nullable = false)
     private LocalDateTime publishedAt;
 
-    // 발행 시각 도달 후 전체 유저 브로드캐스트가 이미 수행됐는지 여부 (스케줄러 중복 발송 방지)
-    @Column(name = "broadcasted", nullable = false)
-    @Builder.Default
-    private boolean broadcasted = false;
-
     public void update(String title, String notionUrl, LocalDateTime publishedAt) {
         this.title = title;
         this.notionUrl = notionUrl;
         this.publishedAt = publishedAt;
-    }
-
-    public void markBroadcasted() {
-        this.broadcasted = true;
     }
 }

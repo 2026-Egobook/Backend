@@ -2,6 +2,8 @@ package com.example.egobook_be.domain.home.service;
 
 import com.example.egobook_be.domain.home.dto.HomeResDto;
 import com.example.egobook_be.domain.home.mapper.HomeMapper;
+import com.example.egobook_be.domain.notice.dto.NoticeRedDotResDto;
+import com.example.egobook_be.domain.notice.service.NoticeService;
 import com.example.egobook_be.domain.notification.repository.NotificationRepository;
 import com.example.egobook_be.domain.user.entity.InkLog;
 import com.example.egobook_be.domain.user.entity.InkLogType;
@@ -9,6 +11,7 @@ import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.exception.UserErrorCode;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
+import com.example.egobook_be.domain.user.service.UserActivityService;
 import com.example.egobook_be.global.exception.CustomException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,9 +40,13 @@ class HomeServiceUnitTest {
     @Mock
     private NotificationRepository notificationRepository;
     @Mock
+    private NoticeService noticeService;
+    @Mock
     private InkLogRepository inkLogRepository;
     @Mock
     private HomeMapper homeMapper;
+    @Mock
+    private UserActivityService userActivityService;
 
     @Test
     @DisplayName("[성공 1] 홈 화면에 접속해서 출석 보상 수령")
@@ -48,6 +55,7 @@ class HomeServiceUnitTest {
         // 1. 객체 생성
         Long userId = 1L;
         int unreadNotificationCount = 2;
+        boolean hasUnreadNotice = true;
         boolean hasUnopenedPsychology = true;
         int attendanceRewardInk = 3;
         User mockUser = User.builder()
@@ -65,6 +73,7 @@ class HomeServiceUnitTest {
                 mockUser.getLevel(),
                 mockUser.getInk(),
                 unreadNotificationCount,
+                hasUnreadNotice,
                 hasUnopenedPsychology,
                 mockUser.isFirstAttendanceToday(),
                 attendanceRewardInk
@@ -73,9 +82,10 @@ class HomeServiceUnitTest {
         // 2. Stub
         when(userRepository.findByIdWithLock(anyLong())).thenReturn(Optional.of(mockUser));
         when(notificationRepository.countByUserAndCreatedAtAfter(any(User.class), any(LocalDateTime.class))).thenReturn(2);
+        when(noticeService.getRedDotStatus(userId)).thenReturn(new NoticeRedDotResDto(hasUnreadNotice));
         when(inkLogRepository.existsByUserAndReasonAndCreatedAtAfter(eq(mockUser), eq(InkLogType.FIRST_PSYCHOLOGY_VIEW), any(LocalDateTime.class)))
                 .thenReturn(false); // 심리 지식을 열람하지 않은 상태 세팅 (exists가 false 반환)
-        when(homeMapper.toHomeResDto(any(User.class), anyInt(), anyBoolean(), anyInt())).thenReturn(mockResDto); // Mapper 동작 세팅
+        when(homeMapper.toHomeResDto(any(User.class), anyInt(), anyBoolean(), anyBoolean(), anyInt())).thenReturn(mockResDto); // Mapper 동작 세팅
 
         // ================ When ================
         HomeResDto result = homeService.getHomeData(userId);
@@ -88,7 +98,7 @@ class HomeServiceUnitTest {
          * 검증 2: Mapper에 정확한 인자값들이 전달되었는지 확인
          */
         verify(inkLogRepository, times(1)).save(any(InkLog.class));
-        verify(homeMapper, times(1)).toHomeResDto(mockUser, unreadNotificationCount, hasUnopenedPsychology, attendanceRewardInk);
+        verify(homeMapper, times(1)).toHomeResDto(mockUser, unreadNotificationCount, hasUnreadNotice, hasUnopenedPsychology, attendanceRewardInk);
     }
 
     @Test
@@ -98,6 +108,7 @@ class HomeServiceUnitTest {
         // 1. 객체 생성
         Long userId = 1L;
         int unreadNotificationCount = 0;
+        boolean hasUnreadNotice = false;
         boolean hasUnopenedPsychology = false;
         int attendanceRewardInk = 0;
         User mockUser = User.builder()
@@ -116,6 +127,7 @@ class HomeServiceUnitTest {
                 mockUser.getLevel(),
                 mockUser.getInk(),
                 unreadNotificationCount,
+                hasUnreadNotice,
                 hasUnopenedPsychology,
                 mockUser.isFirstAttendanceToday(),
                 attendanceRewardInk
@@ -124,9 +136,10 @@ class HomeServiceUnitTest {
         // 2. Stub
         when(userRepository.findByIdWithLock(anyLong())).thenReturn(Optional.of(mockUser));
         when(notificationRepository.countByUserAndCreatedAtAfter(any(User.class), any(LocalDateTime.class))).thenReturn(0);
+        when(noticeService.getRedDotStatus(userId)).thenReturn(new NoticeRedDotResDto(hasUnreadNotice));
         when(inkLogRepository.existsByUserAndReasonAndCreatedAtAfter(eq(mockUser), eq(InkLogType.FIRST_PSYCHOLOGY_VIEW), any(LocalDateTime.class)))
                 .thenReturn(true); // 이미 심리 지식을 열람한 상태 세팅
-        when(homeMapper.toHomeResDto(any(User.class), anyInt(), anyBoolean(), anyInt())).thenReturn(mockResDto);
+        when(homeMapper.toHomeResDto(any(User.class), anyInt(), anyBoolean(), anyBoolean(), anyInt())).thenReturn(mockResDto);
 
         // ================ When ================
         HomeResDto result = homeService.getHomeData(userId);
@@ -138,7 +151,7 @@ class HomeServiceUnitTest {
          * 검증 2: Mapper에 정확한 인자값(보상 0)이 전달되었는지 확인
          */
         verify(inkLogRepository, never()).save(any(InkLog.class));
-        verify(homeMapper, times(1)).toHomeResDto(mockUser, 0, false, 0);
+        verify(homeMapper, times(1)).toHomeResDto(mockUser, 0, hasUnreadNotice, false, 0);
     }
 
     @Test
