@@ -4,6 +4,9 @@ import com.example.egobook_be.domain.notice.entity.Notice;
 import com.example.egobook_be.domain.notice.entity.NoticeRead;
 import com.example.egobook_be.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface NoticeReadRepository extends JpaRepository<NoticeRead, Long> {
 
@@ -14,4 +17,8 @@ public interface NoticeReadRepository extends JpaRepository<NoticeRead, Long> {
      * @return : 읽음 여부
      */
     boolean existsByUserAndNotice(User user, Notice notice);
+    
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "INSERT IGNORE INTO notice_read (user_id, notice_id, created_at, updated_at) VALUES (:userId, :noticeId, NOW(6), NOW(6))", nativeQuery = true)
+    void insertIfNotExists(@Param("userId") Long userId, @Param("noticeId") Long noticeId);
 }
