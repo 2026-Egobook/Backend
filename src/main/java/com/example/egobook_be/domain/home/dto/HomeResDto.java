@@ -15,6 +15,8 @@ public record HomeResDto(
         Integer ink,
         @Schema(description = "레드닷 판단용 - 마지막으로 알림을 확인(목록 조회/개별 확인)한 시점 이후 새로 도착한 알림 개수. 0이면 레드닷 미노출", example = "10")
         Integer unreadNotifications,
+        @Schema(description = "공지사항 레드닷 판단용 - 최신 공지를 아직 안 읽었으면 true", example = "true")
+        Boolean hasUnreadNotice,
         @Schema(description = "사용자가 아직 열지 않은 오늘의 심리 지식 여부", example = "true")
         Boolean hasUnopenedPsychology,
         @Schema(description = "오늘 최초 출석인지 여부", example = "true")

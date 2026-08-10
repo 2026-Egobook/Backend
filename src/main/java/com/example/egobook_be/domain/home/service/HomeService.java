@@ -7,6 +7,7 @@ import com.example.egobook_be.domain.home.dto.HomeSettingResDto;
 import com.example.egobook_be.domain.home.entity.Mission;
 import com.example.egobook_be.domain.home.mapper.HomeMapper;
 import com.example.egobook_be.domain.home.repository.MissionRepository;
+import com.example.egobook_be.domain.notice.service.NoticeService;
 import com.example.egobook_be.domain.notification.repository.NotificationRepository;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.InkLog;
@@ -33,6 +34,7 @@ import java.time.LocalDateTime;
 public class HomeService {
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
+    private final NoticeService noticeService;
     private final AbilityRepository abilityRepository;
     private final MissionRepository missionRepository;
     private final InkLogRepository inkLogRepository;
@@ -69,6 +71,9 @@ public class HomeService {
                 : LocalDateTime.of(1970, 1, 1, 0, 0);
         Integer unReadNotificationCount = notificationRepository.countByUserAndCreatedAtAfter(user, lastCheckedAt);
 
+        // 2-1. 공지사항 레드닷 판단용 - 최신 공지를 아직 안 읽었는지 여부
+        Boolean hasUnreadNotice = noticeService.getRedDotStatus(userId).hasUnreadNotice();
+
         // 3. 사용자가 열지 않은 오늘의 심리 지식 여부
         Boolean hasUnopenedPsychology = hasUnopenedPsychologyKnowledge(user);
 
@@ -82,7 +87,7 @@ public class HomeService {
                             .build());
         }
         else attendanceRewardInk = 0;
-        HomeResDto resDto = homeMapper.toHomeResDto(user, unReadNotificationCount, hasUnopenedPsychology, attendanceRewardInk);
+        HomeResDto resDto = homeMapper.toHomeResDto(user, unReadNotificationCount, hasUnreadNotice, hasUnopenedPsychology, attendanceRewardInk);
 
         log.info("[HomeService] getHomeData End - userId: {}", userId);
         // 홈 집입 시 활성 기록
