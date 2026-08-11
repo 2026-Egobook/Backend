@@ -117,7 +117,7 @@ public class AdminNoticeService {
 
         LocalDateTime now = LocalDateTime.now();
         Notice notice = noticeRepository
-                .findFirstByPublishedAtLessThanEqualOrderByPublishedAtDesc(now)
+                .findFirstByPublishedAtLessThanEqualOrderByPublishedAtDescIdDesc(now)
                 .orElseThrow(() -> new CustomException(NoticeErrorCode.NO_PUBLISHED_NOTICE));
 
         int clearedReadCount = noticeReadRepository.deleteAllByNoticeId(notice.getId());
