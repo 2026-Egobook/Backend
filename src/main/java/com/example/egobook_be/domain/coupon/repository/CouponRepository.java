@@ -28,8 +28,9 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
     /**
      * 전체 쿠폰의 ID를 등록 최신순으로 조회한다. (만료 여부 무관)
      * - 컬렉션 fetch join과 페이징을 함께 쓰면 Hibernate가 전체 행을 메모리에 적재하므로 ID 조회와 분리한다.
+     * - createdAt이 같을 때 페이지 간 순서가 흔들리지 않도록 id를 보조 정렬 기준으로 둔다.
      */
-    @Query("select c.id from Coupon c order by c.createdAt desc")
+    @Query("select c.id from Coupon c order by c.createdAt desc, c.id desc")
     Slice<Long> findCouponIds(Pageable pageable);
 
     /** ID 목록으로 쿠폰 + 보상을 한 번에 조회한다. */
