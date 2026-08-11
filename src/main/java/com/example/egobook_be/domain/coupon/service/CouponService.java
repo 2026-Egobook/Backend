@@ -69,7 +69,7 @@ public class CouponService {
                 .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
 
         // 2. 쿠폰 조회 (보상 목록 fetch join)
-        Coupon coupon = couponRepository.findByCodeWithRewards(reqDto.code().trim().toUpperCase())
+        Coupon coupon = couponRepository.findByCodeWithRewards(reqDto.code().trim())
                 .orElseThrow(() -> new CustomException(CouponErrorCode.COUPON_NOT_FOUND));
 
         // 3. 만료 여부 확인
