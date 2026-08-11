@@ -211,8 +211,9 @@ public class AdminCouponServiceUnitTest {
         void success_updateUsedCouponExpiresOnly() {
             // Given
             Long couponId = 1L;
+            CouponReward originalReward = inkReward(100, 0);
             Coupon coupon = buildCoupon(couponId, "USED01", CouponTargetType.INDIVIDUAL, "USER01", FUTURE,
-                    List.of(inkReward(100, 0)));
+                    List.of(originalReward));
 
             given(couponRepository.findByIdWithRewards(couponId)).willReturn(Optional.of(coupon));
             given(userCouponRepository.existsByCouponId(couponId)).willReturn(true);
@@ -226,8 +227,11 @@ public class AdminCouponServiceUnitTest {
             // When
             CouponAdminResDto result = adminCouponService.updateCoupon(couponId, reqDto);
 
-            // Then
+            // ========= Then =========
             assertThat(result.expiresAt()).isEqualTo(extended);
+            // 사용 이력이 있으면 보상 인스턴스가 그대로 유지되어야 한다.
+            assertThat(coupon.getRewards()).hasSize(1);
+            assertThat(coupon.getRewards().get(0)).isSameAs(originalReward);
         }
 
         @Test

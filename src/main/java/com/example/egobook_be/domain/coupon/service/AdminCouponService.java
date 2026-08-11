@@ -131,7 +131,8 @@ public class AdminCouponService {
         String code = reqDto.code().trim();
 
         // 사용 이력이 있으면 지급 내역과 어긋나므로 코드/대상/보상 변경을 막고 만료일만 허용한다.
-        if (userCouponRepository.existsByCouponId(couponId)) {
+        boolean used = userCouponRepository.existsByCouponId(couponId);
+        if (used) {
             boolean changed = !coupon.getCode().equals(code)
                     || coupon.getTargetType() != reqDto.targetType()
                     || !Objects.equals(coupon.getTargetAccountCode(), trimOrNull(reqDto.targetAccountCode()))
@@ -149,7 +150,11 @@ public class AdminCouponService {
         String targetAccountCode = resolveTargetAccountCode(reqDto.targetType(), reqDto.targetAccountCode());
 
         coupon.update(code, reqDto.targetType(), targetAccountCode, reqDto.expiresAt());
-        coupon.replaceRewards(buildRewards(reqDto.rewards()));
+
+        // 사용 이력이 있으면 보상이 이미 동일함이 검증됐으므로, 불필요한 삭제/재생성으로 rewardId가 바뀌지 않도록 교체를 건너뛴다.
+        if (!used) {
+            coupon.replaceRewards(buildRewards(reqDto.rewards()));
+        }
 
         CouponAdminResDto result = couponMapper.toCouponAdminResDto(coupon);
 
