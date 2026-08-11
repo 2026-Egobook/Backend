@@ -255,7 +255,7 @@ public class AdminCouponServiceUnitTest {
     class NotifySuccessCases {
 
         @Test
-        @DisplayName("[성공 7] 개인 쿠폰 알림 전송 - 전송 후 notifiedAt 기록")
+        @DisplayName("[성공 7] 개인 쿠폰 알림 전송 - 조건부 UPDATE 선점 후 전송")
         void success_sendNotification() {
             // Given
             Long couponId = 1L;
@@ -264,6 +264,7 @@ public class AdminCouponServiceUnitTest {
                     List.of(inkReward(100, 0)));
 
             given(couponRepository.findById(couponId)).willReturn(Optional.of(coupon));
+            given(couponRepository.markNotifiedIfNotYet(eq(couponId), any(LocalDateTime.class))).willReturn(1);
             given(userRepository.findByAccountCode("USER01")).willReturn(Optional.of(mockUser));
             given(notificationService.createCouponNotification(mockUser, couponId, "PRIVATE01"))
                     .willReturn(true);
@@ -275,9 +276,6 @@ public class AdminCouponServiceUnitTest {
             assertThat(result.notified()).isTrue();
             assertThat(result.notifiedAt()).isNotNull();
             assertThat(result.sentCount()).isEqualTo(1);
-            assertThat(coupon.isNotified()).isTrue();
-            verify(notificationService, times(1))
-                    .createCouponNotification(mockUser, couponId, "PRIVATE01");
         }
     }
 
@@ -465,15 +463,15 @@ public class AdminCouponServiceUnitTest {
         }
 
         @Test
-        @DisplayName("[실패 11] 이미 알림을 전송한 쿠폰")
+        @DisplayName("[실패 11] 이미 알림을 전송한 쿠폰 - 조건부 UPDATE가 0건이면 차단")
         void fail_alreadyNotified() {
             // Given
             Long couponId = 1L;
             Coupon coupon = buildCoupon(couponId, "PRIVATE01", CouponTargetType.INDIVIDUAL, "USER01", FUTURE,
                     List.of(inkReward(100, 0)));
-            coupon.markNotified();
 
             given(couponRepository.findById(couponId)).willReturn(Optional.of(coupon));
+            given(couponRepository.markNotifiedIfNotYet(eq(couponId), any(LocalDateTime.class))).willReturn(0);
 
             // When & Then
             CustomException exception = assertThrows(CustomException.class,
@@ -502,7 +500,7 @@ public class AdminCouponServiceUnitTest {
         }
 
         @Test
-        @DisplayName("[실패 13] 대상 유저가 알림을 꺼둔 경우 - notifiedAt을 기록하지 않아 재전송 가능")
+        @DisplayName("[실패 13] 대상 유저가 알림을 꺼둔 경우 - 예외로 롤백되어 재전송 가능")
         void fail_receiverNotificationDisabled() {
             // Given
             Long couponId = 1L;
@@ -511,6 +509,7 @@ public class AdminCouponServiceUnitTest {
                     List.of(inkReward(100, 0)));
 
             given(couponRepository.findById(couponId)).willReturn(Optional.of(coupon));
+            given(couponRepository.markNotifiedIfNotYet(eq(couponId), any(LocalDateTime.class))).willReturn(1);
             given(userRepository.findByAccountCode("USER01")).willReturn(Optional.of(mockUser));
             given(notificationService.createCouponNotification(mockUser, couponId, "PRIVATE01"))
                     .willReturn(false);
@@ -520,8 +519,6 @@ public class AdminCouponServiceUnitTest {
                     () -> adminCouponService.sendCouponNotification(couponId));
 
             assertThat(exception.getErrorCode()).isEqualTo(CouponErrorCode.RECEIVER_NOTIFICATION_DISABLED);
-            assertThat(coupon.isNotified()).isFalse();
-            assertThat(coupon.getNotifiedAt()).isNull();
         }
 
         @Test
@@ -533,6 +530,7 @@ public class AdminCouponServiceUnitTest {
                     List.of(inkReward(100, 0)));
 
             given(couponRepository.findById(couponId)).willReturn(Optional.of(coupon));
+            given(couponRepository.markNotifiedIfNotYet(eq(couponId), any(LocalDateTime.class))).willReturn(1);
             given(userRepository.findByAccountCode("GONE01")).willReturn(Optional.empty());
 
             // When & Then
@@ -540,7 +538,7 @@ public class AdminCouponServiceUnitTest {
                     () -> adminCouponService.sendCouponNotification(couponId));
 
             assertThat(exception.getErrorCode()).isEqualTo(CouponErrorCode.TARGET_USER_NOT_FOUND);
-            assertThat(coupon.isNotified()).isFalse();
+            verify(notificationService, never()).createCouponNotification(any(), anyLong(), anyString());
         }
     }
 }

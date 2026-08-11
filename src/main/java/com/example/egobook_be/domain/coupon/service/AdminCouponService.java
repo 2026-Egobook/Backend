@@ -203,25 +203,32 @@ public class AdminCouponService {
         if (coupon.getTargetType() != CouponTargetType.INDIVIDUAL) {
             throw new CustomException(CouponErrorCode.NOTIFY_TARGET_NOT_INDIVIDUAL);
         }
-        if (coupon.isNotified()) {
-            throw new CustomException(CouponErrorCode.COUPON_ALREADY_NOTIFIED);
-        }
-        if (coupon.isExpired(LocalDateTime.now())) {
+        LocalDateTime now = LocalDateTime.now();
+        if (coupon.isExpired(now)) {
             throw new CustomException(CouponErrorCode.COUPON_EXPIRED);
+        }
+
+        // 조건부 UPDATE로 전송 권한을 선점한다. 동시 요청 시 한쪽만 성공해 푸시 중복 발송을 막는다.
+        if (couponRepository.markNotifiedIfNotYet(couponId, now) == 0) {
+            throw new CustomException(CouponErrorCode.COUPON_ALREADY_NOTIFIED);
         }
 
         User receiver = userRepository.findByAccountCode(coupon.getTargetAccountCode())
                 .orElseThrow(() -> new CustomException(CouponErrorCode.TARGET_USER_NOT_FOUND));
 
-        // 알림이 생성되지 않았는데 전송 완료로 표시하면 재전송이 영구히 막히므로 예외로 알린다.
+        // 알림이 생성되지 않았는데 전송 완료로 남으면 재전송이 영구히 막히므로, 예외로 트랜잭션을 롤백시킨다.
         boolean created = notificationService.createCouponNotification(receiver, coupon.getId(), coupon.getCode());
         if (!created) {
             throw new CustomException(CouponErrorCode.RECEIVER_NOTIFICATION_DISABLED);
         }
-        coupon.markNotified();
 
         log.info("[AdminCouponService] sendCouponNotification() - END | couponId: {}", couponId);
-        return couponMapper.toCouponAdminNotifyResDto(coupon, 1);
+        return CouponAdminNotifyResDto.builder()
+                .couponId(couponId)
+                .notified(true)
+                .notifiedAt(now)
+                .sentCount(1)
+                .build();
     }
 
     // ===== private =====

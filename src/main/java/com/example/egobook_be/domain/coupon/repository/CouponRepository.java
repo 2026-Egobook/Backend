@@ -4,9 +4,11 @@ import com.example.egobook_be.domain.coupon.entity.Coupon;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,4 +41,13 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
 
     @Query("select c from Coupon c left join fetch c.rewards r where c.id = :couponId")
     Optional<Coupon> findByIdWithRewards(@Param("couponId") Long couponId);
+
+    /**
+     * 아직 알림을 보내지 않은 쿠폰만 전송 완료로 표시한다.
+     * - 동시에 두 요청이 들어와도 UPDATE가 성공한 한쪽만 실제 전송을 진행하도록 선점한다.
+     * @return : 갱신된 행 수 (0이면 이미 다른 요청이 선점함)
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update Coupon c set c.notifiedAt = :now where c.id = :couponId and c.notifiedAt is null")
+    int markNotifiedIfNotYet(@Param("couponId") Long couponId, @Param("now") LocalDateTime now);
 }
