@@ -15,6 +15,7 @@ import com.example.egobook_be.domain.shop.repository.ItemRepository;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
+import com.example.egobook_be.global.exception.GlobalErrorCode;
 import com.example.egobook_be.global.response.SliceResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -81,6 +82,13 @@ public class AdminCouponService {
     @Transactional(readOnly = true)
     public SliceResponse<CouponAdminResDto> getCoupons(int page, int size) {
         log.info("[AdminCouponService] getCoupons() - START | page: {}", page);
+
+        if (page < 1) {
+            throw new CustomException(GlobalErrorCode.INVALID_SLICE_VALUE);
+        }
+        if (size < 1 || size > 100) {
+            throw new CustomException(GlobalErrorCode.INVALID_SIZE_VALUE);
+        }
 
         Pageable pageable = PageRequest.of(page - 1, size);
         Slice<Long> idSlice = couponRepository.findCouponIds(pageable);
