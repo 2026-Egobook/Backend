@@ -32,4 +32,26 @@ public class CouponReward {
 
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder;
+
+    /** 잉크 보상 생성 (sortOrder는 등록 시 입력 순서) */
+    public static CouponReward ofInk(int inkAmount, int sortOrder) {
+        return CouponReward.builder()
+                .rewardType(CouponRewardType.INK)
+                .inkAmount(inkAmount)
+                .sortOrder(sortOrder)
+                .build();
+    }
+
+    /** 아이템 보상 생성 (sortOrder는 등록 시 입력 순서) */
+    public static CouponReward ofItem(Long itemId, int sortOrder) {
+        return CouponReward.builder()
+                .rewardType(CouponRewardType.ITEM)
+                .itemId(itemId)
+                .sortOrder(sortOrder)
+                .build();
+    }
+
+    void assignCoupon(Coupon coupon) {
+        this.coupon = coupon;
+    }
 }

@@ -19,8 +19,9 @@ public interface NoticeRepository extends JpaRepository<Notice, Long> {
 
     /**
      * 현재 노출 중인(발행 시각이 지난) 공지 중 가장 최근 것을 조회한다.
+     * - publishedAt이 같은 공지가 있을 때 순서가 흔들리지 않도록 id를 보조 정렬 기준으로 둔다.
      * @param now : 기준 시각
      * @return : 최신 공지 (없으면 Optional.empty())
      */
-    Optional<Notice> findFirstByPublishedAtLessThanEqualOrderByPublishedAtDesc(LocalDateTime now);
+    Optional<Notice> findFirstByPublishedAtLessThanEqualOrderByPublishedAtDescIdDesc(LocalDateTime now);
 }

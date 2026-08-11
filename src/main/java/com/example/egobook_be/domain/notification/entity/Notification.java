@@ -29,7 +29,7 @@ public class Notification extends BaseTimeEntity {
     @Column(nullable = false)
     private String title;
 
-    @Column(length = 17)
+    @Column(length = 50)
     private String content;
 
     @Column(nullable = false)

@@ -2,6 +2,7 @@ package com.example.egobook_be.domain.notice.controller;
 
 import com.example.egobook_be.domain.notice.dto.NoticeAdminResDto;
 import com.example.egobook_be.domain.notice.dto.NoticeCreateReqDto;
+import com.example.egobook_be.domain.notice.dto.NoticeReadResetResDto;
 import com.example.egobook_be.domain.notice.dto.NoticeUpdateReqDto;
 import com.example.egobook_be.global.response.GlobalResponse;
 import com.example.egobook_be.global.response.SliceResponse;
@@ -49,4 +50,16 @@ public interface AdminNoticeControllerDocs {
     @Operation(summary = "[관리자] 공지사항 삭제")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<GlobalResponse<Void>> deleteNotice(@PathVariable Long noticeId);
+
+    @Operation(summary = "[관리자] 공지 읽음 기록 초기화", description = """
+            현재 노출 중인 최신 공지의 읽음 기록을 전부 삭제합니다.
+            읽음 기록이 없으면 안 읽음으로 간주하는 구조라, 결과적으로 모든 유저의 공지 아이콘에 레드닷이 다시 노출됩니다.
+
+            [주의사항]
+            - 이미 공지를 확인한 유저에게도 레드닷이 다시 뜹니다.
+            - 중복 실행을 서버에서 막지 않으므로, 실행 전 확인 팝업을 띄워주세요.
+            - 발행된 공지가 하나도 없으면 400을 반환합니다.
+            """)
+    @SecurityRequirement(name = "bearerAuth")
+    ResponseEntity<GlobalResponse<NoticeReadResetResDto>> resetNoticeReads();
 }

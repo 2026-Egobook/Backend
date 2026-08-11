@@ -34,7 +34,47 @@ public class Coupon extends BaseTimeEntity {
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
 
+    @Column(name = "notified_at")
+    private LocalDateTime notifiedAt;
+
     @OneToMany(mappedBy = "coupon", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<CouponReward> rewards = new ArrayList<>();
+
+    /**
+     * 쿠폰 기본 정보를 수정한다. (보상은 replaceRewards로 별도 교체)
+     */
+    public void update(String code, CouponTargetType targetType, String targetAccountCode, LocalDateTime expiresAt) {
+        this.code = code;
+        this.targetType = targetType;
+        this.targetAccountCode = targetAccountCode;
+        this.expiresAt = expiresAt;
+    }
+
+    /**
+     * 보상 목록을 통째로 교체한다.
+     * - 수정 팝업에서 '-' 버튼으로 제거된 항목은 요청 배열에서 빠져오므로 orphanRemoval로 삭제된다.
+     */
+    public void replaceRewards(List<CouponReward> newRewards) {
+        this.rewards.clear();
+        newRewards.forEach(this::addReward);
+    }
+
+    public void addReward(CouponReward reward) {
+        this.rewards.add(reward);
+        reward.assignCoupon(this);
+    }
+
+    public void markNotified() {
+        this.notifiedAt = LocalDateTime.now();
+    }
+
+    public boolean isNotified() {
+        return this.notifiedAt != null;
+    }
+
+    /** 만료 여부를 판단한다. 만료 일시까지 유효하며, 그 이후는 만료로 본다. */
+    public boolean isExpired(LocalDateTime now) {
+        return now.isAfter(this.expiresAt);
+    }
 }

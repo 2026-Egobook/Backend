@@ -34,7 +34,7 @@ public class NoticeService {
                 .orElseThrow(() -> new CustomException(NoticeErrorCode.USER_NOT_FOUND));
 
         Notice notice = noticeRepository
-                .findFirstByPublishedAtLessThanEqualOrderByPublishedAtDesc(LocalDateTime.now())
+                .findFirstByPublishedAtLessThanEqualOrderByPublishedAtDescIdDesc(LocalDateTime.now())
                 .orElse(null);
 
         NoticeLatestResDto result = null;
@@ -56,7 +56,7 @@ public class NoticeService {
                 .orElseThrow(() -> new CustomException(NoticeErrorCode.USER_NOT_FOUND));
 
         Notice notice = noticeRepository
-                .findFirstByPublishedAtLessThanEqualOrderByPublishedAtDesc(LocalDateTime.now())
+                .findFirstByPublishedAtLessThanEqualOrderByPublishedAtDescIdDesc(LocalDateTime.now())
                 .orElse(null);
 
         boolean hasUnreadNotice = notice != null && !noticeReadRepository.existsByUserAndNotice(user, notice);
