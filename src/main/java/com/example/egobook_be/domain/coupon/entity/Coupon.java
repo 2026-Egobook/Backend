@@ -73,7 +73,7 @@ public class Coupon extends BaseTimeEntity {
         return this.notifiedAt != null;
     }
 
-    /** 만료 여부를 판단한다. 만료 일시 이전까지 유효하다. */
+    /** 만료 여부를 판단한다. 만료 일시까지 유효하며, 그 이후는 만료로 본다. */
     public boolean isExpired(LocalDateTime now) {
         return now.isAfter(this.expiresAt);
     }
