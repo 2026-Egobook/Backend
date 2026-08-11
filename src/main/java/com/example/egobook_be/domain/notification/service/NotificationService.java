@@ -75,6 +75,34 @@ public class NotificationService {
         log.info("[NotificationService] createNotification End - userId: {}, targetId: {}", userId, targetId);
     }
 
+    /**
+     * 개인 대상 쿠폰의 코드가 담긴 알림을 생성한다.
+     * - 오늘의 질문 답변 선정 보상으로 지급되는 쿠폰이며, 제목은 고정이고 content에 쿠폰 코드를 싣는다.
+     * @param user : 알림을 받을 유저
+     * @param couponId : 대상 쿠폰 PK
+     * @param code : 쿠폰 코드
+     * @return : 알림이 생성되었으면 true, 유저가 알림을 꺼두어 생성하지 않았으면 false
+     */
+    @Transactional
+    public boolean createCouponNotification(User user, Long couponId, String code) {
+        if (!user.isNotificationEnabled()) {
+            log.warn("[NotificationService] 알림 설정 꺼짐으로 쿠폰 알림 미생성 - userId: {}", user.getId());
+            return false;
+        }
+
+        Notification notification = Notification.builder()
+                .user(user)
+                .type(NotificationType.COUPON)
+                .title(NotificationType.COUPON.getTitle())
+                .content("쿠폰코드 : " + code)
+                .targetId(couponId)
+                .build();
+
+        notificationRepository.save(notification);
+        fcmService.sendPushNotification(user, notification);
+        return true;
+    }
+
     /** 알림 목록 (공지사항은 /notices API로 분리되어 있음) */
     @Transactional
     public SliceResponse<NotificationResDto> getNotifications(Long userId, int page, int size) {

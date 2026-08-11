@@ -2,6 +2,7 @@ package com.example.egobook_be.domain.notice.controller;
 
 import com.example.egobook_be.domain.notice.dto.NoticeAdminResDto;
 import com.example.egobook_be.domain.notice.dto.NoticeCreateReqDto;
+import com.example.egobook_be.domain.notice.dto.NoticeReadResetResDto;
 import com.example.egobook_be.domain.notice.dto.NoticeUpdateReqDto;
 import com.example.egobook_be.domain.notice.service.AdminNoticeService;
 import com.example.egobook_be.global.response.GlobalResponse;
@@ -53,5 +54,13 @@ public class AdminNoticeController implements AdminNoticeControllerDocs {
     public ResponseEntity<GlobalResponse<Void>> deleteNotice(@PathVariable Long noticeId) {
         adminNoticeService.deleteNotice(noticeId);
         return ResponseEntity.ok(GlobalResponse.success("공지사항 삭제 성공", null));
+    }
+
+    @Override
+    @PostMapping("/reads/reset")
+    public ResponseEntity<GlobalResponse<NoticeReadResetResDto>> resetNoticeReads() {
+        return ResponseEntity.ok(
+                GlobalResponse.success("공지 읽음 기록 초기화 성공", adminNoticeService.resetNoticeReads())
+        );
     }
 }

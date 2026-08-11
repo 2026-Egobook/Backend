@@ -17,8 +17,18 @@ public interface NoticeReadRepository extends JpaRepository<NoticeRead, Long> {
      * @return : 읽음 여부
      */
     boolean existsByUserAndNotice(User user, Notice notice);
-    
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = "INSERT IGNORE INTO notice_read (user_id, notice_id, created_at, updated_at) VALUES (:userId, :noticeId, NOW(6), NOW(6))", nativeQuery = true)
     void insertIfNotExists(@Param("userId") Long userId, @Param("noticeId") Long noticeId);
+
+    /**
+     * 해당 공지의 읽음 기록을 모두 삭제한다. (전체 유저 레드닷 재점등)
+     * - 읽음 row가 없으면 안 읽음으로 간주하므로, 삭제만으로 모든 유저에게 레드닷이 다시 뜬다.
+     * @param noticeId : 대상 공지 PK
+     * @return : 삭제된 읽음 기록 수
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from NoticeRead nr where nr.notice.id = :noticeId")
+    int deleteAllByNoticeId(@Param("noticeId") Long noticeId);
 }

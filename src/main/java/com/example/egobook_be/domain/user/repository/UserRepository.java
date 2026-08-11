@@ -97,4 +97,7 @@ public interface UserRepository extends JpaRepository<User, Long>,UserRepository
     Slice<SearchUserResDto> findUsersByStatus(@Param("status") UserStatus status, Pageable pageable);
 
     Long countByCreatedAtBefore(LocalDateTime createdAtBefore);
+
+    /** 개인 대상 쿠폰 알림 전송 시 계정 고유 코드로 유저를 조회한다. */
+    Optional<User> findByAccountCode(String accountCode);
 }

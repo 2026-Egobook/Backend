@@ -2,10 +2,12 @@ package com.example.egobook_be.domain.notice.service;
 
 import com.example.egobook_be.domain.notice.dto.NoticeAdminResDto;
 import com.example.egobook_be.domain.notice.dto.NoticeCreateReqDto;
+import com.example.egobook_be.domain.notice.dto.NoticeReadResetResDto;
 import com.example.egobook_be.domain.notice.dto.NoticeUpdateReqDto;
 import com.example.egobook_be.domain.notice.entity.Notice;
 import com.example.egobook_be.domain.notice.exception.NoticeErrorCode;
 import com.example.egobook_be.domain.notice.mapper.NoticeMapper;
+import com.example.egobook_be.domain.notice.repository.NoticeReadRepository;
 import com.example.egobook_be.domain.notice.repository.NoticeRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
@@ -16,12 +18,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminNoticeService {
 
     private final NoticeRepository noticeRepository;
+    private final NoticeReadRepository noticeReadRepository;
     private final NoticeMapper noticeMapper;
 
     /**
@@ -99,5 +104,26 @@ public class AdminNoticeService {
         noticeRepository.deleteById(noticeId);
 
         log.info("[AdminNoticeService] deleteNotice() - END | noticeId: {}", noticeId);
+    }
+
+    /**
+     * 현재 노출 중인 최신 공지의 읽음 기록을 전부 지워 모든 유저에게 레드닷을 다시 노출시킨다.
+     * - 읽음 row가 없으면 안 읽음으로 간주하는 구조라, 삭제만으로 전체 레드닷이 켜진다.
+     * @return : 대상 공지 정보와 해제된 읽음 기록 수
+     */
+    @Transactional
+    public NoticeReadResetResDto resetNoticeReads() {
+        log.info("[AdminNoticeService] resetNoticeReads() - START");
+
+        LocalDateTime now = LocalDateTime.now();
+        Notice notice = noticeRepository
+                .findFirstByPublishedAtLessThanEqualOrderByPublishedAtDesc(now)
+                .orElseThrow(() -> new CustomException(NoticeErrorCode.NO_PUBLISHED_NOTICE));
+
+        int clearedReadCount = noticeReadRepository.deleteAllByNoticeId(notice.getId());
+
+        log.info("[AdminNoticeService] resetNoticeReads() - END | noticeId: {}, clearedReadCount: {}",
+                notice.getId(), clearedReadCount);
+        return new NoticeReadResetResDto(notice.getId(), notice.getTitle(), clearedReadCount, now);
     }
 }
