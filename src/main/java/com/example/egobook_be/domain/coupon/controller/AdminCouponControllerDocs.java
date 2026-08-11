@@ -37,10 +37,7 @@ public interface AdminCouponControllerDocs {
     ResponseEntity<GlobalResponse<CouponAdminResDto>> createCoupon(@Valid @RequestBody CouponAdminCreateReqDto reqDto);
 
     @Operation(summary = "전체 쿠폰 조회 API", description = """
-            만료되지 않은 쿠폰 목록을 최신 등록순으로 조회합니다.
-
-            [**주의사항**]
-            - 만료일이 지난 쿠폰은 목록에 포함되지 않습니다.
+            등록된 전체 쿠폰 목록을 등록 최신순으로 조회합니다.
 
             [**응답 활용**]
             - targetType이 INDIVIDUAL인 행에만 알림 전송 버튼을 노출해주세요.
