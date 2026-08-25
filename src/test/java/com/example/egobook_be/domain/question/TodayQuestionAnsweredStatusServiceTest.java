@@ -10,6 +10,7 @@ import com.example.egobook_be.domain.question.exception.QuestionErrorCode;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
 import com.example.egobook_be.domain.question.repository.TodayQuestionRepository;
 import com.example.egobook_be.domain.question.service.TodayQuestionService;
+import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
@@ -48,17 +49,19 @@ class TodayQuestionAnsweredStatusServiceTest {
     @Mock private InkLogUtil inkLogUtil;
 
     private TodayQuestion todayQuestion;
+    private User user;
 
     @BeforeEach
     void setUp() {
         todayQuestion = mock(TodayQuestion.class);
+        user = mock(User.class);
     }
 
     @Test
     @DisplayName("getTodayQuestion_오늘의질문없음_실패")
     void getTodayQuestion_questionNotFound_fail() {
 
-        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+        given(todayQuestionRepository.findByQuestionDateAndDeletedAtIsNull(LocalDate.now()))
                 .willReturn(Optional.empty());
 
         assertThatThrownBy(() -> todayQuestionService.getTodayQuestion(1L))
@@ -71,15 +74,24 @@ class TodayQuestionAnsweredStatusServiceTest {
     @DisplayName("getTodayQuestion_답변안한경우_answered가false_성공")
     void getTodayQuestion_notAnsweredYet_answeredFalse() {
 
+        given(userRepository.findById(1L))
+                .willReturn(Optional.of(user));
+
+        given(user.getMarketingEnabled())
+                .willReturn(false);
+
         given(todayQuestion.getId()).willReturn(100L);
         given(todayQuestion.getContent()).willReturn("오늘의 질문입니다.");
         given(todayQuestion.getQuestionDate()).willReturn(LocalDate.now());
-        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+
+        given(todayQuestionRepository.findByQuestionDateAndDeletedAtIsNull(LocalDate.now()))
                 .willReturn(Optional.of(todayQuestion));
+
         given(questionAnswerRepository.findByUserIdAndQuestionIdWithQuestion(1L, 100L))
                 .willReturn(Optional.empty());
 
-        TodayQuestionResDto result = todayQuestionService.getTodayQuestion(1L);
+        TodayQuestionResDto result =
+                todayQuestionService.getTodayQuestion(1L);
 
         assertThat(result.answered()).isFalse();
         assertThat(result.myAnswer()).isNull();
@@ -89,26 +101,37 @@ class TodayQuestionAnsweredStatusServiceTest {
     @DisplayName("getTodayQuestion_이미답변한경우_answered가true_성공")
     void getTodayQuestion_alreadyAnswered_answeredTrue() {
 
+        given(userRepository.findById(1L))
+                .willReturn(Optional.of(user));
+
+        given(user.getMarketingEnabled())
+                .willReturn(false);
+
         given(todayQuestion.getId()).willReturn(100L);
         given(todayQuestion.getContent()).willReturn("오늘의 질문입니다.");
         given(todayQuestion.getQuestionDate()).willReturn(LocalDate.now());
-        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+
+        given(todayQuestionRepository.findByQuestionDateAndDeletedAtIsNull(LocalDate.now()))
                 .willReturn(Optional.of(todayQuestion));
 
         QuestionAnswer answer = mock(QuestionAnswer.class);
+
         given(answer.getId()).willReturn(10L);
         given(answer.getContent()).willReturn("내 답변");
         given(answer.getVisibility()).willReturn(AnswerVisibility.PUBLIC);
         given(answer.getCreatedAt()).willReturn(LocalDateTime.now());
+
         given(questionAnswerRepository.findByUserIdAndQuestionIdWithQuestion(1L, 100L))
                 .willReturn(Optional.of(answer));
 
-        TodayQuestionResDto result = todayQuestionService.getTodayQuestion(1L);
+        TodayQuestionResDto result =
+                todayQuestionService.getTodayQuestion(1L);
 
         assertThat(result.answered()).isTrue();
         assertThat(result.myAnswer()).isNotNull();
         assertThat(result.myAnswer().content()).isEqualTo("내 답변");
-        assertThat(result.myAnswer().visibility()).isEqualTo(AnswerVisibility.PUBLIC);
+        assertThat(result.myAnswer().visibility())
+                .isEqualTo(AnswerVisibility.PUBLIC);
     }
 
     @Test
@@ -117,7 +140,7 @@ class TodayQuestionAnsweredStatusServiceTest {
 
         given(todayQuestion.getContent()).willReturn("오늘의 질문입니다.");
         given(todayQuestion.getQuestionDate()).willReturn(LocalDate.now());
-        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+        given(todayQuestionRepository.findByQuestionDateAndDeletedAtIsNull(LocalDate.now()))
                 .willReturn(Optional.of(todayQuestion));
 
         TodayQuestionResDto result = todayQuestionService.getTodayQuestion(null);

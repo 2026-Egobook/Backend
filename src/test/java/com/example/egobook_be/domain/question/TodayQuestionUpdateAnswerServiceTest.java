@@ -72,7 +72,7 @@ class TodayQuestionUpdateAnswerServiceTest {
     void updateAnswer_validRequest_success() {
 
         QuestionAnswer answer = mock(QuestionAnswer.class);
-        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+        given(todayQuestionRepository.findByQuestionDateAndDeletedAtIsNull(LocalDate.now()))
                 .willReturn(Optional.of(todayQuestion));
         given(questionAnswerRepository.findByUserAndQuestion(user, todayQuestion))
                 .willReturn(Optional.of(answer));
@@ -86,7 +86,7 @@ class TodayQuestionUpdateAnswerServiceTest {
     @DisplayName("updateAnswer_오늘의질문없음_실패")
     void updateAnswer_todayQuestionNotFound_fail() {
 
-        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+        given(todayQuestionRepository.findByQuestionDateAndDeletedAtIsNull(LocalDate.now()))
                 .willReturn(Optional.empty());
 
         assertThatThrownBy(() -> todayQuestionService.updateAnswer(1L, reqDto))
@@ -99,7 +99,7 @@ class TodayQuestionUpdateAnswerServiceTest {
     @DisplayName("updateAnswer_답변없음_실패")
     void updateAnswer_answerNotFound_fail() {
 
-        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+        given(todayQuestionRepository.findByQuestionDateAndDeletedAtIsNull(LocalDate.now()))
                 .willReturn(Optional.of(todayQuestion));
         given(questionAnswerRepository.findByUserAndQuestion(user, todayQuestion))
                 .willReturn(Optional.empty());
@@ -117,7 +117,7 @@ class TodayQuestionUpdateAnswerServiceTest {
     void updateAnswer_questionAnswerRestricted_fail() {
         // given
         QuestionAnswer answer = mock(QuestionAnswer.class);
-        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+        given(todayQuestionRepository.findByQuestionDateAndDeletedAtIsNull(LocalDate.now()))
                 .willReturn(Optional.of(todayQuestion));
         given(questionAnswerRepository.findByUserAndQuestion(user, todayQuestion))
                 .willReturn(Optional.of(answer));
