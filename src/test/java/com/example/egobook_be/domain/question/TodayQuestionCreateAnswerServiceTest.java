@@ -80,7 +80,7 @@ class TodayQuestionCreateAnswerServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(missionRepository.findByUser(user)).willReturn(Optional.of(mission));
         given(abilityRepository.findByUser(user)).willReturn(Optional.of(ability));
-        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+        given(todayQuestionRepository.findByQuestionDateAndDeletedAtIsNull(LocalDate.now()))
                 .willReturn(Optional.of(todayQuestion));
         given(questionAnswerRepository.existsByUserAndQuestion(user, todayQuestion)).willReturn(false);
         given(questionAnswerRepository.existsByUserAndCreatedAtBetween(
@@ -143,7 +143,7 @@ class TodayQuestionCreateAnswerServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(missionRepository.findByUser(user)).willReturn(Optional.of(mission));
         given(abilityRepository.findByUser(user)).willReturn(Optional.of(ability));
-        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+        given(todayQuestionRepository.findByQuestionDateAndDeletedAtIsNull(LocalDate.now()))
                 .willReturn(Optional.empty());
 
         assertThatThrownBy(() -> todayQuestionService.createAnswer(1L, reqDto))
@@ -159,7 +159,7 @@ class TodayQuestionCreateAnswerServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(missionRepository.findByUser(user)).willReturn(Optional.of(mission));
         given(abilityRepository.findByUser(user)).willReturn(Optional.of(ability));
-        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+        given(todayQuestionRepository.findByQuestionDateAndDeletedAtIsNull(LocalDate.now()))
                 .willReturn(Optional.of(todayQuestion));
         given(questionAnswerRepository.existsByUserAndQuestion(user, todayQuestion)).willReturn(true);
 
@@ -176,7 +176,7 @@ class TodayQuestionCreateAnswerServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(missionRepository.findByUser(user)).willReturn(Optional.of(mission));
         given(abilityRepository.findByUser(user)).willReturn(Optional.of(ability));
-        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+        given(todayQuestionRepository.findByQuestionDateAndDeletedAtIsNull(LocalDate.now()))
                 .willReturn(Optional.of(todayQuestion));
         given(questionAnswerRepository.existsByUserAndQuestion(user, todayQuestion)).willReturn(false);
         given(questionAnswerRepository.existsByUserAndCreatedAtBetween(
@@ -197,7 +197,7 @@ class TodayQuestionCreateAnswerServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(missionRepository.findByUser(user)).willReturn(Optional.of(mission));
         given(abilityRepository.findByUser(user)).willReturn(Optional.of(ability));
-        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+        given(todayQuestionRepository.findByQuestionDateAndDeletedAtIsNull(LocalDate.now()))
                 .willReturn(Optional.of(todayQuestion));
         given(questionAnswerRepository.existsByUserAndQuestion(user, todayQuestion)).willReturn(false);
         given(questionAnswerRepository.existsByUserAndCreatedAtBetween(
@@ -221,7 +221,7 @@ class TodayQuestionCreateAnswerServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(missionRepository.findByUser(user)).willReturn(Optional.of(mission));
         given(abilityRepository.findByUser(user)).willReturn(Optional.of(ability));
-        given(todayQuestionRepository.findByQuestionDate(LocalDate.now()))
+        given(todayQuestionRepository.findByQuestionDateAndDeletedAtIsNull(LocalDate.now()))
                 .willReturn(Optional.of(todayQuestion));
         given(questionAnswerRepository.existsByUserAndQuestion(user, todayQuestion)).willReturn(false);
         willThrow(new CustomException(RestrictionErrorCode.QUESTION_ANSWER_RESTRICTED))

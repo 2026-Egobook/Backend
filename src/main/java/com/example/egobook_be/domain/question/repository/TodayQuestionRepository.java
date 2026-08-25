@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.util.Optional;
 
 public interface TodayQuestionRepository extends JpaRepository<TodayQuestion, Long> {
-    Optional<TodayQuestion> findByQuestionDate(LocalDate date);
+    Optional<TodayQuestion> findByQuestionDateAndDeletedAtIsNull(LocalDate date);
 
     // 해당 날짜에 삭제되지 않은 질문이 있는지 확인
     boolean existsByQuestionDateAndDeletedAtIsNull(LocalDate questionDate);

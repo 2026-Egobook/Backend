@@ -60,7 +60,7 @@ public class TodayQuestionService {
         log.info("[TodayQuestionService] getTodayQuestion Start - userId: {}", userId);
 
         TodayQuestion question = todayQuestionRepository
-                .findByQuestionDate(LocalDate.now())
+                .findByQuestionDateAndDeletedAtIsNull(LocalDate.now())
                 .orElseThrow(() ->
                         new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND)
                 );
@@ -114,7 +114,7 @@ public class TodayQuestionService {
         Ability userAbility = abilityRepository.findByUser(user).orElseThrow(() -> new CustomException(UserErrorCode.ABILITY_NOT_FOUND));
 
         TodayQuestion todayQuestion = todayQuestionRepository
-                .findByQuestionDate(LocalDate.now())
+                .findByQuestionDateAndDeletedAtIsNull(LocalDate.now())
                 .orElseThrow(() ->
                         new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND)
                 );
@@ -186,7 +186,7 @@ public class TodayQuestionService {
         log.info("[TodayQuestionService] getPublicAnswers Start");
 
         TodayQuestion todayQuestion = todayQuestionRepository
-                .findByQuestionDate(LocalDate.now())
+                .findByQuestionDateAndDeletedAtIsNull(LocalDate.now())
                 .orElseThrow(() -> new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND));
 
         PageRequest pageable = PageRequest.of(
@@ -237,7 +237,7 @@ public class TodayQuestionService {
                 );
 
         TodayQuestion todayQuestion = todayQuestionRepository
-                .findByQuestionDate(LocalDate.now())
+                .findByQuestionDateAndDeletedAtIsNull(LocalDate.now())
                 .orElseThrow(() ->
                         new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND)
                 );
@@ -265,7 +265,7 @@ public class TodayQuestionService {
                 .orElseThrow(() -> new IllegalStateException("로그인 사용자 정보가 존재하지 않습니다."));
 
         TodayQuestion todayQuestion = todayQuestionRepository
-                .findByQuestionDate(LocalDate.now())
+                .findByQuestionDateAndDeletedAtIsNull(LocalDate.now())
                 .orElseThrow(() -> new CustomException(QuestionErrorCode.TODAY_QUESTION_NOT_FOUND));
 
         List<Long> friendIds = friendRepository.findFriendIdsByUser(me);
