@@ -19,13 +19,13 @@ import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.user.dto.ResendReqDto;
 import com.example.egobook_be.domain.user.dto.AdminContentResDto.*;
 import com.example.egobook_be.domain.user.exception.AdminContentErrorCode;
-import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -43,7 +43,6 @@ public class AdminContentService {
     private final DailyPraiseRepository dailyPraiseRepo;
     private final WeeklyCounselRepository weeklyCounselRepo;
     private final PlazaLetterRepository plazaLetterRepo;
-    private final UserRepository userRepository;
     private final EgoRoomService egoRoomService;
     private final AiRequestCountLogRepository aiRequestCountLogRepo;
     private final DiaryRepository diaryRepository;
@@ -164,7 +163,7 @@ public class AdminContentService {
                 weeklyReportFailLogRepo.findByWeekStartDateBetweenOrderByFailedAtDesc(startDate, endDate);
 
         long successCount = weeklyCounselRepo.countByStartDateBetween(startDate, endDate);
-        long scheduledCount = userRepository.findAllByWeeklyAnalysisEnabledTrue().size();
+        long scheduledCount = countWeeklyReportScheduled(startDate, endDate);
 
         SimpleSummary summary = SimpleSummary.builder()
                 .scheduledCount(scheduledCount)
@@ -347,6 +346,21 @@ public class AdminContentService {
             cursor = cursor.plusDays(1);
         }
         return dates;
+    }
+
+    private long countWeeklyReportScheduled(LocalDate startDate, LocalDate endDate) {
+        List<Object[]> candidates = diaryRepository.findWeeklyReportCandidates(startDate, endDate.plusDays(6));
+
+        Set<List<Object>> userWeekPairs = new HashSet<>();
+        for (Object[] row : candidates) {
+            Long userId = (Long) row[0];
+            LocalDate date = (LocalDate) row[1];
+            LocalDate weekMonday = date.with(DayOfWeek.MONDAY);
+            if (!weekMonday.isBefore(startDate) && !weekMonday.isAfter(endDate)) {
+                userWeekPairs.add(List.of(userId, weekMonday));
+            }
+        }
+        return userWeekPairs.size();
     }
 
     private Map<LocalDate, Long> toDateCountMap(List<Object[]> rows) {

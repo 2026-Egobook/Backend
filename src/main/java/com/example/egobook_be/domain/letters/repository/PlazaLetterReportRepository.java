@@ -28,12 +28,11 @@ public interface PlazaLetterReportRepository extends JpaRepository<PlazaLetterRe
     @Query("select count(r) from PlazaLetterReport r where r.letter.letterId = :letterId")
     long countByLetter_LetterId(@Param("letterId") Long letterId);
 
-    // 승인 처리된 신고는 관리 목록에서 제외 (PENDING만 노출, 반려는 DB 에서도 삭제)
+    // 승인(RESOLVED) 처리된 신고도 목록에 그대로 노출한다 (반려는 DB에서도 삭제되어 자연히 목록에서 빠짐)
     @Query("""
         SELECT r
         FROM PlazaLetterReport r
         JOIN FETCH r.letter
-        WHERE r.status = com.example.egobook_be.global.enums.ReportStatus.PENDING
         ORDER BY r.createdAt DESC
     """)
     Slice<PlazaLetterReport> findAllWithLetter(Pageable pageable);
