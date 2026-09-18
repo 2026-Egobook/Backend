@@ -72,6 +72,17 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
 """)
     Slice<Diary> findAllByUserAndTypeAndDate(User user, DiaryType type, LocalDate date, Pageable pageable);
 
+    @Query("""
+        SELECT d.user.id, d.date
+        FROM Diary d
+        WHERE d.date BETWEEN :startDate AND :endDate
+          AND d.user.weeklyAnalysisEnabled = true
+    """)
+    List<Object[]> findWeeklyReportCandidates(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
     int countByUserAndDate(User user, LocalDate date);
 
     List<Diary> findAllByUserIdAndWrittenAtAfter(Long userId, LocalDateTime writtenAt);
