@@ -1,5 +1,9 @@
 package com.example.egobook_be.domain.user.repository;
 
+import java.util.List;
+import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import com.example.egobook_be.domain.user.entity.AbilityLog;
 import com.example.egobook_be.domain.user.entity.AbilityLogReason;
 import com.example.egobook_be.domain.user.entity.User;
@@ -25,4 +29,8 @@ public interface AbilityLogRepository extends JpaRepository<AbilityLog, Long> {
             LocalDateTime start,
             LocalDateTime end
     );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM AbilityLog x WHERE x.user IN :users")
+    void bulkDeleteByUserIn(@Param("users") List<User> users);
 }

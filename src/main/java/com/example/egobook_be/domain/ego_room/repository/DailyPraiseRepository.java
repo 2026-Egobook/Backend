@@ -1,5 +1,7 @@
 package com.example.egobook_be.domain.ego_room.repository;
 
+import org.springframework.data.jpa.repository.Modifying;
+import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.ego_room.entity.DailyPraise;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -32,4 +34,7 @@ public interface DailyPraiseRepository extends JpaRepository<DailyPraise, Long> 
 
     long countByPraiseDateBetween(LocalDate startDate, LocalDate endDate);
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM DailyPraise x WHERE x.user IN :users")
+    void bulkDeleteByUserIn(@Param("users") List<User> users);
 }
