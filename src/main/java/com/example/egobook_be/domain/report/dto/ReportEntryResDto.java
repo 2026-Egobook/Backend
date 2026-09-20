@@ -13,5 +13,6 @@ public record ReportEntryResDto(
         ReportReason reason,
         String description,
         ReportStatus status,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        String adminMemo
 ) {}

@@ -10,6 +10,7 @@ import com.example.egobook_be.domain.question.exception.QuestionErrorCode;
 import com.example.egobook_be.domain.question.repository.AnswerReportRepository;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
 import com.example.egobook_be.domain.report.dto.ReportEntryResDto;
+import com.example.egobook_be.domain.report.enums.ReportErrorCode;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.enums.ReportStatus;
@@ -92,6 +93,7 @@ public class AnswerReportAdminService {
                         .description(r.getDescription())
                         .status(r.getStatus())
                         .createdAt(r.getCreatedAt())
+                        .adminMemo(r.getAdminMemo())
                         .build())
                 .toList();
 
@@ -153,7 +155,7 @@ public class AnswerReportAdminService {
     @Transactional
     public void updateAnswerReportMemo(Long reportId, String memo) {
         log.debug("[AnswerReportAdminService] updateAnswerReportMemo START - reportId: {}, memo: {}", reportId, memo);
-        AnswerReport answerReport = answerReportRepository.findById(reportId).orElseThrow(() -> new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND));
+        AnswerReport answerReport = answerReportRepository.findById(reportId).orElseThrow(() -> new CustomException(ReportErrorCode.REPORT_NOT_FOUND));
         answerReport.updateAdminMemo(memo);
         log.debug("[AnswerReportAdminService] updateAnswerReportMemo END - reportId: {}, memo: {}", reportId, memo);
     }
