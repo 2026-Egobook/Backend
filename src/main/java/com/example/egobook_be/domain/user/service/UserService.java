@@ -261,8 +261,7 @@ public class UserService {
          * (1) status -> WITHDRAW_PENDING
          * (2) deletedAt(삭제 요청 시각) 최신화
          * (3) purgeAt(완전 삭제 예정 시각) 최신화
-         * (4) dailPraise (AI 칭찬서 수신 여부) false
-         * (5) notificationEnabled (알림 설정) false
+         * (수신 설정값은 유지하고, 스케줄러/알림 단계에서 WITHDRAW_PENDING 사용자를 제외한다)
          */
         user.withdrawUser(purgeDurationInMs);
 

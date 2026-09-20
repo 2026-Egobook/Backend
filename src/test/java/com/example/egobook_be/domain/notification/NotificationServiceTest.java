@@ -10,6 +10,7 @@ import com.example.egobook_be.domain.notification.repository.NotificationReposit
 import com.example.egobook_be.domain.notification.service.FcmService;
 import com.example.egobook_be.domain.notification.service.NotificationService;
 import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import org.junit.jupiter.api.DisplayName;
@@ -80,6 +81,24 @@ class NotificationServiceTest {
         // Given
         User user = User.builder().build();
         ReflectionTestUtils.setField(user, "notificationEnabled", false);
+        given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+
+        // When
+        notificationService.createNotification(USER_ID, NotificationType.LETTER_NEW, TARGET_ID);
+
+        // Then
+        verify(notificationRepository, never()).save(any());
+        verify(fcmService, never()).sendPushNotification(any(), any());
+    }
+
+    @Test
+    @DisplayName("탈퇴 대기 사용자에게는 알림 생성 X")
+    void createNotification_WithdrawPending_Success() {
+        // Given
+        User user = User.builder()
+                .status(UserStatus.WITHDRAW_PENDING)
+                .notificationEnabled(true)
+                .build();
         given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
 
         // When

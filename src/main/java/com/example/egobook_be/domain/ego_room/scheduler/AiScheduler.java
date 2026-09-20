@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.ego_room.scheduler;
 
+import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.ego_room.entity.DailyPraiseSendFailLog;
 import com.example.egobook_be.domain.ego_room.entity.WeeklyReportSendFailLog;
 import com.example.egobook_be.domain.ego_room.enums.SendFailReason;
@@ -37,7 +38,7 @@ public class AiScheduler {
         LocalDate yesterday = LocalDate.now().minusDays(1);
 
         // 일간칭찬 true인 유저를 돌면서 처리
-        List<User> targetUsers = userRepository.findByDailyPraiseTrue();
+        List<User> targetUsers = userRepository.findByDailyPraiseTrueAndStatusNot(UserStatus.WITHDRAW_PENDING);
 
         for (User user : targetUsers) {
             try {
@@ -66,7 +67,7 @@ public class AiScheduler {
         // 지난주 월요일 날짜 계산
         LocalDate lastMonday = LocalDate.now().minusWeeks(1).with(java.time.DayOfWeek.MONDAY);
 
-        List<User> targetUsers = userRepository.findAllByWeeklyAnalysisEnabledTrue();
+        List<User> targetUsers = userRepository.findAllByWeeklyAnalysisEnabledTrueAndStatusNot(UserStatus.WITHDRAW_PENDING);
 
         for (User user : targetUsers) {
             try {

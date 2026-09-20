@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.notification.service;
 
+import com.example.egobook_be.domain.user.enums.UserStatus;
 import com.example.egobook_be.domain.letters.entity.PlazaLetter;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReply;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
@@ -47,7 +48,7 @@ public class NotificationService {
                 .orElseThrow(() -> new CustomException(NotificationErrorCode.USER_NOT_FOUND));
 
         // 알림 설정 확인
-        if (!user.isNotificationEnabled()) {
+        if (!user.isNotificationEnabled() || user.getStatus() == UserStatus.WITHDRAW_PENDING) {
             return;
         }
 
@@ -85,7 +86,7 @@ public class NotificationService {
      */
     @Transactional
     public boolean createCouponNotification(User user, Long couponId, String code) {
-        if (!user.isNotificationEnabled()) {
+        if (!user.isNotificationEnabled() || user.getStatus() == UserStatus.WITHDRAW_PENDING) {
             log.warn("[NotificationService] 알림 설정 꺼짐으로 쿠폰 알림 미생성 - userId: {}", user.getId());
             return false;
         }

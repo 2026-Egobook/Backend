@@ -191,16 +191,12 @@ public class User extends BaseTimeEntity {
         this.status = UserStatus.WITHDRAW_PENDING;
         this.deletedAt = LocalDateTime.now();
         this.purgeAt = this.deletedAt.plus(purgeDurationInMs, ChronoUnit.MILLIS);
-        this.dailyPraise = false;
-        this.notificationEnabled = false;
     }
 
     public void cancelWithDrawUser() {
         this.status = UserStatus.ACTIVE;
         this.deletedAt = null;
         this.purgeAt = null;
-        this.dailyPraise = true;
-        this.notificationEnabled = true;
     }
 
 
