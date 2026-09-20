@@ -222,7 +222,7 @@ public class AdminContentService {
     }
 
     private ResendResult resendWeeklyReportOne(Long failId) {
-        Optional<WeeklyReportSendFailLog> opt = weeklyReportFailLogRepo.findById(failId);
+        Optional<WeeklyReportSendFailLog> opt = weeklyReportFailLogRepo.findByIdWithLock(failId);
         if (opt.isEmpty()) {
             return failResult(failId, "NOT_FOUND");
         }

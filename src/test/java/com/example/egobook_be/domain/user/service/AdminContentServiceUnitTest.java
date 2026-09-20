@@ -77,7 +77,7 @@ class AdminContentServiceUnitTest {
             // given
             Long failId = 1L;
             WeeklyReportSendFailLog failLog = createFailLog(failId, false);
-            given(weeklyReportFailLogRepo.findById(failId)).willReturn(Optional.of(failLog));
+            given(weeklyReportFailLogRepo.findByIdWithLock(failId)).willReturn(Optional.of(failLog));
             given(weeklyCounselRepo.existsByUserIdAndStartDate(10L, LocalDate.of(2026, 7, 6)))
                     .willReturn(false);
             given(egoRoomService.resendWeeklyAnalysis(10L, LocalDate.of(2026, 7, 6)))
@@ -101,7 +101,7 @@ class AdminContentServiceUnitTest {
             // given
             Long failId = 2L;
             WeeklyReportSendFailLog failLog = createFailLog(failId, false);
-            given(weeklyReportFailLogRepo.findById(failId)).willReturn(Optional.of(failLog));
+            given(weeklyReportFailLogRepo.findByIdWithLock(failId)).willReturn(Optional.of(failLog));
             given(weeklyCounselRepo.existsByUserIdAndStartDate(10L, LocalDate.of(2026, 7, 6)))
                     .willReturn(true);
 
@@ -125,7 +125,7 @@ class AdminContentServiceUnitTest {
             // given
             Long failId = 3L;
             WeeklyReportSendFailLog failLog = createFailLog(failId, false);
-            given(weeklyReportFailLogRepo.findById(failId)).willReturn(Optional.of(failLog));
+            given(weeklyReportFailLogRepo.findByIdWithLock(failId)).willReturn(Optional.of(failLog));
             given(weeklyCounselRepo.existsByUserIdAndStartDate(10L, LocalDate.of(2026, 7, 6)))
                     .willReturn(false);
             given(egoRoomService.resendWeeklyAnalysis(10L, LocalDate.of(2026, 7, 6)))
