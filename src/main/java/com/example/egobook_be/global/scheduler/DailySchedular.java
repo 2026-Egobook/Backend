@@ -146,9 +146,10 @@ public class DailySchedular {
         for (User targetUser : targetUsers) {
             Long targetUserId = targetUser.getId();
             try {
-                transactionTemplate.executeWithoutResult(status -> userRepository.findById(targetUserId)
-                        .ifPresent(user -> deleteUsers(List.of(user))));
-                successCount++;
+                Boolean purged = transactionTemplate.execute(status -> purgeUserIfStillPending(targetUserId));
+                if (Boolean.TRUE.equals(purged)) {
+                    successCount++;
+                }
             } catch (Exception e) {
                 log.error("🕛 [DailySchedular] 사용자 삭제 실패 - userId: {}", targetUserId, e);
             }
@@ -156,6 +157,21 @@ public class DailySchedular {
 
         long endTime = System.currentTimeMillis();
         log.info("🕛 [DailySchedular] 총 {}명 중 {}명의 사용자 및 연관 데이터 삭제 완료. (소요시간: {}ms)", targetUsers.size(), successCount, endTime - startTime);
+    }
+
+    /**
+     * 사용자를 잠근 뒤 아직 삭제 대상인지 다시 확인하고 삭제한다. (조회 이후 재가입으로 복구된 사용자는 건너뛴다)
+     */
+    private boolean purgeUserIfStillPending(Long userId) {
+        return userRepository.findByIdWithLock(userId)
+                .filter(user -> user.getStatus() == UserStatus.WITHDRAW_PENDING
+                        && user.getPurgeAt() != null
+                        && user.getPurgeAt().isBefore(LocalDateTime.now()))
+                .map(user -> {
+                    deleteUsers(List.of(user));
+                    return true;
+                })
+                .orElse(false);
     }
 
     /**
