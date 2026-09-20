@@ -11,4 +11,8 @@ public interface WeeklyReportSendFailLogRepository extends JpaRepository<WeeklyR
     List<WeeklyReportSendFailLog> findByWeekStartDateBetweenOrderByFailedAtDesc(
             LocalDate startDate, LocalDate endDate
     );
+
+    List<WeeklyReportSendFailLog> findByWeekStartDateBetweenAndResentFalseOrderByFailedAtDesc(
+            LocalDate startDate, LocalDate endDate
+    );
 }

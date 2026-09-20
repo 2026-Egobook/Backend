@@ -374,7 +374,7 @@ public class EgoRoomService {
     // ── 주간 분석서 재발송 (관리자 수동 재발송용) ─────────────────────────────
     // createWeeklyAnalysis와 동일한 로직, 중복 체크 없이 강제 재생성
     @Transactional
-    public void resendWeeklyAnalysis(Long userId, LocalDate startDate) {
+    public boolean resendWeeklyAnalysis(Long userId, LocalDate startDate) {
         log.info("[EgoRoomService] resendWeeklyAnalysis Start - userId: {}", userId);
 
         User user = userRepository.findById(userId)
@@ -390,7 +390,7 @@ public class EgoRoomService {
         LocalDate endDate = startDate.plusDays(6);
 
         List<Diary> diaries = diaryRepository.findByUserIdAndDateBetweenOrderByDateAsc(userId, startDate, endDate);
-        if (diaries.isEmpty()) return;
+        if (diaries.isEmpty()) return false;
 
         String formattedDiaries = diaries.stream()
                 .collect(Collectors.groupingBy(
@@ -434,6 +434,7 @@ public class EgoRoomService {
                     userId, counsel.getId(), e);
         }
         log.info("[EgoRoomService] resendWeeklyAnalysis End - userId: {}", userId);
+        return true;
     }
 
     @Transactional
