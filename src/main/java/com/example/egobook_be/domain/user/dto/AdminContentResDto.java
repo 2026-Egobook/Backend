@@ -143,5 +143,6 @@ public class AdminContentResDto {
         private Long failId;
         private String status;   // SUCCESS | FAIL
         private String reason;   // FAIL 시에만
+        private boolean resent;
     }
 }

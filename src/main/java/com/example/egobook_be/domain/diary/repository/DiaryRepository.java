@@ -77,6 +77,7 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
         FROM Diary d
         WHERE d.date BETWEEN :startDate AND :endDate
           AND d.user.weeklyAnalysisEnabled = true
+          AND d.user.status <> com.example.egobook_be.domain.user.enums.UserStatus.WITHDRAW_PENDING
     """)
     List<Object[]> findWeeklyReportCandidates(
             @Param("startDate") LocalDate startDate,

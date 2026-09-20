@@ -24,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -46,6 +47,7 @@ public class AdminContentService {
     private final EgoRoomService egoRoomService;
     private final AiRequestCountLogRepository aiRequestCountLogRepo;
     private final DiaryRepository diaryRepository;
+    private final TransactionTemplate transactionTemplate;
 
     // ─────────────────────────────────────────────────────────────────────────
     // B1. AI 일간 칭찬서
@@ -160,7 +162,7 @@ public class AdminContentService {
         validateDateRange(startDate, endDate);
 
         List<WeeklyReportSendFailLog> failLogs =
-                weeklyReportFailLogRepo.findByWeekStartDateBetweenOrderByFailedAtDesc(startDate, endDate);
+                weeklyReportFailLogRepo.findByWeekStartDateBetweenAndResentFalseOrderByFailedAtDesc(startDate, endDate);
 
         long successCount = weeklyCounselRepo.countByStartDateBetween(startDate, endDate);
         long scheduledCount = countWeeklyReportScheduled(startDate, endDate);
@@ -187,7 +189,6 @@ public class AdminContentService {
                 .build();
     }
 
-    @Transactional
     public ResendRes resendWeeklyReport(ResendReqDto reqDto) {
         log.info("[AdminContentService] resendWeeklyReport Start");
         validateFailIds(reqDto.getFailIds());
@@ -196,30 +197,18 @@ public class AdminContentService {
         long successCount = 0, failCount = 0;
 
         for (Long failId : reqDto.getFailIds()) {
-            Optional<WeeklyReportSendFailLog> opt = weeklyReportFailLogRepo.findById(failId);
-
-            if (opt.isEmpty()) {
-                results.add(failResult(failId, "NOT_FOUND"));
-                failCount++;
-                continue;
-            }
-
-            WeeklyReportSendFailLog failLog = opt.get();
-            if (failLog.isResent()) {
-                results.add(failResult(failId, "ALREADY_SENT"));
-                failCount++;
-                continue;
-            }
-
+            ResendResult result;
             try {
-                // createWeeklyAnalysis와 로직은 동일하되 재발송 전용 메서드 호출 (중복 체크 없이 강제 재생성)
-                egoRoomService.resendWeeklyAnalysis(failLog.getUserId(), failLog.getWeekStartDate());
-                failLog.markResent();
-                results.add(successResult(failId));
-                successCount++;
+                result = transactionTemplate.execute(status -> resendWeeklyReportOne(failId));
             } catch (Exception e) {
                 log.error("[AdminContent] 주간 리포트 재발송 실패 failId={}: {}", failId, e.getMessage());
-                results.add(failResult(failId, "RESEND_FAILED"));
+                result = failResult(failId, "RESEND_FAILED");
+            }
+
+            results.add(result);
+            if ("SUCCESS".equals(result.getStatus())) {
+                successCount++;
+            } else {
                 failCount++;
             }
         }
@@ -230,6 +219,30 @@ public class AdminContentService {
                 .failCount(failCount)
                 .results(results)
                 .build();
+    }
+
+    private ResendResult resendWeeklyReportOne(Long failId) {
+        Optional<WeeklyReportSendFailLog> opt = weeklyReportFailLogRepo.findByIdWithLock(failId);
+        if (opt.isEmpty()) {
+            return failResult(failId, "NOT_FOUND");
+        }
+
+        WeeklyReportSendFailLog failLog = opt.get();
+        if (failLog.isResent()) {
+            return failResult(failId, "ALREADY_SENT");
+        }
+
+        if (weeklyCounselRepo.existsByUserIdAndStartDate(failLog.getUserId(), failLog.getWeekStartDate())) {
+            return failResult(failId, "ALREADY_EXISTS");
+        }
+
+        boolean created = egoRoomService.resendWeeklyAnalysis(failLog.getUserId(), failLog.getWeekStartDate());
+        if (!created) {
+            return failResult(failId, "NO_DIARY");
+        }
+
+        failLog.markResent();
+        return successResult(failId);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -372,10 +385,19 @@ public class AdminContentService {
     }
 
     private ResendResult successResult(Long failId) {
-        return ResendResult.builder().failId(failId).status("SUCCESS").build();
+        return ResendResult.builder()
+                .failId(failId)
+                .status("SUCCESS")
+                .resent(true)
+                .build();
     }
 
     private ResendResult failResult(Long failId, String reason) {
-        return ResendResult.builder().failId(failId).status("FAIL").reason(reason).build();
+        return ResendResult.builder()
+                .failId(failId)
+                .status("FAIL")
+                .reason(reason)
+                .resent(false)
+                .build();
     }
 }

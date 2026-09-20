@@ -64,4 +64,8 @@ public interface AnswerReportRepository
     //승인 획수 카운트
     @Query("SELECT COUNT(ar) FROM AnswerReport ar WHERE ar.answer.id = :answerId AND ar.status = :status")
     long countByAnswerIdAndStatus(@Param("answerId") Long answerId, @Param("status") ReportStatus status);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM AnswerReport ar WHERE ar.user IN :users OR ar.answer.id IN (SELECT qa.id FROM QuestionAnswer qa WHERE qa.user IN :users)")
+    void bulkDeleteByUserOrAnswerUserIn(@Param("users") List<User> users);
 }

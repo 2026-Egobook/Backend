@@ -1,5 +1,6 @@
 package com.example.egobook_be.domain.notice.repository;
 
+import java.util.List;
 import com.example.egobook_be.domain.notice.entity.Notice;
 import com.example.egobook_be.domain.notice.entity.NoticeRead;
 import com.example.egobook_be.domain.user.entity.User;
@@ -31,4 +32,8 @@ public interface NoticeReadRepository extends JpaRepository<NoticeRead, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from NoticeRead nr where nr.notice.id = :noticeId")
     int deleteAllByNoticeId(@Param("noticeId") Long noticeId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM NoticeRead nr WHERE nr.user IN :users")
+    void bulkDeleteByUserIn(@Param("users") List<User> users);
 }

@@ -12,6 +12,7 @@ import com.example.egobook_be.domain.letters.repository.PlazaLetterReportReposit
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.report.dto.ReportEntryResDto;
+import com.example.egobook_be.domain.report.enums.ReportErrorCode;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.enums.ReportStatus;
@@ -116,6 +117,7 @@ public class LetterReportAdminService {
                         .description(r.getDescription())
                         .status(r.getStatus())
                         .createdAt(r.getCreatedAt())
+                        .adminMemo(r.getAdminMemo())
                         .build())
                 .toList();
 
@@ -145,6 +147,7 @@ public class LetterReportAdminService {
                         .description(r.getDescription())
                         .status(r.getStatus())
                         .createdAt(r.getCreatedAt())
+                        .adminMemo(r.getAdminMemo())
                         .build())
                 .toList();
 
@@ -244,7 +247,7 @@ public class LetterReportAdminService {
     @Transactional
     public void updateLetterReportMemo(Long reportId, String memo) {
         log.debug("[LetterReportAdminService] updateLetterReportMemo START - reportId: {}, memo: {}", reportId, memo);
-        PlazaLetterReport letterReport = letterReportRepository.findById(reportId).orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+        PlazaLetterReport letterReport = letterReportRepository.findById(reportId).orElseThrow(() -> new CustomException(ReportErrorCode.REPORT_NOT_FOUND));
         letterReport.updateAdminMemo(memo);
         log.debug("[LetterReportAdminService] updateLetterReportMemo END - reportId: {}, memo: {}", reportId, memo);
     }
@@ -252,7 +255,7 @@ public class LetterReportAdminService {
     @Transactional
     public void updateLetterReplyReportMemo(Long reportId, String memo) {
         log.debug("[LetterReportReplyAdminService] updateLetterReplyReportMemo START - reportId: {}, memo: {}", reportId, memo);
-        PlazaLetterReplyReport letterReplyReport = replyReportRepository.findById(reportId).orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
+        PlazaLetterReplyReport letterReplyReport = replyReportRepository.findById(reportId).orElseThrow(() -> new CustomException(ReportErrorCode.REPORT_NOT_FOUND));
         letterReplyReport.updateAdminMemo(memo);
         log.debug("[LetterReportReplyAdminService] updateLetterReplyReportMemo END - reportId: {}, memo: {}", reportId, memo);
     }

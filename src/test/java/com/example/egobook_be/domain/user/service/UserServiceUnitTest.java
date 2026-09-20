@@ -73,6 +73,7 @@ public class UserServiceUnitTest {
                     .status(UserStatus.ACTIVE) // 정상 유저
                     .notificationEnabled(true)
                     .dailyPraise(true)
+                    .weeklyAnalysisEnabled(true)
                     .build();
 
             AuthAccount realAuthAccount = AuthAccount.builder()
@@ -103,6 +104,9 @@ public class UserServiceUnitTest {
             // (참고: User 클래스의 withdrawUser 내부 로직에 맞게 검증, 보통 false나 null로 바뀜)
             assertThat(mockUser.getDeletedAt()).isNotNull();
             assertThat(mockUser.getPurgeAt()).isNotNull();
+            assertThat(mockUser.isNotificationEnabled()).isTrue();
+            assertThat(mockUser.getDailyPraise()).isTrue();
+            assertThat(mockUser.getWeeklyAnalysisEnabled()).isTrue();
 
             // 2. Redis 호출 검증
             verify(redisUtil, times(1)).setTokenInBlacklist(rawAccessToken);

@@ -81,4 +81,7 @@ public interface PlazaLetterReplyReportRepository extends JpaRepository<PlazaLet
     @Query("SELECT COUNT(r) FROM PlazaLetterReplyReport r WHERE r.reply.replyId = :replyId AND r.status = :status")
     long countByReplyIdAndStatus(@Param("replyId") Long replyId, @Param("status") ReportStatus status);
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM PlazaLetterReplyReport r WHERE r.letter.letterId IN (SELECT l.letterId FROM PlazaLetter l WHERE l.senderId IS NULL AND l.receiverId IS NULL) OR r.reply.replyId IN (SELECT rp.replyId FROM PlazaLetterReply rp WHERE rp.letter.letterId IN (SELECT l.letterId FROM PlazaLetter l WHERE l.senderId IS NULL AND l.receiverId IS NULL))")
+    void bulkDeleteOfOrphanedLetters();
 }

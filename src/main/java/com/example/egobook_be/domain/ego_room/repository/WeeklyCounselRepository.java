@@ -1,5 +1,7 @@
 package com.example.egobook_be.domain.ego_room.repository;
 
+import java.util.List;
+import org.springframework.data.jpa.repository.Modifying;
 import aj.org.objectweb.asm.commons.Remapper;
 import com.example.egobook_be.domain.ego_room.entity.WeeklyCounsel;
 import com.example.egobook_be.domain.user.entity.User;
@@ -36,4 +38,7 @@ public interface WeeklyCounselRepository extends JpaRepository<WeeklyCounsel, Lo
     // 날짜 범위 내 생성된 WeeklyCounsel 수 (관리자 API용 - 주간 리포트 발송 성공 건수)
     long countByStartDateBetween(LocalDate startDate, LocalDate endDate);
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM WeeklyCounsel x WHERE x.user IN :users")
+    void bulkDeleteByUserIn(@Param("users") List<User> users);
 }

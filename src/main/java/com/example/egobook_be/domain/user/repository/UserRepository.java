@@ -55,8 +55,8 @@ public interface UserRepository extends JpaRepository<User, Long>,UserRepository
     List<User> findByStatusAndPurgeAtBefore(UserStatus status, LocalDateTime now);
 
     // 수신에 동의한 유저만 조회
-    List<User> findByDailyPraiseTrue();
-    List<User> findAllByWeeklyAnalysisEnabledTrue();
+    List<User> findByDailyPraiseTrueAndStatusNot(UserStatus status);
+    List<User> findAllByWeeklyAnalysisEnabledTrueAndStatusNot(UserStatus status);
 
     /** 공지사항 브로드캐스트 대상(활성 유저) 조회 */
     List<User> findAllByStatus(UserStatus status);

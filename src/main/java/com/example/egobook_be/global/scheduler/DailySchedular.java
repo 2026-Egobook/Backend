@@ -1,13 +1,20 @@
 package com.example.egobook_be.global.scheduler;
 
+import com.example.egobook_be.domain.ads.repository.AdRewardHistoryRepository;
 import com.example.egobook_be.domain.auth.repository.AuthAccountRepository;
 import com.example.egobook_be.domain.auth.repository.RefreshTokenBackupRepository;
+import com.example.egobook_be.domain.coupon.repository.UserCouponRepository;
 import com.example.egobook_be.domain.diary.repository.DiaryRepository;
+import com.example.egobook_be.domain.ego_room.repository.DailyPraiseRepository;
+import com.example.egobook_be.domain.ego_room.repository.UserStatsRepository;
+import com.example.egobook_be.domain.ego_room.repository.WeeklyCounselRepository;
 import com.example.egobook_be.domain.friend.repository.FriendRepository;
 import com.example.egobook_be.domain.friend.repository.FriendRequestRepository;
 import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReplyReport;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyReportRepository;
+import com.example.egobook_be.domain.letters.repository.PlazaLetterReportRepository;
+import com.example.egobook_be.domain.notice.repository.NoticeReadRepository;
 import com.example.egobook_be.domain.restriction.enums.RestrictionStatus;
 import com.example.egobook_be.domain.restriction.repository.RestrictionRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReplyRepository;
@@ -15,20 +22,24 @@ import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterThreadRepository;
 import com.example.egobook_be.domain.notification.repository.NotificationRepository;
 import com.example.egobook_be.domain.psychology.repository.UserKnowledgeRepository;
+import com.example.egobook_be.domain.question.repository.AnswerReportRepository;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
 import com.example.egobook_be.domain.shop.mapper.UserItemMapper;
 import com.example.egobook_be.domain.shop.repository.UserItemRepository;
 import com.example.egobook_be.domain.terms.repository.UserTermRepository;
 import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.user.enums.UserStatus;
+import com.example.egobook_be.domain.user.repository.AbilityLogRepository;
 import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
+import com.example.egobook_be.domain.user.repository.SubscriptionRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -54,6 +65,17 @@ public class DailySchedular {
     private final InkLogRepository inkLogRepository;
     private final PlazaLetterThreadRepository plazaLetterThreadRepository;
     private final RestrictionRepository restrictionRepository;
+    private final AdRewardHistoryRepository adRewardHistoryRepository;
+    private final UserCouponRepository userCouponRepository;
+    private final DailyPraiseRepository dailyPraiseRepository;
+    private final UserStatsRepository userStatsRepository;
+    private final WeeklyCounselRepository weeklyCounselRepository;
+    private final NoticeReadRepository noticeReadRepository;
+    private final AnswerReportRepository answerReportRepository;
+    private final AbilityLogRepository abilityLogRepository;
+    private final SubscriptionRepository subscriptionRepository;
+    private final PlazaLetterReportRepository plazaLetterReportRepository;
+    private final TransactionTemplate transactionTemplate;
 
     /**
      * 모든 사용자들의 일일 미션을 초기화하는 스케줄러 함수
@@ -106,7 +128,6 @@ public class DailySchedular {
      * - 매일 자정(00:00:00)에 실행
      */
     @Scheduled(cron = "0 0 0 * * *")
-    @Transactional
     public void purgeUsers() {
         log.info("🕛 [DailySchedular] 탈퇴한 사용자들의 정보들 일괄 삭제 작업 시작");
         long startTime = System.currentTimeMillis();
@@ -120,12 +141,37 @@ public class DailySchedular {
             return;
         }
 
-        // 2. 삭제 대상들 전부 삭제
-        int count = targetUsers.size();
-        deleteUsers(targetUsers);
+        // 2. 삭제 대상들 사용자별로 각각 삭제 (한 명이 실패해도 나머지는 계속 진행)
+        int successCount = 0;
+        for (User targetUser : targetUsers) {
+            Long targetUserId = targetUser.getId();
+            try {
+                Boolean purged = transactionTemplate.execute(status -> purgeUserIfStillPending(targetUserId));
+                if (Boolean.TRUE.equals(purged)) {
+                    successCount++;
+                }
+            } catch (Exception e) {
+                log.error("🕛 [DailySchedular] 사용자 삭제 실패 - userId: {}", targetUserId, e);
+            }
+        }
 
         long endTime = System.currentTimeMillis();
-        log.info("🕛 [DailySchedular] 총 {}명의 사용자 및 연관 데이터 삭제 완료. (소요시간: {}ms)", count, endTime - startTime);
+        log.info("🕛 [DailySchedular] 총 {}명 중 {}명의 사용자 및 연관 데이터 삭제 완료. (소요시간: {}ms)", targetUsers.size(), successCount, endTime - startTime);
+    }
+
+    /**
+     * 사용자를 잠근 뒤 아직 삭제 대상인지 다시 확인하고 삭제한다. (조회 이후 재가입으로 복구된 사용자는 건너뛴다)
+     */
+    private boolean purgeUserIfStillPending(Long userId) {
+        return userRepository.findByIdWithLock(userId)
+                .filter(user -> user.getStatus() == UserStatus.WITHDRAW_PENDING
+                        && user.getPurgeAt() != null
+                        && user.getPurgeAt().isBefore(LocalDateTime.now()))
+                .map(user -> {
+                    deleteUsers(List.of(user));
+                    return true;
+                })
+                .orElse(false);
     }
 
     /**
@@ -150,6 +196,14 @@ public class DailySchedular {
      * (16) 최종 사용자 정보 삭제 (User)
      */
     private void deleteUsers(List<User> users) {
+        adRewardHistoryRepository.bulkDeleteByUserIn(users);
+        userCouponRepository.bulkDeleteByUserIn(users);
+        dailyPraiseRepository.bulkDeleteByUserIn(users);
+        weeklyCounselRepository.bulkDeleteByUserIn(users);
+        userStatsRepository.bulkDeleteByUserIn(users);
+        noticeReadRepository.bulkDeleteByUserIn(users);
+        abilityLogRepository.bulkDeleteByUserIn(users);
+        subscriptionRepository.bulkDeleteByUserIn(users);
         refreshTokenBackupRepository.bulkDeleteByAuthAccountUserIn(users);
         // 1. 사용자 인증 정보 삭제 (AuthAccount)
         authAccountRepository.bulkDeleteByUserIn(users);
@@ -191,6 +245,8 @@ public class DailySchedular {
          */
         plazaLetterRepository.bulkNullifySenderId(users.stream().map(User::getId).toList());
         plazaLetterRepository.bulkNullifyReceiverId(users.stream().map(User::getId).toList());
+        plazaLetterReplyReportRepository.bulkDeleteOfOrphanedLetters();
+        plazaLetterReportRepository.bulkDeleteOfOrphanedLetters();
         plazaLetterRepository.bulkDeleteOrphanedLetters();
         plazaLetterThreadRepository.bulkDeleteEmptyThreads();
 
@@ -200,6 +256,7 @@ public class DailySchedular {
         // 12. 사용자가 받은 오늘의 심리지식 정보들 삭제
         userKnowledgeRepository.bulkDeleteByUserIn(users);
         // 13. 사용자가 작성한 오늘의 질문에 대한 답변들
+        answerReportRepository.bulkDeleteByUserOrAnswerUserIn(users);
         questionAnswerRepository.bulkDeleteByUserIn(users);
         // 14. 사용자의 능력치 정보 삭제 (Cascade로 처리됨)
         // 15. 사용자의 Ink 획득 기록 삭제

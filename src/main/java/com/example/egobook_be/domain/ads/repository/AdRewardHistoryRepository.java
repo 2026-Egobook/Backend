@@ -1,5 +1,8 @@
 package com.example.egobook_be.domain.ads.repository;
 
+import java.util.List;
+import org.springframework.data.jpa.repository.Modifying;
+import com.example.egobook_be.domain.user.entity.User;
 import com.example.egobook_be.domain.ads.entity.AdRewardHistory;
 import com.example.egobook_be.domain.ads.enums.AdRewardType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,4 +23,8 @@ public interface AdRewardHistoryRepository extends JpaRepository<AdRewardHistory
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
     );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM AdRewardHistory x WHERE x.user IN :users")
+    void bulkDeleteByUserIn(@Param("users") List<User> users);
 }

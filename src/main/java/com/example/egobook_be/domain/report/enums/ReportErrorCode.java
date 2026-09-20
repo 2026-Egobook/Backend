@@ -8,7 +8,8 @@ import org.springframework.http.HttpStatus;
 @Getter
 @RequiredArgsConstructor
 public enum ReportErrorCode implements BaseErrorCode {
-    INVALID_REPORT_MEMO_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 신고 메모 타입입니다." ),;
+    INVALID_REPORT_MEMO_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 신고 메모 타입입니다." ),
+    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "신고 내역을 찾을 수 없습니다.");
     private final HttpStatus status;
     private final String message;
 }
