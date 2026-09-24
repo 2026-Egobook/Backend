@@ -53,6 +53,7 @@ public class ShopServiceIntegrationTest {
                 .path("/test")
                 .category(ItemCategory.BACK)
                 .price(5)
+                .status("ACTIVE")
                 .build();
         itemRepository.save(affordableItem);
         this.affordableItemId = affordableItem.getId();
@@ -63,6 +64,7 @@ public class ShopServiceIntegrationTest {
                 .path("/test")
                 .category(ItemCategory.BACK)
                 .price(50)
+                .status("ACTIVE")
                 .build();
         itemRepository.save(expensiveItem);
         this.expensiveItemId = expensiveItem.getId();
