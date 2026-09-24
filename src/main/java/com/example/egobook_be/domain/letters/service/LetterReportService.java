@@ -2,6 +2,8 @@ package com.example.egobook_be.domain.letters.service;
 
 import com.example.egobook_be.domain.letters.entity.PlazaLetter;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReport;
+import com.example.egobook_be.domain.moderation.entity.ReportStrike;
+import com.example.egobook_be.domain.moderation.service.AutomaticRestrictionService;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterReportRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
@@ -20,6 +22,7 @@ public class LetterReportService {
 
     private final PlazaLetterReportRepository letterReportRepository;
     private final PlazaLetterRepository plazaLetterRepository;
+    private final AutomaticRestrictionService automaticRestrictionService;
 
     @Transactional
     public void reportLetter(Long letterId, Long userId, ReportReason reason, String description){
@@ -30,17 +33,22 @@ public class LetterReportService {
             throw new CustomException(LettersErrorCode.INVALID_REPORT_REASON);
         }
 
-        // 이미 신고한 편지인지
-        if (letterReportRepository.existsByLetter_LetterIdAndReporterId(letterId, userId)) {
-            throw new CustomException(LettersErrorCode.ALREADY_REPORTED);
-        }
-
         PlazaLetter letter = plazaLetterRepository.findById(letterId)
                 .orElseThrow(() -> new CustomException(LettersErrorCode.LETTER_NOT_FOUND));
 
         // 권한: 받은 사람만 신고 가능 (보낸 사람은 신고 불가)
         if (letter.getReceiverId() == null || !userId.equals(letter.getReceiverId())) {
             throw new CustomException(LettersErrorCode.FORBIDDEN);
+        }
+
+
+        // Serializes concurrent reports against the same author across letters/replies.
+        if (letter.getSenderId() != null) {
+            automaticRestrictionService.lockAuthor(letter.getSenderId());
+        }
+        // 이미 신고한 편지인지
+        if (letterReportRepository.existsByLetter_LetterIdAndReporterId(letterId, userId)) {
+            throw new CustomException(LettersErrorCode.ALREADY_REPORTED);
         }
 
 
@@ -53,12 +61,10 @@ public class LetterReportService {
                 .status(ReportStatus.PENDING)
                 .build();
 
-        letterReportRepository.save(report);
-
-        // 3회 누적 시 편지 삭제
-        long reportCount = letterReportRepository.countByLetter_LetterId(letterId);
-        if (reportCount >= 3) {
-            plazaLetterRepository.deleteById(letterId);
+        letterReportRepository.saveAndFlush(report);
+        if (letter.getSenderId() != null) {
+            automaticRestrictionService.onReportSaved(ReportStrike.SourceType.LETTER,
+                    report.getReportId(), letter.getSenderId(), null);
         }
         log.info("[LetterReportService] reportLetter End - userId: {}", userId);
     }

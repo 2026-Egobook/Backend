@@ -1,6 +1,13 @@
 package com.example.egobook_be.domain.letters.service;
 
 import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReportAdminResDto;
+import com.example.egobook_be.domain.moderation.entity.ModerationReportArchive;
+import com.example.egobook_be.domain.moderation.entity.ReportStrike;
+import com.example.egobook_be.domain.moderation.repository.ModerationReportArchiveRepository;
+import com.example.egobook_be.domain.moderation.service.AdminReportMerge;
+import com.example.egobook_be.global.enums.ReportReason;
+import org.springframework.data.domain.SliceImpl;
+import java.util.Comparator;
 import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReportDetailResDto;
 import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReplyReportAdminResDto;
 import com.example.egobook_be.domain.letters.dto.response.PlazaLetterReplyReportDetailResDto;
@@ -39,6 +46,7 @@ public class LetterReportAdminService {
     private final PlazaLetterRepository letterRepository;
     private final PlazaLetterReplyRepository replyRepository;
     private final UserRepository userRepository;
+    private final ModerationReportArchiveRepository archiveRepository;
 
     // 신고당한 유저(letter senderId / reply replierId)의 accountCode 조회, 탈퇴 등으로 id가 null이면 null 반환
     private String findAccountCode(Long userId) {
@@ -46,119 +54,117 @@ public class LetterReportAdminService {
         return userRepository.findById(userId).map(User::getAccountCode).orElse(null);
     }
 
+    private static ReportReason archiveReason(ModerationReportArchive a) {
+        return a.getReason() == null ? null : ReportReason.valueOf(a.getReason());
+    }
+
+    private static ReportStatus archiveStatus(ModerationReportArchive a) {
+        return a.getReportStatus() == null ? null : ReportStatus.valueOf(a.getReportStatus());
+    }
+
+    // 관리자가 이미 삭제된 콘텐츠임을 구분할 수 있도록 archived=true를 반환한다.
     public SliceResponse<PlazaLetterReportAdminResDto> getReportedLetters(int page, int size) {
         int safePage = Math.max(page, 1);
         int safeSize = Math.min(Math.max(size, 1), 50);
-        Pageable pageable = PageRequest.of(safePage - 1, safeSize);
-
-        Slice<PlazaLetterReport> slice = letterReportRepository.findAllWithLetter(pageable);
-
-        return SliceResponse.of(slice, report -> {
-            long reportCount = letterReportRepository.countByLetter_LetterId(report.getLetter().getLetterId());
-
-            return new PlazaLetterReportAdminResDto(
-                report.getReportId(),
-                report.getLetter().getLetterId(),
-                report.getLetter().getContent(),
-                report.getReporterId(),
-                report.getReason(),
-                report.getDescription(),
-                report.getStatus(),
-                report.getAdminMemo(),
-                reportCount,
-                report.getCreatedAt(),
-                report.getSenderId(),
-                findAccountCode(report.getSenderId())
-            );
-        });
+        int prefix = AdminReportMerge.fetchSize(safePage, safeSize);
+        Pageable prefixPage = PageRequest.of(0, prefix);
+        List<PlazaLetterReportAdminResDto> live = letterReportRepository.findAllWithLetter(prefixPage)
+                .stream().map(r -> new PlazaLetterReportAdminResDto(
+                        r.getReportId(), r.getLetter().getLetterId(), r.getLetter().getContent(),
+                        r.getReporterId(), r.getReason(), r.getDescription(), r.getStatus(), r.getAdminMemo(),
+                        letterReportRepository.countByLetter_LetterId(r.getLetter().getLetterId()),
+                        r.getCreatedAt(), r.getSenderId(), findAccountCode(r.getSenderId()), false)).toList();
+        List<PlazaLetterReportAdminResDto> archived = archiveRepository
+                .findBySourceTypeOrderByOriginalCreatedAtDescIdDesc(ReportStrike.SourceType.LETTER, prefixPage)
+                .stream().map(a -> new PlazaLetterReportAdminResDto(
+                        a.getSourceReportId(), a.getTargetContentId(), a.getOriginalContent(),
+                        a.getReporterId(), archiveReason(a), a.getDescription(), archiveStatus(a), a.getAdminMemo(),
+                        archiveRepository.countBySourceTypeAndTargetContentId(ReportStrike.SourceType.LETTER, a.getTargetContentId()),
+                        a.getOriginalCreatedAt(), a.getTargetUserId(), findAccountCode(a.getTargetUserId()), true)).toList();
+        Slice<PlazaLetterReportAdminResDto> merged = AdminReportMerge.merge(live, archived,
+                Comparator.comparing(PlazaLetterReportAdminResDto::createdAt,
+                                Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(PlazaLetterReportAdminResDto::reportId, Comparator.reverseOrder()),
+                safePage, safeSize);
+        return SliceResponse.of(merged, dto -> dto);
     }
 
     public SliceResponse<PlazaLetterReplyReportAdminResDto> getReportedReplies(int page, int size) {
         int safePage = Math.max(page, 1);
         int safeSize = Math.min(Math.max(size, 1), 50);
-        Pageable pageable = PageRequest.of(safePage - 1, safeSize);
-
-        Slice<PlazaLetterReplyReport> slice = replyReportRepository.findAllWithReply(pageable);
-
-        return SliceResponse.of(slice, report -> {
-            long reportCount = replyReportRepository.countByReply_ReplyId(report.getReply().getReplyId());
-
-            return new PlazaLetterReplyReportAdminResDto(
-                report.getReportId(),
-                report.getReply().getReplyId(),
-                report.getReply().getContent(),
-                report.getReporterId(),
-                report.getReason(),
-                report.getDescription(),
-                report.getStatus(),
-                report.getAdminMemo(),
-                reportCount,
-                report.getCreatedAt(),
-                report.getReplierId(),
-                findAccountCode(report.getReplierId())
-            );
-        });
+        int prefix = AdminReportMerge.fetchSize(safePage, safeSize);
+        Pageable prefixPage = PageRequest.of(0, prefix);
+        List<PlazaLetterReplyReportAdminResDto> live = replyReportRepository.findAllWithReply(prefixPage)
+                .stream().map(r -> new PlazaLetterReplyReportAdminResDto(
+                        r.getReportId(), r.getReply().getReplyId(), r.getReply().getContent(),
+                        r.getReporterId(), r.getReason(), r.getDescription(), r.getStatus(), r.getAdminMemo(),
+                        replyReportRepository.countByReply_ReplyId(r.getReply().getReplyId()),
+                        r.getCreatedAt(), r.getReplierId(), findAccountCode(r.getReplierId()), false)).toList();
+        List<PlazaLetterReplyReportAdminResDto> archived = archiveRepository
+                .findBySourceTypeOrderByOriginalCreatedAtDescIdDesc(ReportStrike.SourceType.REPLY, prefixPage)
+                .stream().map(a -> new PlazaLetterReplyReportAdminResDto(
+                        a.getSourceReportId(), a.getTargetContentId(), a.getOriginalContent(),
+                        a.getReporterId(), archiveReason(a), a.getDescription(), archiveStatus(a), a.getAdminMemo(),
+                        archiveRepository.countBySourceTypeAndTargetContentId(ReportStrike.SourceType.REPLY, a.getTargetContentId()),
+                        a.getOriginalCreatedAt(), a.getTargetUserId(), findAccountCode(a.getTargetUserId()), true)).toList();
+        Slice<PlazaLetterReplyReportAdminResDto> merged = AdminReportMerge.merge(live, archived,
+                Comparator.comparing(PlazaLetterReplyReportAdminResDto::createdAt,
+                                Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(PlazaLetterReplyReportAdminResDto::reportId, Comparator.reverseOrder()),
+                safePage, safeSize);
+        return SliceResponse.of(merged, dto -> dto);
     }
 
     // 상세 조회 기준을 reportId(개별 신고건)에서 letterId(신고된 컨텐츠)로 변경
     // - 같은 편지를 여러 명이 신고한 경우, 그 편지에 달린 모든 신고 내역을 리스트로 함께 반환
     public PlazaLetterReportDetailResDto getReportedLetterDetail(Long letterId) {
         List<PlazaLetterReport> reports = letterReportRepository.findAllByLetterId(letterId);
-        if (reports.isEmpty()) {
+        List<ModerationReportArchive> archived = archiveRepository
+                .findBySourceTypeAndTargetContentIdOrderByOriginalCreatedAtDescIdDesc(
+                        ReportStrike.SourceType.LETTER, letterId);
+        if (reports.isEmpty() && archived.isEmpty()) {
             throw new CustomException(LettersErrorCode.LETTER_NOT_FOUND);
         }
-        PlazaLetterReport first = reports.get(0);
-
-        List<ReportEntryResDto> entries = reports.stream()
-                .map(r -> ReportEntryResDto.builder()
-                        .reportId(r.getReportId())
-                        .reporterId(r.getReporterId())
-                        .reason(r.getReason())
-                        .description(r.getDescription())
-                        .status(r.getStatus())
-                        .createdAt(r.getCreatedAt())
-                        .adminMemo(r.getAdminMemo())
-                        .build())
-                .toList();
-
-        return new PlazaLetterReportDetailResDto(
-                letterId,
-                first.getLetter().getContent(),
-                first.getSenderId(),
-                findAccountCode(first.getSenderId()),
-                entries.size(),
-                entries
-        );
+        List<ReportEntryResDto> entries = new java.util.ArrayList<>();
+        for (PlazaLetterReport r : reports) {
+            entries.add(ReportEntryResDto.builder().reportId(r.getReportId())
+                    .reporterId(r.getReporterId()).reason(r.getReason()).description(r.getDescription())
+                    .status(r.getStatus()).createdAt(r.getCreatedAt()).adminMemo(r.getAdminMemo()).build());
+        }
+        for (ModerationReportArchive a : archived) {
+            entries.add(ReportEntryResDto.builder().reportId(a.getSourceReportId())
+                    .reporterId(a.getReporterId()).reason(archiveReason(a)).description(a.getDescription())
+                    .status(archiveStatus(a)).createdAt(a.getOriginalCreatedAt()).adminMemo(a.getAdminMemo()).build());
+        }
+        Long authorId = reports.isEmpty() ? archived.get(0).getTargetUserId() : reports.get(0).getSenderId();
+        String content = reports.isEmpty() ? archived.get(0).getOriginalContent() : reports.get(0).getLetter().getContent();
+        return new PlazaLetterReportDetailResDto(letterId, content, authorId,
+                findAccountCode(authorId), entries.size(), entries);
     }
 
-    // 상세 조회 기준을 reportId(개별 신고건)에서 replyId(신고된 컨텐츠)로 변경
     public PlazaLetterReplyReportDetailResDto getReportedReplyDetail(Long replyId) {
         List<PlazaLetterReplyReport> reports = replyReportRepository.findAllByReplyId(replyId);
-        if (reports.isEmpty()) {
+        List<ModerationReportArchive> archived = archiveRepository
+                .findBySourceTypeAndTargetContentIdOrderByOriginalCreatedAtDescIdDesc(
+                        ReportStrike.SourceType.REPLY, replyId);
+        if (reports.isEmpty() && archived.isEmpty()) {
             throw new CustomException(LettersErrorCode.LETTER_NOT_FOUND);
         }
-        PlazaLetterReplyReport first = reports.get(0);
-
-        List<ReportEntryResDto> entries = reports.stream()
-                .map(r -> ReportEntryResDto.builder()
-                        .reportId(r.getReportId())
-                        .reporterId(r.getReporterId())
-                        .reason(r.getReason())
-                        .description(r.getDescription())
-                        .status(r.getStatus())
-                        .createdAt(r.getCreatedAt())
-                        .adminMemo(r.getAdminMemo())
-                        .build())
-                .toList();
-
-        return new PlazaLetterReplyReportDetailResDto(
-                replyId,
-                first.getReply().getContent(),
-                first.getReplierId(),
-                findAccountCode(first.getReplierId()),
-                entries.size(),
-                entries
-        );
+        List<ReportEntryResDto> entries = new java.util.ArrayList<>();
+        for (PlazaLetterReplyReport r : reports) {
+            entries.add(ReportEntryResDto.builder().reportId(r.getReportId())
+                    .reporterId(r.getReporterId()).reason(r.getReason()).description(r.getDescription())
+                    .status(r.getStatus()).createdAt(r.getCreatedAt()).adminMemo(r.getAdminMemo()).build());
+        }
+        for (ModerationReportArchive a : archived) {
+            entries.add(ReportEntryResDto.builder().reportId(a.getSourceReportId())
+                    .reporterId(a.getReporterId()).reason(archiveReason(a)).description(a.getDescription())
+                    .status(archiveStatus(a)).createdAt(a.getOriginalCreatedAt()).adminMemo(a.getAdminMemo()).build());
+        }
+        Long authorId = reports.isEmpty() ? archived.get(0).getTargetUserId() : reports.get(0).getReplierId();
+        String content = reports.isEmpty() ? archived.get(0).getOriginalContent() : reports.get(0).getReply().getContent();
+        return new PlazaLetterReplyReportDetailResDto(replyId, content, authorId,
+                findAccountCode(authorId), entries.size(), entries);
     }
 
     //수동 삭제

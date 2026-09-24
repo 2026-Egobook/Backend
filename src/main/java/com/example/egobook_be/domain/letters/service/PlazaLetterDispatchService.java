@@ -5,8 +5,6 @@ import com.example.egobook_be.domain.letters.entity.PlazaLetter;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
 import com.example.egobook_be.domain.letters.repository.LetterSendFailLogRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
-import com.example.egobook_be.domain.restriction.enums.RestrictionDomainType;
-import com.example.egobook_be.domain.restriction.service.RestrictionGuardService;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,9 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -27,7 +23,6 @@ public class PlazaLetterDispatchService {
 
     private final PlazaLetterRepository plazaLetterRepository;
     private final UserRepository userRepository;
-    private final RestrictionGuardService restrictionGuardService;
     private final LetterSendFailLogRepository letterFailLogRepo;
 
     private static final int BATCH_SIZE = 20;
@@ -61,24 +56,6 @@ public class PlazaLetterDispatchService {
                         .build());
             }
             return;
-        }
-
-        // LETTER 제재 사용자 수신자 풀에서 제외
-        Set<Long> restrictedIds = restrictionGuardService.getActivelyRestrictedUserIds(RestrictionDomainType.LETTER);
-        if (!restrictedIds.isEmpty()) {
-            receiverPool = receiverPool.stream()
-                    .filter(id -> !restrictedIds.contains(id))
-                    .collect(Collectors.toList());
-            if (receiverPool.isEmpty()) {
-                for (PlazaLetter letter : waitingLetters) {
-                    letterFailLogRepo.save(LetterSendFailLog.builder()
-                            .letterId(letter.getLetterId())
-                            .failedAt(LocalDateTime.now())
-                            .reason("수신 가능한 유저 없음")
-                            .build());
-                }
-                return;
-            }
         }
 
         for (PlazaLetter letter : waitingLetters) {

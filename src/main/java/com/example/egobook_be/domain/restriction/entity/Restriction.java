@@ -24,7 +24,7 @@ public class Restriction extends BaseTimeEntity {
     @Column(nullable = false)
     private Long userId;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private Long adminId;
 
     @Enumerated(EnumType.STRING)
@@ -48,13 +48,26 @@ public class Restriction extends BaseTimeEntity {
 
     // [AI-MOD] 제재 생성 reason 타입 문자열로 변경
     public static Restriction create(Long adminId, Long userId,
-            RestrictionDomainType domainType, String reason,
-            String description) {
+                                     RestrictionDomainType domainType, String reason,
+                                     String description) {
         return Restriction.builder()
                 .adminId(adminId)
                 .userId(userId)
                 .domainType(domainType)
                 .reason(reason)
+                .description(description)
+                .status(RestrictionStatus.ACTIVE)
+                .restrictionUntil(LocalDateTime.now(ZoneId.of("Asia/Seoul")).plusDays(7))
+                .build();
+    }
+
+    /** 자동 제재에는 관리자 ID가 존재하지 않는다. */
+    public static Restriction createAutomatic(Long userId, RestrictionDomainType domainType, String description) {
+        return Restriction.builder()
+                .adminId(null)
+                .userId(userId)
+                .domainType(domainType)
+                .reason("AUTO_REPORT_3")
                 .description(description)
                 .status(RestrictionStatus.ACTIVE)
                 .restrictionUntil(LocalDateTime.now(ZoneId.of("Asia/Seoul")).plusDays(7))

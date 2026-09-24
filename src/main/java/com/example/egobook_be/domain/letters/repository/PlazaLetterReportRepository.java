@@ -13,6 +13,11 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PlazaLetterReportRepository extends JpaRepository<PlazaLetterReport, Long>, PlazaLetterReportRepositoryCustom {
+    List<PlazaLetterReport> findAllByLetter_LetterIdIn(List<Long> letterIds);
+    @Modifying
+    @Query("DELETE FROM PlazaLetterReport r WHERE r.letter.letterId IN :ids")
+    void deleteAllByLetterIdIn(@Param("ids") List<Long> ids);
+
 
     boolean existsByLetter_LetterIdAndReporterId(Long letterId, Long reporterId);
 

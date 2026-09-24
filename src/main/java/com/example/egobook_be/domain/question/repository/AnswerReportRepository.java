@@ -16,6 +16,11 @@ import java.util.Optional;
 
 public interface AnswerReportRepository
         extends JpaRepository<AnswerReport, Long>, AnswerReportRepositoryCustom{
+    List<AnswerReport> findAllByAnswer_IdIn(List<Long> answerIds);
+    @Modifying
+    @Query("DELETE FROM AnswerReport r WHERE r.answer.id IN :ids")
+    void deleteAllByAnswerIdIn(@Param("ids") List<Long> ids);
+
 
     boolean existsByUserAndAnswer(User user, QuestionAnswer answer);
 

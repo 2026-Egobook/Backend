@@ -1,6 +1,12 @@
 package com.example.egobook_be.domain.question.service;
 
-import com.example.egobook_be.domain.letters.entity.PlazaLetterReport;
+import com.example.egobook_be.domain.moderation.entity.ModerationReportArchive;
+import com.example.egobook_be.domain.moderation.entity.ReportStrike;
+import com.example.egobook_be.domain.moderation.repository.ModerationReportArchiveRepository;
+import com.example.egobook_be.domain.moderation.service.AdminReportMerge;
+import com.example.egobook_be.global.enums.ReportReason;
+import org.springframework.data.domain.Slice;
+import java.util.Comparator;
 import com.example.egobook_be.domain.letters.enums.LettersErrorCode;
 import com.example.egobook_be.domain.question.dto.AnswerReportAdminResDto;
 import com.example.egobook_be.domain.question.dto.AnswerReportDetailResDto;
@@ -33,6 +39,7 @@ public class AnswerReportAdminService {
     private final AnswerReportRepository answerReportRepository;
     private final QuestionAnswerRepository questionAnswerRepository;
     private final UserRepository userRepository;
+    private final ModerationReportArchiveRepository archiveRepository;
 
     // 신고당한 유저(답변 작성자)의 accountCode 조회, 탈퇴 등으로 id가 null이면 null 반환
     private String findAccountCode(Long userId) {
@@ -40,72 +47,72 @@ public class AnswerReportAdminService {
         return userRepository.findById(userId).map(User::getAccountCode).orElse(null);
     }
 
-    @Transactional(readOnly = true)
-    public SliceResponse<AnswerReportAdminResDto> getReportedAnswers(
-            int page,
-            int size
-    ) {
-        log.info("[AnswerReportAdminService] getReportedAnswers Start");
-        Pageable pageable = PageRequest.of(page-1, size);
+    private static ReportReason archiveReason(ModerationReportArchive a) {
+        return a.getReason() == null ? null : ReportReason.valueOf(a.getReason());
+    }
 
-        log.info("[AnswerReportAdminService] getReportedAnswers End");
-        return SliceResponse.of(
-                answerReportRepository.findAllWithAnswerAndUser(pageable),
-                this::toDto
-        );
+    private static ReportStatus archiveStatus(ModerationReportArchive a) {
+        return a.getReportStatus() == null ? null : ReportStatus.valueOf(a.getReportStatus());
+    }
+
+    @Transactional(readOnly = true)
+    public SliceResponse<AnswerReportAdminResDto> getReportedAnswers(int page, int size) {
+        int safePage = Math.max(1, page);
+        int safeSize = Math.min(Math.max(1, size), 50);
+        Pageable prefixPage = PageRequest.of(0, AdminReportMerge.fetchSize(safePage, safeSize));
+        List<AnswerReportAdminResDto> live = answerReportRepository.findAllWithAnswerAndUser(prefixPage)
+                .stream().map(this::toDto).toList();
+        List<AnswerReportAdminResDto> archived = archiveRepository
+                .findBySourceTypeOrderByOriginalCreatedAtDescIdDesc(ReportStrike.SourceType.ANSWER, prefixPage)
+                .stream().map(a -> new AnswerReportAdminResDto(
+                        a.getSourceReportId(), a.getTargetContentId(), a.getOriginalContent(),
+                        a.getReporterId(), a.getReporterId() == null ? null : userRepository.findById(a.getReporterId())
+                        .map(User::getNickname).orElse(null), archiveReason(a), a.getDescription(),
+                        archiveRepository.countBySourceTypeAndTargetContentId(ReportStrike.SourceType.ANSWER, a.getTargetContentId()),
+                        archiveStatus(a), a.getAdminMemo(), a.getOriginalCreatedAt(), a.getTargetUserId(),
+                        findAccountCode(a.getTargetUserId()), true)).toList();
+        Slice<AnswerReportAdminResDto> merged = AdminReportMerge.merge(live, archived,
+                Comparator.comparing(AnswerReportAdminResDto::reportedAt,
+                                Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(AnswerReportAdminResDto::reportId, Comparator.reverseOrder()),
+                safePage, safeSize);
+        return SliceResponse.of(merged, dto -> dto);
     }
 
     private AnswerReportAdminResDto toDto(AnswerReport report) {
         long reportCount = answerReportRepository.countByAnswerId(report.getAnswer().getId());
-
         return new AnswerReportAdminResDto(
-                report.getId(),
-                report.getAnswer().getId(),
-                report.getAnswer().getContent(),
-                report.getUser().getId(),
-                report.getUser().getNickname(),
-                report.getReason(),
-                report.getDescription(),
-                reportCount,
-                report.getStatus(),
-                report.getAdminMemo(),
-                report.getCreatedAt(),
-                report.getAnswer().getUser().getId(),
-                findAccountCode(report.getAnswer().getUser().getId())
-        );
+                report.getId(), report.getAnswer().getId(), report.getAnswer().getContent(),
+                report.getUser().getId(), report.getUser().getNickname(), report.getReason(),
+                report.getDescription(), reportCount, report.getStatus(), report.getAdminMemo(),
+                report.getCreatedAt(), report.getAnswer().getUser().getId(),
+                findAccountCode(report.getAnswer().getUser().getId()), false);
     }
-
 
     @Transactional(readOnly = true)
     public AnswerReportDetailResDto getReportedAnswerDetail(Long answerId) {
-        log.info("[AnswerReportAdminService] getReportedAnswerDetail Start - answerId: {}", answerId);
         List<AnswerReport> reports = answerReportRepository.findAllByAnswerId(answerId);
-        if (reports.isEmpty()) {
+        List<ModerationReportArchive> archived = archiveRepository
+                .findBySourceTypeAndTargetContentIdOrderByOriginalCreatedAtDescIdDesc(
+                        ReportStrike.SourceType.ANSWER, answerId);
+        if (reports.isEmpty() && archived.isEmpty()) {
             throw new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND);
         }
-        AnswerReport first = reports.get(0);
-
-        List<ReportEntryResDto> entries = reports.stream()
-                .map(r -> ReportEntryResDto.builder()
-                        .reportId(r.getId())
-                        .reporterId(r.getUser().getId())
-                        .reason(r.getReason())
-                        .description(r.getDescription())
-                        .status(r.getStatus())
-                        .createdAt(r.getCreatedAt())
-                        .adminMemo(r.getAdminMemo())
-                        .build())
-                .toList();
-
-        log.info("[AnswerReportAdminService] getReportedAnswerDetail End - answerId: {}", answerId);
-        return new AnswerReportDetailResDto(
-                answerId,
-                first.getAnswer().getContent(),
-                first.getAnswer().getUser().getId(),
-                findAccountCode(first.getAnswer().getUser().getId()),
-                entries.size(),
-                entries
-        );
+        List<ReportEntryResDto> entries = new java.util.ArrayList<>();
+        for (AnswerReport r : reports) {
+            entries.add(ReportEntryResDto.builder().reportId(r.getId())
+                    .reporterId(r.getUser().getId()).reason(r.getReason()).description(r.getDescription())
+                    .status(r.getStatus()).createdAt(r.getCreatedAt()).adminMemo(r.getAdminMemo()).build());
+        }
+        for (ModerationReportArchive a : archived) {
+            entries.add(ReportEntryResDto.builder().reportId(a.getSourceReportId())
+                    .reporterId(a.getReporterId()).reason(archiveReason(a)).description(a.getDescription())
+                    .status(archiveStatus(a)).createdAt(a.getOriginalCreatedAt()).adminMemo(a.getAdminMemo()).build());
+        }
+        Long authorId = reports.isEmpty() ? archived.get(0).getTargetUserId() : reports.get(0).getAnswer().getUser().getId();
+        String content = reports.isEmpty() ? archived.get(0).getOriginalContent() : reports.get(0).getAnswer().getContent();
+        return new AnswerReportDetailResDto(answerId, content, authorId,
+                findAccountCode(authorId), entries.size(), entries);
     }
 
     //수동 삭제

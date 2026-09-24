@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
+import com.example.egobook_be.domain.letters.enums.PlazaLetterColor;
 
 @Getter
 public class ReplyRequest {
@@ -12,4 +13,7 @@ public class ReplyRequest {
     @NotBlank(message = "text는 필수예요")
     @Size(max = 350, message = "text는 350자 이하여야 해요")
     private String text;
+
+    @Schema(description = "답장 편지지 색상 (미지정 시 WHITE)", example = "PINK")
+    private PlazaLetterColor backgroundColor;
 }

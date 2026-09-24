@@ -14,6 +14,12 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PlazaLetterReplyRepository extends JpaRepository<PlazaLetterReply, Long> {
+    List<PlazaLetterReply> findAllByReplierId(Long replierId);
+    List<PlazaLetterReply> findAllByLetter_LetterIdIn(List<Long> letterIds);
+    @Modifying
+    @Query("DELETE FROM PlazaLetterReply r WHERE r.replyId IN :ids")
+    void deleteAllByReplyIdIn(@Param("ids") List<Long> ids);
+
     boolean existsByLetter(PlazaLetter letter);
 
     long countByReplierId(Long replierId);

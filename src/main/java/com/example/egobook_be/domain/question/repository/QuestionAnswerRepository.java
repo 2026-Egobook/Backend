@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface QuestionAnswerRepository extends JpaRepository<QuestionAnswer, Long> {
+    List<QuestionAnswer> findAllByUser_Id(Long userId);
+
     boolean existsByUserAndQuestion(User user, TodayQuestion question);
 
     long countByUser(User user);

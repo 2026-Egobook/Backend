@@ -17,5 +17,23 @@ public record PlazaLetterReportAdminResDto(
         long reportCount,
         LocalDateTime createdAt,
         Long reportedUserId,
-        String reportedUserAccountCode
-) {}
+        String reportedUserAccountCode,
+        boolean archived
+) {
+    public PlazaLetterReportAdminResDto(
+            Long reportId,
+            Long letterId,
+            String letterContent,
+            Long reporterId,
+            ReportReason reason,
+            String description,
+            ReportStatus status,
+            String adminMemo,
+            long reportCount,
+            LocalDateTime createdAt,
+            Long reportedUserId,
+            String reportedUserAccountCode
+    ) {
+        this(reportId, letterId, letterContent, reporterId, reason, description, status, adminMemo, reportCount, createdAt, reportedUserId, reportedUserAccountCode, false);
+    }
+}

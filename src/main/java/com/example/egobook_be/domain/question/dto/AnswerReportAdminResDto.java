@@ -18,5 +18,24 @@ public record AnswerReportAdminResDto(
         String adminMemo,
         LocalDateTime reportedAt,
         Long reportedUserId,
-        String reportedUserAccountCode
-) {}
+        String reportedUserAccountCode,
+        boolean archived
+) {
+    public AnswerReportAdminResDto(
+            Long reportId,
+            Long answerId,
+            String answerContent,
+            Long reporterId,
+            String reporterNickname,
+            ReportReason reason,
+            String description,
+            long reportCount,
+            ReportStatus status,
+            String adminMemo,
+            LocalDateTime reportedAt,
+            Long reportedUserId,
+            String reportedUserAccountCode
+    ) {
+        this(reportId, answerId, answerContent, reporterId, reporterNickname, reason, description, reportCount, status, adminMemo, reportedAt, reportedUserId, reportedUserAccountCode, false);
+    }
+}

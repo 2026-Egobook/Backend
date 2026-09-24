@@ -24,4 +24,5 @@ public class PlazaSentLetterResDto {
 
     private LocalDateTime createdAt;
     private String backgroundColor;
+    private String backgroundImageUrl;
 }

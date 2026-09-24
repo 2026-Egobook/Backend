@@ -172,7 +172,8 @@ public class PlazaLetterQueryService {
         Slice<PlazaLetter> slice = plazaLetterRepository.findMyDeferredInboxSlice(userId, pageable);
 
         log.info("[PlazaLetterQueryService] getMyDeferredInbox End - userId: {}", userId);
-        return SliceResponse.of(slice, plazaLetterMapper::toDeferredInboxItemDto);
+        var restriction = restrictionGuardService.getLetterRestrictionInfo(userId);
+        return SliceResponse.of(slice, letter -> plazaLetterMapper.toDeferredInboxItemDto(letter, restriction.restricted(), restriction.reason(), restriction.restrictedUntil()));
     }
 
 

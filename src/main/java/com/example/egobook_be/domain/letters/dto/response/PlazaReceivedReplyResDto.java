@@ -15,6 +15,8 @@ public class PlazaReceivedReplyResDto {
     private Long threadId;
 
     private String replyText;
+    private String replyBackgroundColor;
+    private String replyBackgroundImageUrl;
     private LocalDateTime repliedAt;
 
     private boolean aiGenerated;
@@ -24,4 +26,5 @@ public class PlazaReceivedReplyResDto {
     private PlazaLetterMode mode;
     private String fromLabel;
     private String backgroundColor;
+    private String backgroundImageUrl;
 }

@@ -5,11 +5,21 @@ import com.example.egobook_be.domain.letters.entity.PlazaLetter;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterReply;
 import com.example.egobook_be.domain.letters.entity.PlazaLetterStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Value;
+import com.example.egobook_be.domain.letters.enums.PlazaLetterColor;
 
 import java.time.LocalDateTime;
 
 @Component
 public class PlazaLetterMapper {
+
+    @Value("${spring.cloud.aws.cloudfront.domain}")
+    private String cloudfrontDomain;
+
+    private String backgroundImageUrl(PlazaLetterColor color) {
+        if (color == null || color == PlazaLetterColor.WHITE) return null;
+        return cloudfrontDomain + "/letter/" + color.getImageName();
+    }
 
     private static final String AI_PREVIEW = "48시간 동안 답장이 없어 내가 대신...";
 
@@ -29,6 +39,7 @@ public class PlazaLetterMapper {
                 .lastMessagePreview(preview)
                 .createdAt(createdAt)
                 .backgroundColor(letter.getBackgroundColor().name())
+                .backgroundImageUrl(backgroundImageUrl(letter.getBackgroundColor()))
                 .build();
     }
 
@@ -49,6 +60,7 @@ public class PlazaLetterMapper {
                         .arrivedAt(letter.getArrivedAt())
                         .replyDeadlineAt(letter.getReplyDeadlineAt())
                         .backgroundColor(letter.getBackgroundColor().name())
+                        .backgroundImageUrl(backgroundImageUrl(letter.getBackgroundColor()))
                         .build())
                 .build();
     }
@@ -66,6 +78,8 @@ public class PlazaLetterMapper {
                 .threadId(letter.getThreadId())
 
                 .replyText(reply.getContent())
+                .replyBackgroundColor(reply.getBackgroundColor().name())
+                .replyBackgroundImageUrl(backgroundImageUrl(reply.getBackgroundColor()))
                 .repliedAt(reply.getCreatedAt())
 
                 .aiGenerated(reply.isAiGenerated())
@@ -74,6 +88,7 @@ public class PlazaLetterMapper {
                 .mode(letter.getMode())
                 .fromLabel(fromLabel)
                 .backgroundColor(letter.getBackgroundColor().name())
+                .backgroundImageUrl(backgroundImageUrl(letter.getBackgroundColor()))
 
                 .build();
     }
@@ -89,6 +104,8 @@ public class PlazaLetterMapper {
             replyDto = PlazaLetterDetailResDto.ReplyDto.builder()
                     .replyId(reply.getReplyId())
                     .text(reply.getContent())
+                    .backgroundColor(reply.getBackgroundColor().name())
+                    .backgroundImageUrl(backgroundImageUrl(reply.getBackgroundColor()))
                     .aiGenerated(reply.isAiGenerated())
                     .reported(reported)
                     .createdAt(reply.getCreatedAt())
@@ -104,6 +121,7 @@ public class PlazaLetterMapper {
 
                 .content(letter.getContent())
                 .backgroundColor(letter.getBackgroundColor().name())
+                .backgroundImageUrl(backgroundImageUrl(letter.getBackgroundColor()))
 
                 .createdAt(letter.getCreatedAt())
                 .arrivedAt(letter.getArrivedAt())
@@ -115,13 +133,22 @@ public class PlazaLetterMapper {
     }
 
     public DeferredInboxItemDto toDeferredInboxItemDto(PlazaLetter letter) {
+        return toDeferredInboxItemDto(letter, false, null, null);
+    }
+
+    public DeferredInboxItemDto toDeferredInboxItemDto(PlazaLetter letter,
+                                                       boolean restricted, String reason, LocalDateTime restrictedUntil) {
         return DeferredInboxItemDto.builder()
                 .letterId(letter.getLetterId())
                 .status(letter.getStatus())
                 .mode(letter.getMode())
                 .fromLabel(letter.getFromLabel())
                 .backgroundColor(letter.getBackgroundColor().name())
+                .backgroundImageUrl(backgroundImageUrl(letter.getBackgroundColor()))
                 .contentPreview(truncate(letter.getContent(), 30))
+                .restricted(restricted)
+                .reason(reason)
+                .restrictedUntil(restrictedUntil)
                 .arrivedAt(letter.getArrivedAt())
                 .replyDeadlineAt(letter.getReplyDeadlineAt())
                 .build();

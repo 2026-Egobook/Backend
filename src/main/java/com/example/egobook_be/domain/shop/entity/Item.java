@@ -82,7 +82,6 @@ public class Item extends BaseTimeEntity {
         this.category = item.getCategory();
         this.name = item.getName();
         this.price = item.getPrice();
-        this.status = item.getStatus();
     }
 
     public void activate(){
