@@ -14,6 +14,7 @@ public enum ShopErrorCode implements BaseErrorCode {
     INSUFFICIENT_INK_TO_BUY_ITEM(HttpStatus.BAD_REQUEST, "잉크가 부족하여 해당 아이템을 구매할 수 없습니다."),
     ITEM_NOT_PURCHASED(HttpStatus.BAD_REQUEST, "아이템이 구매되지 않았습니다."),
     INVALID_ITEM_STATUS(HttpStatus.BAD_REQUEST,"유효하지 않은 상태 값입니다."),
+    ITEM_IMAGE_REQUIRED(HttpStatus.BAD_REQUEST, "아이템 이미지는 필수입니다."),
     /*
      * 404 NOT FOUND
      */

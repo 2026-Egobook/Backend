@@ -39,9 +39,8 @@ public class AdminShopService {
             throws IOException {
 
         if (reqDto.file() == null || reqDto.file().isEmpty()) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "아이템 이미지는 필수입니다."
+            throw new CustomException(
+                    ShopErrorCode.ITEM_IMAGE_REQUIRED
             );
         }
 
