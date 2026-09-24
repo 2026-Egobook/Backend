@@ -14,9 +14,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.List;
@@ -33,22 +35,32 @@ public class AdminShopService {
 
 
     @Transactional
-    public AdminItemResDto createItem(AdminItemReqDto reqDto) throws IOException {
-        String path=reqDto.category().name().toLowerCase();
+    public AdminItemResDto createItem(AdminItemReqDto reqDto)
+            throws IOException {
 
-        // 기존 path 저장방법과 일치시킴
-        path = path.equals("decor_two") ? "decor2" : path;
-        path = path.equals("decor_one") ? "decor1" : path;
+        if (reqDto.file() == null || reqDto.file().isEmpty()) {
+            throw new CustomException(
+                    ShopErrorCode.ITEM_IMAGE_REQUIRED
+            );
+        }
 
-        path = path.equals("letter_paper") ? "letter" : path;
+        String itemStatus = resolveStatus(
+                reqDto.status(),
+                "INACTIVE"
+        );
 
-        // 이미지 s3에 업로드
-        String imageUrl = s3ImageService.upload(reqDto.file(),path);
+        String path = resolvePath(reqDto.category());
 
-        String fileName = imageUrl.substring(imageUrl.lastIndexOf("/") + 1);
+        // 이미지 S3 업로드
+        String imageUrl = s3ImageService.upload(
+                reqDto.file(),
+                path
+        );
 
-
-        String itemStatus = (reqDto.status() != null && reqDto.status().equalsIgnoreCase("inactive")) ? "INACTIVE" : "ACTIVE";
+        // 실제 저장된 파일명 추출
+        String fileName = imageUrl.substring(
+                imageUrl.lastIndexOf("/") + 1
+        );
 
         Item item = Item.builder()
                 .category(reqDto.category())
@@ -58,7 +70,8 @@ public class AdminShopService {
                 .status(itemStatus)
                 .build();
 
-        Item savedItem= itemRepository.save(item);
+        Item savedItem = itemRepository.save(item);
+
         return convertToAdminResDto(savedItem);
     }
 
@@ -81,25 +94,50 @@ public class AdminShopService {
 
     // 수정 (파일 포함 요청이므로 POST 사용)
     @Transactional
-    public AdminItemResDto updateItem(Long itemId, AdminItemReqDto reqDto) throws IOException {
+    public AdminItemResDto updateItem(
+            Long itemId,
+            AdminItemReqDto reqDto
+    ) throws IOException {
+
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new CustomException(ShopErrorCode.ITEM_NOT_FOUND));
+                .orElseThrow(() ->
+                        new CustomException(ShopErrorCode.ITEM_NOT_FOUND)
+                );
 
-        String newPath = reqDto.category().name().toLowerCase();
-        newPath = newPath.equals("decor_two") ? "decor2" : newPath;
-        newPath = newPath.equals("decor_one") ? "decor1" : newPath;
-        String finalFileName = item.getName();
+        String newStatus = resolveStatus(
+                reqDto.status(),
+                item.getStatus()
+        );
 
-        // 파일 업로드 없이 카테고리만 변경된 경우 이미지의 저장 경로(카테고리) 경로 수정
-        if ((reqDto.file() == null || reqDto.file().isEmpty()) && !newPath.equals(item.getPath())) {
-            s3ImageService.move(item.getPath(), newPath, item.getName());
-        }
+        String oldPath = item.getPath();
+        String oldFileName = item.getName();
 
-        // 파일이 변경된 경우 이미지 삭제 후 재업로드
-        if (reqDto.file() != null && !reqDto.file().isEmpty()) {
-            s3ImageService.delete(item.getPath(), item.getName());
-            s3ImageService.upload(reqDto.file(), newPath);
-            finalFileName = reqDto.file().getOriginalFilename();
+        String newPath = resolvePath(reqDto.category());
+        String finalFileName = oldFileName;
+
+        boolean hasNewFile =
+                reqDto.file() != null && !reqDto.file().isEmpty();
+
+        boolean pathChanged = !newPath.equals(oldPath);
+
+        if (hasNewFile) {
+            // 새 이미지 업로드 후 실제 저장된 파일명 사용
+            String imageUrl = s3ImageService.upload(
+                    reqDto.file(),
+                    newPath
+            );
+
+            finalFileName = imageUrl.substring(
+                    imageUrl.lastIndexOf("/") + 1
+            );
+
+        } else if (pathChanged) {
+            // 파일은 그대로 두고 카테고리만 변경
+            s3ImageService.move(
+                    oldPath,
+                    newPath,
+                    oldFileName
+            );
         }
 
         item.updateAll(
@@ -107,10 +145,14 @@ public class AdminShopService {
                 reqDto.price(),
                 newPath,
                 finalFileName,
-                reqDto.status()
+                newStatus
         );
 
-        return convertToAdminResDto(itemRepository.save(item));
+        AdminItemResDto response =
+                convertToAdminResDto(itemRepository.save(item));
+
+        // 파일 교체 후 기존 파일 정리는 별도로 수행
+        return response;
     }
 
     // 삭제
@@ -173,5 +215,32 @@ public class AdminShopService {
                     .build();
         }
         return resDto;
+    }
+
+    private String resolveStatus(String status, String defaultStatus) {
+        if (status == null || status.isBlank()) {
+            return defaultStatus;
+        }
+
+        if ("ACTIVE".equalsIgnoreCase(status)) {
+            return "ACTIVE";
+        }
+
+        if ("INACTIVE".equalsIgnoreCase(status)) {
+            return "INACTIVE";
+        }
+
+        throw new CustomException(
+                ShopErrorCode.INVALID_ITEM_STATUS
+        );
+    }
+
+    private String resolvePath(ItemCategory category) {
+        return switch (category) {
+            case DECOR_ONE -> "decor1";
+            case DECOR_TWO -> "decor2";
+            case LETTER_PAPER -> "letter";
+            default -> category.name().toLowerCase();
+        };
     }
 }

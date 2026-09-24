@@ -49,8 +49,9 @@ public class Item extends BaseTimeEntity {
     @Column(nullable = true)
     private Integer price;
 
-    @Column(nullable = true)
-    private String status;
+    @Builder.Default
+    @Column(nullable = false)
+    private String status = "INACTIVE";
 
     /*
      * 이 아이템을 보유한 유저 매핑 리스트 (양방향 매핑)
@@ -82,10 +83,6 @@ public class Item extends BaseTimeEntity {
         this.name = item.getName();
         this.price = item.getPrice();
         this.status = item.getStatus();
-    }
-
-    public String getStatus() {
-        return this.status == null ? "ACTIVE" : this.status;
     }
 
     public void activate(){

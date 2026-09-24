@@ -4,6 +4,7 @@ import com.example.egobook_be.domain.shop.dto.ItemInfoResDto;
 import com.example.egobook_be.domain.shop.dto.PurchaseItemReqDto;
 import com.example.egobook_be.domain.shop.entity.Item;
 import com.example.egobook_be.domain.shop.entity.UserItem;
+import com.example.egobook_be.domain.shop.enums.ItemCategory;
 import com.example.egobook_be.domain.shop.exception.ShopErrorCode;
 import com.example.egobook_be.domain.shop.mapper.ItemMapper;
 import com.example.egobook_be.domain.shop.mapper.UserItemMapper;
@@ -26,7 +27,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -73,6 +73,8 @@ public class ShopServiceUnitTest {
             given(userItemRepository.existsByUserIdAndItemId(userId, itemId)).willReturn(false);
             given(userRepository.findByIdWithLock(userId)).willReturn(Optional.of(mockUser));
             given(userItemRepository.save(any(UserItem.class))).willReturn(mockUserItem);
+            given(mockItem.getStatus()).willReturn("ACTIVE");
+            given(mockItem.getCategory()).willReturn(ItemCategory.BACK);
             given(userItemMapper.toItemInfoResDto(any(), any(), anyString())).willReturn(expectedResDto);
 
             // ========= When =========
@@ -115,6 +117,7 @@ public class ShopServiceUnitTest {
             Item mockItem = mock(Item.class);
 
             given(itemRepository.findById(itemId)).willReturn(Optional.of(mockItem));
+            given(mockItem.getStatus()).willReturn("ACTIVE");
             given(userItemRepository.existsByUserIdAndItemId(userId, itemId)).willReturn(true); // 이미 구매함
 
             // ========= When & Then =========
@@ -136,6 +139,7 @@ public class ShopServiceUnitTest {
 
             given(itemRepository.findById(itemId)).willReturn(Optional.of(mockItem));
             given(userItemRepository.existsByUserIdAndItemId(userId, itemId)).willReturn(false);
+            given(mockItem.getStatus()).willReturn("ACTIVE");
             given(userRepository.findByIdWithLock(userId)).willReturn(Optional.empty()); // 유저 없음
 
             // ========= When & Then =========
@@ -161,6 +165,7 @@ public class ShopServiceUnitTest {
 
             given(itemRepository.findById(itemId)).willReturn(Optional.of(mockItem));
             given(userItemRepository.existsByUserIdAndItemId(userId, itemId)).willReturn(false);
+            given(mockItem.getStatus()).willReturn("ACTIVE");
             given(userRepository.findByIdWithLock(userId)).willReturn(Optional.of(mockUser));
 
             // ========= When & Then =========

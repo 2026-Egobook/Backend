@@ -21,4 +21,10 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     // 편지지 아이템 조회 (카테고리 + 색상명으로 조회)
     Optional<Item> findByCategoryAndName(ItemCategory category, String name);
 
+    Slice<Item> findByCategoryAndStatus(
+            ItemCategory category,
+            String status,
+            Pageable pageable
+    );
+
 }

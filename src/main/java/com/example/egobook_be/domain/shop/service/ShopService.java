@@ -71,7 +71,12 @@ public class ShopService {
         Pageable pageable = PageRequest.of(pageIndex, validSize, Sort.by(Sort.Direction.ASC, "price"));
 
         // 2. 해당 카테고리에 해당하는 Item들 slice로 조회
-        Slice<Item> sliceEntity = itemRepository.findByCategory(category, pageable);
+        Slice<Item> sliceEntity =
+                itemRepository.findByCategoryAndStatus(
+                        category,
+                        "ACTIVE",
+                        pageable
+                );
 
         /*
          * 3. 조회한 아이템들 중, 해당 User가 구매한 item(UserItem)들의 Set을 생성한다.
@@ -115,6 +120,13 @@ public class ShopService {
          */
         Long itemId = reqDto.itemId();
         Item item = itemRepository.findById(itemId).orElseThrow(() -> new CustomException(ShopErrorCode.ITEM_NOT_FOUND));
+
+        if (!"ACTIVE".equalsIgnoreCase(item.getStatus())) {
+            throw new CustomException(
+                    ShopErrorCode.ITEM_NOT_FOUND
+            );
+        }
+
         if (userItemRepository.existsByUserIdAndItemId(userId, itemId)){
             throw new CustomException(ShopErrorCode.ALREADY_PURCHASED_ITEM);
         }
