@@ -25,10 +25,11 @@ public interface RestrictionRepository extends JpaRepository<Restriction, Long> 
     java.util.Optional<Restriction> findFirstByUserIdAndDomainTypeAndStatusAndRestrictionUntilAfterOrderByRestrictionUntilDesc(
             Long userId, RestrictionDomainType domainType, RestrictionStatus status, LocalDateTime now);
 
+
+    boolean existsByUserIdAndStatus(Long userId, RestrictionStatus status);
     boolean existsByUserIdAndDomainTypeAndStatusAndRestrictionUntilAfter(
             Long userId, RestrictionDomainType domainType, RestrictionStatus status, LocalDateTime now);
 
-    boolean existsByUserIdAndStatus(Long userId, RestrictionStatus status);
 
     // 사용자 전체 제재 기록 Slice 조회 (status 필터 없음)
     Slice<Restriction> findAllByUserId(Long userId, Pageable pageable);

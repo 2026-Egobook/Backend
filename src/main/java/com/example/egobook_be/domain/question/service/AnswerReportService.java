@@ -1,5 +1,7 @@
 package com.example.egobook_be.domain.question.service;
 
+import com.example.egobook_be.domain.moderation.entity.ReportStrike;
+import com.example.egobook_be.domain.moderation.service.AutomaticRestrictionService;
 import com.example.egobook_be.domain.question.dto.AnswerReportReqDto;
 import com.example.egobook_be.domain.question.dto.AnswerReportResDto;
 import com.example.egobook_be.domain.question.entity.AnswerReport;
@@ -24,6 +26,7 @@ public class AnswerReportService {
     private final AnswerReportRepository answerReportRepository;
     private final QuestionAnswerRepository questionAnswerRepository;
     private final UserRepository userRepository;
+    private final AutomaticRestrictionService automaticRestrictionService;
 
     public AnswerReportResDto reportAnswer(
             Long userId,
@@ -35,11 +38,14 @@ public class AnswerReportService {
         QuestionAnswer answer = questionAnswerRepository.findById(answerId)
                 .orElseThrow(() -> new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND));
 
+        Long authorId = answer.getUser().getId();
+        automaticRestrictionService.lockAuthor(authorId);
         if (answerReportRepository.existsByUserAndAnswer(user, answer)) {
             throw new CustomException(QuestionErrorCode.ALREADY_REPORTED);
         }
 
-        AnswerReport report = answerReportRepository.save(
+
+        AnswerReport report = answerReportRepository.saveAndFlush(
                 AnswerReport.builder()
                         .user(user)
                         .answer(answer)
@@ -49,17 +55,11 @@ public class AnswerReportService {
                         .build()
         );
 
-//        // 3회 누적 신고 시 visibility → PRIVATE으로 변경
-//        long reportCount = answerReportRepository.countByAnswer(answer);
-//        if (reportCount >= 3) {
-//            answer.update(answer.getContent(), AnswerVisibility.PRIVATE);
-//        }
-
-        return new AnswerReportResDto(
-                report.getId(),
-                answer.getId(),
-                report.getReason(),
-                report.getCreatedAt()
-        );
+        // Capture response BEFORE cleanup deletes the question answer/report at threshold.
+        AnswerReportResDto result = new AnswerReportResDto(
+                report.getId(), answerId, report.getReason(), report.getCreatedAt());
+        automaticRestrictionService.onReportSaved(ReportStrike.SourceType.ANSWER,
+                report.getId(), authorId, answerId);
+        return result;
     }
 }
