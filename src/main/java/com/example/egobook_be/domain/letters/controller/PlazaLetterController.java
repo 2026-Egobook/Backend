@@ -85,7 +85,7 @@ public class PlazaLetterController {
             @PathVariable Long letterId,
             @Valid @RequestBody ReplyRequest request
     ) {
-        ReplyResponse result = plazaLetterService.replyToLetter(userId, letterId, request.getText());
+        ReplyResponse result = plazaLetterService.replyToLetter(userId, letterId, request.getText(), request.getBackgroundColor());
         return GlobalResponse.success(result);
     }
 

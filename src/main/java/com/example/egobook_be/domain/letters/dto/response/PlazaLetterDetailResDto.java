@@ -20,6 +20,7 @@ public class PlazaLetterDetailResDto {
 
     private String content;
     private String backgroundColor;
+    private String backgroundImageUrl;
 
     private LocalDateTime createdAt;
     private LocalDateTime arrivedAt;
@@ -34,6 +35,8 @@ public class PlazaLetterDetailResDto {
     public static class ReplyDto {
         private Long replyId;
         private String text;
+        private String backgroundColor;
+        private String backgroundImageUrl;
 
         private boolean aiGenerated;
         private boolean reported;

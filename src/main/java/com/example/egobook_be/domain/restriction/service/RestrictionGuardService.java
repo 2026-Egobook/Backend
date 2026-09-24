@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -23,8 +25,7 @@ public class RestrictionGuardService {
      */
     @Transactional(readOnly = true)
     public void checkLetterRestriction(Long userId) {
-        if (restrictionRepository.existsByUserIdAndDomainTypeAndStatus(
-                userId, RestrictionDomainType.LETTER, RestrictionStatus.ACTIVE)) {
+        if (getLetterRestrictionInfo(userId).restricted()) {
             throw new CustomException(RestrictionErrorCode.LETTER_RESTRICTED);
         }
     }
@@ -34,10 +35,26 @@ public class RestrictionGuardService {
      */
     @Transactional(readOnly = true)
     public void checkQuestionAnswerRestriction(Long userId) {
-        if (restrictionRepository.existsByUserIdAndDomainTypeAndStatus(
-                userId, RestrictionDomainType.QUESTION_ANSWER, RestrictionStatus.ACTIVE)) {
+        if (restrictionRepository.existsByUserIdAndDomainTypeAndStatusAndRestrictionUntilAfter(
+                userId, RestrictionDomainType.QUESTION_ANSWER, RestrictionStatus.ACTIVE, now())) {
             throw new CustomException(RestrictionErrorCode.QUESTION_ANSWER_RESTRICTED);
         }
+    }
+
+    /** 프론트의 제한 안내 및 수신함 회색 처리용. 종료 시각은 기존 DB의 한국 시각 기준. */
+    public record RestrictionInfo(boolean restricted, String reason, LocalDateTime restrictedUntil) {
+        public static RestrictionInfo unrestricted() { return new RestrictionInfo(false, null, null); }
+    }
+
+    private LocalDateTime now() { return LocalDateTime.now(ZoneId.of("Asia/Seoul")); }
+
+    @Transactional(readOnly = true)
+    public RestrictionInfo getLetterRestrictionInfo(Long userId) {
+        return restrictionRepository
+                .findFirstByUserIdAndDomainTypeAndStatusAndRestrictionUntilAfterOrderByRestrictionUntilDesc(
+                        userId, RestrictionDomainType.LETTER, RestrictionStatus.ACTIVE, now())
+                .map(r -> new RestrictionInfo(true, r.getReason(), r.getRestrictionUntil()))
+                .orElseGet(RestrictionInfo::unrestricted);
     }
 
     /**

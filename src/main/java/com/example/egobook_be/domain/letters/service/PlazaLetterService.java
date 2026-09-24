@@ -33,7 +33,6 @@ import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.InkLogRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.domain.letters.mapper.PlazaLetterMapper;
-import com.example.egobook_be.domain.restriction.enums.RestrictionDomainType;
 import com.example.egobook_be.domain.restriction.service.RestrictionGuardService;
 import com.example.egobook_be.global.exception.CustomException;
 import com.example.egobook_be.global.response.SliceResponse;
@@ -98,11 +97,12 @@ public class PlazaLetterService {
     public InboxNextResponse getNextArrivedLetter(Long userId)
     {
         log.info("[PlazaLetterService] getNextArrivedLetter End - userId: {}", userId);
-        restrictionGuardService.checkLetterRestriction(userId);
+        var restriction = restrictionGuardService.getLetterRestrictionInfo(userId);
         return plazaLetterRepository
                 .findFirstByReceiverIdAndStatusOrderByArrivedAtDesc(userId, PlazaLetterStatus.ARRIVED)
                 .map(plazaLetterMapper::toResponse)  // Mapper를 이용해 변환
-                .orElseGet(InboxNextResponse::empty);
+                .orElseGet(InboxNextResponse::empty)
+                .withRestriction(restriction.restricted(), restriction.reason(), restriction.restrictedUntil());
     }
 
     private void enforceWordAiOrThrow(String text, Long userId, BlockType blockType) {
@@ -180,12 +180,6 @@ public class PlazaLetterService {
         } else {
             List<Long> candidates = userRepository.findHighReplyRateCandidates(userId, 50);
             if (!candidates.isEmpty()) {
-                Set<Long> restrictedIds = restrictionGuardService.getActivelyRestrictedUserIds(RestrictionDomainType.LETTER);
-                if (!restrictedIds.isEmpty()) {
-                    candidates = candidates.stream()
-                            .filter(id -> !restrictedIds.contains(id))
-                            .collect(Collectors.toList());
-                }
                 if (!candidates.isEmpty()) {
                     receiverId = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
                     arrivedAt = now;
@@ -479,8 +473,15 @@ public class PlazaLetterService {
                 .build();
     }
 
+    // 기존 호출부 호환: 편지지 색상을 지정하지 않으면 기본 WHITE
     @Transactional
     public ReplyResponse replyToLetter(Long userId, Long letterId, String content) {
+        return replyToLetter(userId, letterId, content, PlazaLetterColor.WHITE);
+    }
+
+    @Transactional
+    public ReplyResponse replyToLetter(Long userId, Long letterId, String content,
+                                       PlazaLetterColor backgroundColor) {
         log.info("[PlazaLetterService] replyToLetter Start - userId: {}, letterId: {}", userId, letterId);
         // 1. User, Ability 가져오기
         User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
@@ -519,6 +520,7 @@ public class PlazaLetterService {
                 .letter(letter)
                 .replierId(userId)
                 .content(content)
+                .backgroundColor(backgroundColor == null ? PlazaLetterColor.WHITE : backgroundColor)
                 .isAiGenerated(false)
                 .createdAt(now)
                 .build());

@@ -21,6 +21,13 @@ public interface RestrictionRepository extends JpaRepository<Restriction, Long> 
 
     boolean existsByUserIdAndDomainTypeAndStatus(Long userId, RestrictionDomainType domainType, RestrictionStatus status);
 
+    // 배치가 아직 EXPIRED로 갱신하지 않았어도 만료된 제재는 적용하지 않는다.
+    java.util.Optional<Restriction> findFirstByUserIdAndDomainTypeAndStatusAndRestrictionUntilAfterOrderByRestrictionUntilDesc(
+            Long userId, RestrictionDomainType domainType, RestrictionStatus status, LocalDateTime now);
+
+    boolean existsByUserIdAndDomainTypeAndStatusAndRestrictionUntilAfter(
+            Long userId, RestrictionDomainType domainType, RestrictionStatus status, LocalDateTime now);
+
     boolean existsByUserIdAndStatus(Long userId, RestrictionStatus status);
 
     // 사용자 전체 제재 기록 Slice 조회 (status 필터 없음)

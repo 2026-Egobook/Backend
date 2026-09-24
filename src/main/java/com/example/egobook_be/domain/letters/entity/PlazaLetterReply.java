@@ -1,6 +1,7 @@
 package com.example.egobook_be.domain.letters.entity;
 
 import jakarta.persistence.*;
+import com.example.egobook_be.domain.letters.enums.PlazaLetterColor;
 import lombok.*;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
@@ -32,6 +33,11 @@ public class PlazaLetterReply {
 
     @Column(nullable = false, length = 350)
     private String content;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private PlazaLetterColor backgroundColor = PlazaLetterColor.WHITE;
 
     @Column(nullable = false)
     private boolean isAiGenerated;

@@ -16,6 +16,10 @@ public class DeferredInboxItemDto {
 
     private String fromLabel;           // FRIEND면 닉네임, RANDOM이면 "익명"
     private String backgroundColor;
+    private String backgroundImageUrl;
+    private boolean restricted;
+    private String reason;
+    private LocalDateTime restrictedUntil;
 
     private String contentPreview;      // 30자 미리보기
     private LocalDateTime arrivedAt;
