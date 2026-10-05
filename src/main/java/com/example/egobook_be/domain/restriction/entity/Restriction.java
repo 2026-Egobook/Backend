@@ -17,9 +17,6 @@ import java.time.ZoneId;
 @Table(name = "Restriction")
 public class Restriction extends BaseTimeEntity {
 
-    // 자동 제재 사유 코드 상수화
-    public static final String AUTO_REPORT_3_REASON = "AUTO_REPORT_3";
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long restrictionId;
@@ -34,7 +31,7 @@ public class Restriction extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private RestrictionDomainType domainType;
 
-    // 제재 사유를 문자열로 저장
+    // [AI-MOD] 제재 사유를 문자열로 저장
     @Column(nullable = false, length = 50)
     private String reason;
 
@@ -49,7 +46,7 @@ public class Restriction extends BaseTimeEntity {
     @Column(nullable = false)
     private LocalDateTime restrictionUntil;
 
-    // 제재 생성 reason 타입 문자열로 변경
+    // [AI-MOD] 제재 생성 reason 타입 문자열로 변경
     public static Restriction create(Long adminId, Long userId,
                                      RestrictionDomainType domainType, String reason,
                                      String description) {
@@ -70,8 +67,7 @@ public class Restriction extends BaseTimeEntity {
                 .adminId(null)
                 .userId(userId)
                 .domainType(domainType)
-                // [AI-MOD] 사유 문자열을 상수로 교체
-                .reason(AUTO_REPORT_3_REASON)
+                .reason("AUTO_REPORT_3")
                 .description(description)
                 .status(RestrictionStatus.ACTIVE)
                 .restrictionUntil(LocalDateTime.now(ZoneId.of("Asia/Seoul")).plusDays(7))
