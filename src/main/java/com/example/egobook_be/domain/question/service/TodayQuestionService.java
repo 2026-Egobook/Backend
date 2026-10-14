@@ -10,7 +10,12 @@ import com.example.egobook_be.domain.question.enums.AnswerVisibility;
 import com.example.egobook_be.domain.question.exception.QuestionErrorCode;
 import com.example.egobook_be.domain.question.mapper.MyAnswerHistoryMapper;
 import com.example.egobook_be.domain.question.mapper.PublicAnswerMapper;
+import com.example.egobook_be.domain.moderation.entity.ModerationReportArchive;
+import com.example.egobook_be.domain.moderation.entity.ReportStrike;
+import com.example.egobook_be.domain.moderation.repository.ModerationReportArchiveRepository;
+import com.example.egobook_be.domain.question.entity.AnswerReport;
 import com.example.egobook_be.domain.question.repository.AnswerEmpathyRepository;
+import com.example.egobook_be.domain.question.repository.AnswerReportRepository;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
 import com.example.egobook_be.domain.question.repository.TodayQuestionRepository;
 import com.example.egobook_be.domain.user.entity.Ability;
@@ -50,6 +55,8 @@ public class TodayQuestionService {
     private final TodayQuestionRepository todayQuestionRepository;
     private final QuestionAnswerRepository questionAnswerRepository;
     private final AnswerEmpathyRepository answerEmpathyRepository;
+    private final AnswerReportRepository answerReportRepository;
+    private final ModerationReportArchiveRepository archiveRepository;
     private final MissionRepository missionRepository;
     private final UserRepository userRepository;
     private final InkLogRepository inkLogRepository;
@@ -395,6 +402,18 @@ public class TodayQuestionService {
                 );
 
         restrictionGuardService.checkQuestionAnswerRestriction(userId);
+
+        List<AnswerReport> reports = answerReportRepository.findAllByAnswerId(answerId);
+        if (!reports.isEmpty()) {
+            archiveRepository.saveAll(reports.stream()
+                    .map(r -> ModerationReportArchive.of(ReportStrike.SourceType.ANSWER,
+                            r.getId(), answer.getUser().getId(), answerId, r.getUser().getId(),
+                            r.getReason() == null ? null : r.getReason().name(), r.getDescription(),
+                            r.getStatus().name(), r.getAdminMemo(), r.getCreatedAt(), answer.getContent()))
+                    .toList());
+            archiveRepository.flush();
+            answerReportRepository.deleteAllByAnswerId(answerId);
+        }
 
         answerEmpathyRepository.deleteAllByAnswerId(answerId);
         questionAnswerRepository.delete(answer);
