@@ -4,6 +4,7 @@ import com.example.egobook_be.domain.friend.repository.FriendRepository;
 import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.question.entity.QuestionAnswer;
 import com.example.egobook_be.domain.question.exception.QuestionErrorCode;
+import com.example.egobook_be.domain.question.repository.AnswerEmpathyRepository;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
 import com.example.egobook_be.domain.question.repository.TodayQuestionRepository;
 import com.example.egobook_be.domain.question.service.TodayQuestionService;
@@ -38,6 +39,7 @@ class TodayQuestionDeleteAnswerServiceTest {
 
     @Mock private TodayQuestionRepository todayQuestionRepository;
     @Mock private QuestionAnswerRepository questionAnswerRepository;
+    @Mock private AnswerEmpathyRepository answerEmpathyRepository;
     @Mock private MissionRepository missionRepository;
     @Mock private UserRepository userRepository;
     @Mock private InkLogRepository inkLogRepository;
@@ -64,6 +66,7 @@ class TodayQuestionDeleteAnswerServiceTest {
 
         todayQuestionService.deleteAnswer(1L, 10L);
 
+        verify(answerEmpathyRepository).deleteAllByAnswerId(10L);
         verify(questionAnswerRepository).delete(answer);
     }
 
@@ -98,6 +101,7 @@ class TodayQuestionDeleteAnswerServiceTest {
                 .extracting(e -> ((CustomException) e).getErrorCode())
                 .isEqualTo(RestrictionErrorCode.QUESTION_ANSWER_RESTRICTED);
 
+        verify(answerEmpathyRepository, never()).deleteAllByAnswerId(any());
         verify(questionAnswerRepository, never()).delete(any());
     }
 }

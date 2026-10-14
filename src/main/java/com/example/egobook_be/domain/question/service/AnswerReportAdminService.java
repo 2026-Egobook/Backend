@@ -13,6 +13,7 @@ import com.example.egobook_be.domain.question.dto.AnswerReportDetailResDto;
 import com.example.egobook_be.domain.question.entity.AnswerReport;
 import com.example.egobook_be.domain.question.enums.AnswerVisibility;
 import com.example.egobook_be.domain.question.exception.QuestionErrorCode;
+import com.example.egobook_be.domain.question.repository.AnswerEmpathyRepository;
 import com.example.egobook_be.domain.question.repository.AnswerReportRepository;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
 import com.example.egobook_be.domain.report.dto.ReportEntryResDto;
@@ -38,6 +39,7 @@ public class AnswerReportAdminService {
 
     private final AnswerReportRepository answerReportRepository;
     private final QuestionAnswerRepository questionAnswerRepository;
+    private final AnswerEmpathyRepository answerEmpathyRepository;
     private final UserRepository userRepository;
     private final ModerationReportArchiveRepository archiveRepository;
 
@@ -123,6 +125,7 @@ public class AnswerReportAdminService {
             throw new CustomException(QuestionErrorCode.ANSWER_NOT_FOUND);
         }
         answerReportRepository.deleteAllByAnswerId(answerId);   // 신고 내역 먼저 삭제
+        answerEmpathyRepository.deleteAllByAnswerId(answerId);
         questionAnswerRepository.deleteById(answerId);
         log.info("[AnswerReportAdminService] deleteAnswer End - answerId: {}", answerId);
     }

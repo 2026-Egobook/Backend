@@ -22,6 +22,7 @@ import com.example.egobook_be.domain.letters.repository.PlazaLetterRepository;
 import com.example.egobook_be.domain.letters.repository.PlazaLetterThreadRepository;
 import com.example.egobook_be.domain.notification.repository.NotificationRepository;
 import com.example.egobook_be.domain.psychology.repository.UserKnowledgeRepository;
+import com.example.egobook_be.domain.question.repository.AnswerEmpathyRepository;
 import com.example.egobook_be.domain.question.repository.AnswerReportRepository;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
 import com.example.egobook_be.domain.shop.mapper.UserItemMapper;
@@ -72,6 +73,7 @@ public class DailySchedular {
     private final WeeklyCounselRepository weeklyCounselRepository;
     private final NoticeReadRepository noticeReadRepository;
     private final AnswerReportRepository answerReportRepository;
+    private final AnswerEmpathyRepository answerEmpathyRepository;
     private final AbilityLogRepository abilityLogRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final PlazaLetterReportRepository plazaLetterReportRepository;
@@ -257,6 +259,7 @@ public class DailySchedular {
         userKnowledgeRepository.bulkDeleteByUserIn(users);
         // 13. 사용자가 작성한 오늘의 질문에 대한 답변들
         answerReportRepository.bulkDeleteByUserOrAnswerUserIn(users);
+        answerEmpathyRepository.bulkDeleteByUserOrAnswerUserIn(users);
         questionAnswerRepository.bulkDeleteByUserIn(users);
         // 14. 사용자의 능력치 정보 삭제 (Cascade로 처리됨)
         // 15. 사용자의 Ink 획득 기록 삭제

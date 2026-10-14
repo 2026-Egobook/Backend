@@ -396,6 +396,7 @@ public class TodayQuestionService {
 
         restrictionGuardService.checkQuestionAnswerRestriction(userId);
 
+        answerEmpathyRepository.deleteAllByAnswerId(answerId);
         questionAnswerRepository.delete(answer);
         log.info("[TodayQuestionService] deleteAnswer End - userId: {}, answerId: {}", userId, answerId);
     }
