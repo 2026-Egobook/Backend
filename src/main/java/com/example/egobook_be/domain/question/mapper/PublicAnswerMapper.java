@@ -7,7 +7,8 @@ import com.example.egobook_be.domain.user.entity.Ability;
 public class PublicAnswerMapper {
 
     public static PublicAnswerResDto toDto(QuestionAnswer answer, Ability ability,
-                                           String turtleImageUrl, String backgroundImageUrl) {
+                                           String turtleImageUrl, String backgroundImageUrl,
+                                           long empathyCount, boolean empathized) {
         return PublicAnswerResDto.builder()
                 .answerId(answer.getId())
                 .userId(answer.getUser().getId())
@@ -17,6 +18,8 @@ public class PublicAnswerMapper {
                 .turtleImageUrl(turtleImageUrl)
                 .backgroundImageUrl(backgroundImageUrl)
                 .content(answer.getContent())
+                .empathyCount(empathyCount)
+                .empathized(empathized)
                 .createdAt(answer.getCreatedAt())
                 .build();
     }

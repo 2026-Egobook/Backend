@@ -55,11 +55,33 @@ public interface TodayQuestionControllerDocs {
 
     @Operation(
             summary = "오늘의 질문 PUBLIC 답변 조회",
-            description = "오늘의 질문에 대한 PUBLIC 답변을 조회합니다."
+            description = """
+                오늘의 질문에 대한 PUBLIC 답변을 조회합니다.
+
+                - empathyCount : 해당 답변의 누적 공감 수
+                - empathized : 로그인 사용자의 공감 여부
+                """
     )
     ResponseEntity<GlobalResponse<SliceResponse<PublicAnswerResDto>>> getPublicAnswers(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
+    );
+
+    @Operation(
+            summary = "공개 답변 공감 토글",
+            description = """
+                전체 공개된 답변에 공감하거나 공감을 취소합니다.
+
+                - 공감하지 않은 상태에서 호출 시 공감 활성화 (공감 수 +1)
+                - 공감한 상태에서 호출 시 공감 비활성화 (공감 수 -1)
+                - 본인 답변도 공감 가능
+                - 전체 공개(PUBLIC)가 아닌 답변에는 새로 공감할 수 없음
+                """
+    )
+    ResponseEntity<GlobalResponse<AnswerEmpathyResDto>> toggleEmpathy(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @PathVariable Long answerId
     );
 
     @Operation(summary = "답변 수정", description = "오늘의 질문에 대한 자신의 답변을 수정합니다.")

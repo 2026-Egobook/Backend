@@ -10,6 +10,12 @@ import com.example.egobook_be.domain.question.enums.AnswerVisibility;
 import com.example.egobook_be.domain.question.exception.QuestionErrorCode;
 import com.example.egobook_be.domain.question.mapper.MyAnswerHistoryMapper;
 import com.example.egobook_be.domain.question.mapper.PublicAnswerMapper;
+import com.example.egobook_be.domain.moderation.entity.ModerationReportArchive;
+import com.example.egobook_be.domain.moderation.entity.ReportStrike;
+import com.example.egobook_be.domain.moderation.repository.ModerationReportArchiveRepository;
+import com.example.egobook_be.domain.question.entity.AnswerReport;
+import com.example.egobook_be.domain.question.repository.AnswerEmpathyRepository;
+import com.example.egobook_be.domain.question.repository.AnswerReportRepository;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
 import com.example.egobook_be.domain.question.repository.TodayQuestionRepository;
 import com.example.egobook_be.domain.user.entity.Ability;
@@ -34,9 +40,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -46,6 +54,9 @@ public class TodayQuestionService {
 
     private final TodayQuestionRepository todayQuestionRepository;
     private final QuestionAnswerRepository questionAnswerRepository;
+    private final AnswerEmpathyRepository answerEmpathyRepository;
+    private final AnswerReportRepository answerReportRepository;
+    private final ModerationReportArchiveRepository archiveRepository;
     private final MissionRepository missionRepository;
     private final UserRepository userRepository;
     private final InkLogRepository inkLogRepository;
@@ -182,7 +193,7 @@ public class TodayQuestionService {
 
     /** 오늘의 질문 PUBLIC 답변 전체 조회 **/
     @Transactional(readOnly = true)
-    public SliceResponse<PublicAnswerResDto> getPublicAnswers(int page, int size) {
+    public SliceResponse<PublicAnswerResDto> getPublicAnswers(Long userId, int page, int size) {
         log.info("[TodayQuestionService] getPublicAnswers Start");
 
         TodayQuestion todayQuestion = todayQuestionRepository
@@ -216,13 +227,34 @@ public class TodayQuestionService {
                 .filter(u -> u.getBackgroundImageUrl() != null)
                 .collect(Collectors.toMap(User::getId, User::getBackgroundImageUrl));
 
+        List<Long> answerIds = slice.getContent().stream()
+                .map(QuestionAnswer::getId)
+                .toList();
+
+        Map<Long, Long> empathyCountMap = Map.of();
+        Set<Long> empathizedAnswerIds = Set.of();
+        if (!answerIds.isEmpty()) {
+            empathyCountMap = answerEmpathyRepository.countAllByAnswerIdIn(answerIds).stream()
+                    .collect(Collectors.toMap(
+                            AnswerEmpathyRepository.AnswerEmpathyCount::getAnswerId,
+                            AnswerEmpathyRepository.AnswerEmpathyCount::getEmpathyCount
+                    ));
+            if (userId != null) {
+                empathizedAnswerIds = new HashSet<>(answerEmpathyRepository.findEmpathizedAnswerIds(userId, answerIds));
+            }
+        }
+        Map<Long, Long> finalEmpathyCountMap = empathyCountMap;
+        Set<Long> finalEmpathizedAnswerIds = empathizedAnswerIds;
+
         log.info("[TodayQuestionService] getPublicAnswers End");
         return SliceResponse.of(slice, qa ->
                 PublicAnswerMapper.toDto(
                         qa,
                         abilityMap.get(qa.getUser().getId()),
                         turtleImageMap.get(qa.getUser().getId()),
-                        backgroundImageMap.get(qa.getUser().getId())
+                        backgroundImageMap.get(qa.getUser().getId()),
+                        finalEmpathyCountMap.getOrDefault(qa.getId(), 0L),
+                        finalEmpathizedAnswerIds.contains(qa.getId())
                 )
         );
     }
@@ -371,6 +403,19 @@ public class TodayQuestionService {
 
         restrictionGuardService.checkQuestionAnswerRestriction(userId);
 
+        List<AnswerReport> reports = answerReportRepository.findAllByAnswerId(answerId);
+        if (!reports.isEmpty()) {
+            archiveRepository.saveAll(reports.stream()
+                    .map(r -> ModerationReportArchive.of(ReportStrike.SourceType.ANSWER,
+                            r.getId(), answer.getUser().getId(), answerId, r.getUser().getId(),
+                            r.getReason() == null ? null : r.getReason().name(), r.getDescription(),
+                            r.getStatus().name(), r.getAdminMemo(), r.getCreatedAt(), answer.getContent()))
+                    .toList());
+            archiveRepository.flush();
+            answerReportRepository.deleteAllByAnswerId(answerId);
+        }
+
+        answerEmpathyRepository.deleteAllByAnswerId(answerId);
         questionAnswerRepository.delete(answer);
         log.info("[TodayQuestionService] deleteAnswer End - userId: {}, answerId: {}", userId, answerId);
     }

@@ -2,6 +2,7 @@ package com.example.egobook_be.domain.question.controller;
 
 import com.example.egobook_be.domain.letters.service.LetterReportAdminService;
 import com.example.egobook_be.domain.question.dto.*;
+import com.example.egobook_be.domain.question.service.AnswerEmpathyService;
 import com.example.egobook_be.domain.question.service.AnswerReportAdminService;
 import com.example.egobook_be.domain.question.service.AnswerReportService;
 import com.example.egobook_be.domain.question.service.TodayQuestionService;
@@ -21,6 +22,7 @@ public class TodayQuestionController implements TodayQuestionControllerDocs {
     private final TodayQuestionService todayQuestionService;
     private final AnswerReportService answerReportService;
     private final AnswerReportAdminService answerReportAdminService;
+    private final AnswerEmpathyService answerEmpathyService;
 //    private final LetterReportAdminService letterReportAdminService;
 
     @GetMapping("/today")
@@ -50,10 +52,19 @@ public class TodayQuestionController implements TodayQuestionControllerDocs {
 
     @GetMapping("/answers/all")
     public ResponseEntity<GlobalResponse<SliceResponse<PublicAnswerResDto>>> getPublicAnswers(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        return ResponseEntity.ok(GlobalResponse.success("오늘의 질문 PUBLIC 답변 조회 성공", todayQuestionService.getPublicAnswers(page, size)));
+        return ResponseEntity.ok(GlobalResponse.success("오늘의 질문 PUBLIC 답변 조회 성공", todayQuestionService.getPublicAnswers(userId, page, size)));
+    }
+
+    @PostMapping("/answers/{answerId}/empathy")
+    public ResponseEntity<GlobalResponse<AnswerEmpathyResDto>> toggleEmpathy(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @PathVariable Long answerId
+    ) {
+        return ResponseEntity.ok(GlobalResponse.success("답변 공감 상태 변경 완료", answerEmpathyService.toggleEmpathy(userId, answerId)));
     }
 
     @PutMapping("/answers")

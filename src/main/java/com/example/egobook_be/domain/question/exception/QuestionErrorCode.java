@@ -35,6 +35,11 @@ public enum QuestionErrorCode implements BaseErrorCode {
     /**
      * 400 BAD_REQUEST
      */
+    EMPATHY_NOT_ALLOWED(
+            HttpStatus.BAD_REQUEST,
+            "전체 공개된 답변에만 공감할 수 있습니다."
+    ),
+
     INVALID_VISIBILITY(
             HttpStatus.BAD_REQUEST,
             "유효하지 않은 공개 범위입니다."
