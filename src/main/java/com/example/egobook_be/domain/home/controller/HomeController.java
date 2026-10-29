@@ -4,7 +4,9 @@ import com.example.egobook_be.domain.home.dto.HomeAbilityResDto;
 import com.example.egobook_be.domain.home.dto.HomeActivityResDto;
 import com.example.egobook_be.domain.home.dto.HomeResDto;
 import com.example.egobook_be.domain.home.dto.HomeSettingResDto;
+import com.example.egobook_be.domain.home.dto.TurtleMessageResDto;
 import com.example.egobook_be.domain.home.service.HomeService;
+import com.example.egobook_be.domain.home.service.TurtleMessageService;
 import com.example.egobook_be.global.response.GlobalResponse;
 import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class HomeController implements HomeControllerDocs{
     private final HomeService homeService;
+    private final TurtleMessageService turtleMessageService;
 
     /**
      * [Home 화면의 데이터들 반환]
@@ -59,6 +62,18 @@ public class HomeController implements HomeControllerDocs{
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
     ){
         HomeSettingResDto resDto = homeService.getHomeSettings(userId);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(GlobalResponse.success(resDto));
+    }
+
+    /**
+     * [고북이 말풍선 문구 1개 랜덤 조회]
+     * GET /home/turtle-message
+     */
+    @Override
+    public ResponseEntity<GlobalResponse<TurtleMessageResDto>> getTurtleMessage() {
+        TurtleMessageResDto resDto = turtleMessageService.getRandomTurtleMessage();
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(GlobalResponse.success(resDto));
