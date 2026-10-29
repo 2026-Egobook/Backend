@@ -19,6 +19,7 @@ import com.example.egobook_be.domain.letters.repository.PlazaLetterThreadReposit
 import com.example.egobook_be.domain.notice.repository.NoticeReadRepository;
 import com.example.egobook_be.domain.notification.repository.NotificationRepository;
 import com.example.egobook_be.domain.psychology.repository.UserKnowledgeRepository;
+import com.example.egobook_be.domain.question.repository.AnswerEmpathyRepository;
 import com.example.egobook_be.domain.question.repository.AnswerReportRepository;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
 import com.example.egobook_be.domain.restriction.repository.RestrictionRepository;
@@ -81,6 +82,7 @@ class DailySchedularUnitTest {
     @Mock private WeeklyCounselRepository weeklyCounselRepository;
     @Mock private NoticeReadRepository noticeReadRepository;
     @Mock private AnswerReportRepository answerReportRepository;
+    @Mock private AnswerEmpathyRepository answerEmpathyRepository;
     @Mock private AbilityLogRepository abilityLogRepository;
     @Mock private SubscriptionRepository subscriptionRepository;
     @Mock private PlazaLetterReportRepository plazaLetterReportRepository;
@@ -114,6 +116,7 @@ class DailySchedularUnitTest {
         verify(weeklyCounselRepository).bulkDeleteByUserIn(users);
         verify(noticeReadRepository).bulkDeleteByUserIn(users);
         verify(answerReportRepository).bulkDeleteByUserOrAnswerUserIn(users);
+        verify(answerEmpathyRepository).bulkDeleteByUserOrAnswerUserIn(users);
         verify(abilityLogRepository).bulkDeleteByUserIn(users);
         verify(subscriptionRepository).bulkDeleteByUserIn(users);
         verify(userRepository).deleteAll(users);

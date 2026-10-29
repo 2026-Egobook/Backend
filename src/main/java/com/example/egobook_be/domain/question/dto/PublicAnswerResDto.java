@@ -14,6 +14,8 @@ public record PublicAnswerResDto(
         String turtleImageUrl,
         String backgroundImageUrl,
         String content,
+        long empathyCount,
+        boolean empathized,
         LocalDateTime createdAt
 ) {
 }

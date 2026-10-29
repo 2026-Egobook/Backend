@@ -4,6 +4,13 @@ import com.example.egobook_be.domain.friend.repository.FriendRepository;
 import com.example.egobook_be.domain.home.repository.MissionRepository;
 import com.example.egobook_be.domain.question.entity.QuestionAnswer;
 import com.example.egobook_be.domain.question.exception.QuestionErrorCode;
+import com.example.egobook_be.domain.moderation.entity.ModerationReportArchive;
+import com.example.egobook_be.domain.moderation.repository.ModerationReportArchiveRepository;
+import com.example.egobook_be.domain.question.entity.AnswerReport;
+import com.example.egobook_be.domain.question.repository.AnswerEmpathyRepository;
+import com.example.egobook_be.domain.question.repository.AnswerReportRepository;
+import com.example.egobook_be.global.enums.ReportReason;
+import com.example.egobook_be.global.enums.ReportStatus;
 import com.example.egobook_be.domain.question.repository.QuestionAnswerRepository;
 import com.example.egobook_be.domain.question.repository.TodayQuestionRepository;
 import com.example.egobook_be.domain.question.service.TodayQuestionService;
@@ -23,6 +30,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -38,6 +46,9 @@ class TodayQuestionDeleteAnswerServiceTest {
 
     @Mock private TodayQuestionRepository todayQuestionRepository;
     @Mock private QuestionAnswerRepository questionAnswerRepository;
+    @Mock private AnswerEmpathyRepository answerEmpathyRepository;
+    @Mock private AnswerReportRepository answerReportRepository;
+    @Mock private ModerationReportArchiveRepository archiveRepository;
     @Mock private MissionRepository missionRepository;
     @Mock private UserRepository userRepository;
     @Mock private InkLogRepository inkLogRepository;
@@ -64,7 +75,41 @@ class TodayQuestionDeleteAnswerServiceTest {
 
         todayQuestionService.deleteAnswer(1L, 10L);
 
+        verify(answerReportRepository, never()).deleteAllByAnswerId(any());
+        verify(answerEmpathyRepository).deleteAllByAnswerId(10L);
         verify(questionAnswerRepository).delete(answer);
+    }
+
+    @Test
+    @DisplayName("deleteAnswer_신고된 답변_신고 보관 후 삭제 성공")
+    void deleteAnswer_reportedAnswer_archiveAndDelete() {
+        User reporter = mock(User.class);
+        given(reporter.getId()).willReturn(2L);
+        given(user.getId()).willReturn(1L);
+
+        QuestionAnswer answer = mock(QuestionAnswer.class);
+        given(answer.getUser()).willReturn(user);
+        given(answer.getContent()).willReturn("답변 내용");
+        given(questionAnswerRepository.findByIdAndUser(10L, user))
+                .willReturn(Optional.of(answer));
+
+        AnswerReport report = mock(AnswerReport.class);
+        given(report.getId()).willReturn(100L);
+        given(report.getUser()).willReturn(reporter);
+        given(report.getReason()).willReturn(ReportReason.values()[0]);
+        given(report.getStatus()).willReturn(ReportStatus.PENDING);
+        given(answerReportRepository.findAllByAnswerId(10L)).willReturn(List.of(report));
+
+        todayQuestionService.deleteAnswer(1L, 10L);
+
+        var inOrder = inOrder(archiveRepository, answerReportRepository, answerEmpathyRepository, questionAnswerRepository);
+        inOrder.verify(archiveRepository).saveAll(argThat((List<ModerationReportArchive> list) ->
+                list.size() == 1
+                        && list.get(0).getSourceReportId().equals(100L)
+                        && list.get(0).getOriginalContent().equals("답변 내용")));
+        inOrder.verify(answerReportRepository).deleteAllByAnswerId(10L);
+        inOrder.verify(answerEmpathyRepository).deleteAllByAnswerId(10L);
+        inOrder.verify(questionAnswerRepository).delete(answer);
     }
 
     @Test
@@ -98,6 +143,7 @@ class TodayQuestionDeleteAnswerServiceTest {
                 .extracting(e -> ((CustomException) e).getErrorCode())
                 .isEqualTo(RestrictionErrorCode.QUESTION_ANSWER_RESTRICTED);
 
+        verify(answerEmpathyRepository, never()).deleteAllByAnswerId(any());
         verify(questionAnswerRepository, never()).delete(any());
     }
 }

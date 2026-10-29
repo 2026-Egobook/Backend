@@ -24,6 +24,7 @@ public class ModerationContentCleanupService {
     private final PlazaLetterReplyReportRepository replyReports;
     private final QuestionAnswerRepository answers;
     private final AnswerReportRepository answerReports;
+    private final AnswerEmpathyRepository answerEmpathies;
     private final ModerationReportArchiveRepository archives;
 
     @Transactional(propagation = Propagation.MANDATORY)
@@ -79,6 +80,7 @@ public class ModerationContentCleanupService {
         }
         if (!answerIds.isEmpty()) {
             answerReports.deleteAllByAnswerIdIn(answerIds);
+            answerEmpathies.deleteAllByAnswerIdIn(answerIds);
             answers.deleteAllByIdInBatch(answerIds);
         }
     }
