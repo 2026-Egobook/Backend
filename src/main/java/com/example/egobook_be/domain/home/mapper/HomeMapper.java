@@ -4,6 +4,7 @@ import com.example.egobook_be.domain.home.dto.HomeAbilityResDto;
 import com.example.egobook_be.domain.home.dto.HomeActivityResDto;
 import com.example.egobook_be.domain.home.dto.HomeResDto;
 import com.example.egobook_be.domain.home.dto.HomeSettingResDto;
+import com.example.egobook_be.domain.home.dto.TurtleMessageResDto;
 import com.example.egobook_be.domain.home.entity.Mission;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.AbilityStat;
@@ -96,6 +97,17 @@ public class HomeMapper {
         return HomeSettingResDto.builder()
                 .userEmail(user.getEmail())
                 .accountCode(user.getAccountCode())
+                .build();
+    }
+
+    /**
+     * 고북이 말풍선 문구 -> TurtleMessageResDto 변환
+     * @param message : 말풍선 문구 (등록된 문구가 없으면 null)
+     * @return : 변환된 TurtleMessageResDto
+     */
+    public TurtleMessageResDto toTurtleMessageResDto(String message) {
+        return TurtleMessageResDto.builder()
+                .message(message)
                 .build();
     }
 

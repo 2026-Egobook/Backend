@@ -4,6 +4,7 @@ import com.example.egobook_be.domain.home.dto.HomeAbilityResDto;
 import com.example.egobook_be.domain.home.dto.HomeActivityResDto;
 import com.example.egobook_be.domain.home.dto.HomeResDto;
 import com.example.egobook_be.domain.home.dto.HomeSettingResDto;
+import com.example.egobook_be.domain.home.dto.TurtleMessageResDto;
 import com.example.egobook_be.global.response.GlobalResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -95,4 +96,25 @@ public interface HomeControllerDocs {
     ResponseEntity<GlobalResponse<HomeSettingResDto>> getHomeSettings(
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
     );
+
+    @Operation(summary = "고북이 말풍선 문구 조회", description = """
+            메인 화면에서 고북이를 클릭했을 때 말풍선에 노출할 문구 **1개**를 조회합니다.
+
+            - **호출할 때마다** 서버가 등록된 문구 중 하나를 무작위로 골라 내려줍니다.
+              (고북이를 클릭할 때마다 이 API를 호출하면 됩니다.)
+            - 같은 문구가 연속으로 나올 수 있습니다.
+            - 말풍선 연타 시 겹침 방지, 약 3초 후 자동 사라짐은 클라이언트 동작입니다.
+
+            [ 반환 데이터 ]
+            1. ```message```: 말풍선에 표시할 문구 (등록된 문구가 없으면 ```null```이므로, null이면 말풍선을 표시하지 않아야 합니다)
+            """)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = TurtleMessageResDto.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
+                    content = @Content)
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/turtle-message")
+    ResponseEntity<GlobalResponse<TurtleMessageResDto>> getTurtleMessage();
 }
