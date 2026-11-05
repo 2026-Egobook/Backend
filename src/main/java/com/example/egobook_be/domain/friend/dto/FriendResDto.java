@@ -7,7 +7,7 @@ public record FriendResDto(
         Long friendId,
         String nickname,
         Integer level,
+        String topAbilityName,
         String turtleImageUrl,
         String backgroundImageUrl
-) {
-}
+) {}

@@ -7,7 +7,9 @@ import com.example.egobook_be.domain.friend.enums.FriendRequestStatus;
 import com.example.egobook_be.domain.friend.exception.FriendErrorCode;
 import com.example.egobook_be.domain.friend.repository.FriendRepository;
 import com.example.egobook_be.domain.friend.repository.FriendRequestRepository;
+import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.User;
+import com.example.egobook_be.domain.user.repository.AbilityRepository;
 import com.example.egobook_be.domain.user.repository.UserRepository;
 import com.example.egobook_be.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -26,6 +30,7 @@ public class FriendService {
     private final FriendRequestRepository friendRequestRepository;
     private final FriendRepository friendRepository;
     private final UserRepository userRepository;
+    private final AbilityRepository abilityRepository;
 
     /** 친구 신청 **/
     @Transactional
@@ -284,14 +289,20 @@ public class FriendService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(FriendErrorCode.USER_NOT_FOUND));
 
-        List<FriendResDto> friends = friendRepository.findByUserWithFriend(user)
-                .stream()
+        List<Friend> friendList = friendRepository.findByUserWithFriend(user);
+        List<Long> friendIds = friendList.stream().map(f -> f.getFriend().getId()).toList();
+        Map<Long, Ability> abilityMap = abilityRepository.findByUserIdIn(friendIds).stream()
+                .collect(Collectors.toMap(a -> a.getUser().getId(), a -> a));
+
+        List<FriendResDto> friends = friendList.stream()
                 .map(friend -> {
                     User friendUser = friend.getFriend();
+                    Ability ability = abilityMap.get(friendUser.getId());
                     return FriendResDto.builder()
                             .friendId(friendUser.getId())
                             .nickname(friendUser.getNickname())
                             .level(friendUser.getLevel())
+                            .topAbilityName(ability != null ? ability.getTopAbilityName() : null)
                             .turtleImageUrl(friendUser.getTurtleImageUrl())
                             .backgroundImageUrl(friendUser.getBackgroundImageUrl())
                             .build();
