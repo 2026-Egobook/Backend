@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Entity
@@ -90,15 +91,16 @@ public class Ability {
     public Integer addSelfEsteem(int amount) { return this.selfEsteem.addScore(amount); }
 
     public String getTopAbilityName() {
-        Map<String, AbilityStat> map = Map.of(
-                "공감성", empathy,
-                "자존감", selfEsteem,
-                "성실함", diligence,
-                "긍정사고", positiveThinking,
-                "감정조절", emotionRegulation
-        );
+        Map<String, AbilityStat> map = new LinkedHashMap<>();
+        map.put("공감성", empathy);
+        map.put("자존감", selfEsteem);
+        map.put("성실함", diligence);
+        map.put("긍정사고", positiveThinking);
+        map.put("감정조절", emotionRegulation);
+
         return map.entrySet().stream()
-                .max(Comparator.comparingInt(e -> e.getValue().getScore()))
+                .max(Comparator.comparingInt((Map.Entry<String, AbilityStat> e) -> e.getValue().getLevel())
+                        .thenComparingInt(e -> e.getValue().getScore()))
                 .map(Map.Entry::getKey)
                 .orElse("공감성");
     }
