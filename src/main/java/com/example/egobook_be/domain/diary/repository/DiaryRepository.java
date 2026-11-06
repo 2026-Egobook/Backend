@@ -127,4 +127,23 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
     List<Diary> findByUserIdAndDateBetweenOrderByDateAsc(Long userId, LocalDate start, LocalDate end);
 
     long countByUser(User user);
+
+    /**
+     * 특정 날짜에 작성된 사용자의 일기 ID 목록 조회 (과거의 나 돌아보기 1순위 후보)
+     * - 랜덤 선택이 매번 같은 결과가 나오도록 id 오름차순 정렬
+     * @param userId : 사용자 ID
+     * @param date   : 조회할 일기 날짜
+     * @return : 일기 ID 목록
+     */
+    @Query("SELECT d.id FROM Diary d WHERE d.user.id = :userId AND d.date = :date ORDER BY d.id ASC")
+    List<Long> findIdsByUserIdAndDate(@Param("userId") Long userId, @Param("date") LocalDate date);
+
+    /**
+     * 기준일 이전에 작성된 사용자 일기 중 가장 오래된 날짜 조회 (과거의 나 돌아보기 2순위 후보)
+     * @param userId : 사용자 ID
+     * @param before : 기준일 (해당 날짜 미포함)
+     * @return : 가장 오래된 일기 날짜, 없으면 null
+     */
+    @Query("SELECT MIN(d.date) FROM Diary d WHERE d.user.id = :userId AND d.date < :before")
+    LocalDate findOldestDateBefore(@Param("userId") Long userId, @Param("before") LocalDate before);
 }

@@ -10,6 +10,7 @@ import com.example.egobook_be.domain.diary.repository.DiaryRepository;
 import com.example.egobook_be.domain.diary.service.DiaryExportService;
 import com.example.egobook_be.domain.diary.service.DiaryQueryService;
 import com.example.egobook_be.domain.diary.service.DiaryService;
+import com.example.egobook_be.domain.diary.service.DiaryRecallService;
 import com.example.egobook_be.domain.home.entity.Mission;
 import com.example.egobook_be.domain.user.entity.Ability;
 import com.example.egobook_be.domain.user.entity.AbilityStat;
@@ -33,6 +34,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
@@ -44,6 +46,15 @@ import static org.mockito.Mockito.*;
 class DiaryServiceUnitTest {
     @InjectMocks
     private DiaryService diaryService;
+
+    @InjectMocks
+    private DiaryRecallService diaryRecallService;
+
+    private static final Long USER_ID = 1L;
+
+    private Diary diary(Long id, LocalDate date) {
+        return Diary.builder().id(id).date(date).content("내용").build();
+    }
 
     @Mock
     private DiaryRepository diaryRepository;
@@ -563,6 +574,154 @@ class DiaryServiceUnitTest {
             // S3 에러가 발생했을 때 Service가 멈추지 않고 예외를 뱉는지 확인
             assertThatThrownBy(() -> diaryService.exportDiaries(USER_ID, reqDto))
                     .isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("과거의 나 돌아보기 조회 : getRecallDiary()")
+    class GetRecallDiaryTest {
+
+        @Test
+        @DisplayName("21일 전 일기가 있으면 1순위로 반환")
+        void 과거의_나_조회_성공_21일전_일기() {
+            // given
+            LocalDate target = LocalDate.now().minusDays(21);
+            given(diaryQueryService.getUserById(USER_ID)).willReturn(user);
+            given(user.getLastRecalledAt()).willReturn(null);
+            given(diaryRepository.findIdsByUserIdAndDate(USER_ID, target)).willReturn(List.of(10L));
+            given(diaryRepository.findById(10L)).willReturn(Optional.of(diary(10L, target)));
+
+            // when
+            DiaryRecallResDto result = diaryRecallService.getRecallDiary(USER_ID);
+
+            // then
+            assertThat(result.available()).isTrue();
+            assertThat(result.diary().diaryId()).isEqualTo(10L);
+            verify(diaryRepository, never()).findOldestDateBefore(any(), any());
+        }
+
+        @Test
+        @DisplayName("21일 전 일기가 없으면 가장 오래된 날짜의 일기 반환")
+        void 과거의_나_조회_성공_가장_오래된_일기() {
+            // given
+            LocalDate today = LocalDate.now();
+            LocalDate oldest = today.minusDays(100);
+            given(diaryQueryService.getUserById(USER_ID)).willReturn(user);
+            given(user.getLastRecalledAt()).willReturn(today.minusDays(21));
+            given(diaryRepository.findIdsByUserIdAndDate(USER_ID, today.minusDays(21))).willReturn(List.of());
+            given(diaryRepository.findOldestDateBefore(USER_ID, today)).willReturn(oldest);
+            given(diaryRepository.findIdsByUserIdAndDate(USER_ID, oldest)).willReturn(List.of(3L));
+            given(diaryRepository.findById(3L)).willReturn(Optional.of(diary(3L, oldest)));
+
+            // when
+            DiaryRecallResDto result = diaryRecallService.getRecallDiary(USER_ID);
+
+            // then
+            assertThat(result.available()).isTrue();
+            assertThat(result.diary().date()).isEqualTo(oldest);
+        }
+
+        @Test
+        @DisplayName("같은 날 여러 번 호출해도 같은 일기 반환")
+        void 과거의_나_조회_성공_같은날_같은일기() {
+            // given
+            LocalDate target = LocalDate.now().minusDays(21);
+            given(diaryQueryService.getUserById(USER_ID)).willReturn(user);
+            given(user.getLastRecalledAt()).willReturn(null);
+            given(diaryRepository.findIdsByUserIdAndDate(USER_ID, target)).willReturn(List.of(1L, 2L, 3L));
+            given(diaryRepository.findById(any())).willAnswer(inv -> Optional.of(diary(inv.getArgument(0), target)));
+
+            // when
+            Long first = diaryRecallService.getRecallDiary(USER_ID).diary().diaryId();
+            Long second = diaryRecallService.getRecallDiary(USER_ID).diary().diaryId();
+
+            // then
+            assertThat(first).isEqualTo(second);
+        }
+
+        @Test
+        @DisplayName("주기 미도래 시 미노출")
+        void 과거의_나_조회_실패_주기_미도래() {
+            // given
+            given(diaryQueryService.getUserById(USER_ID)).willReturn(user);
+            given(user.getLastRecalledAt()).willReturn(LocalDate.now().minusDays(20));
+
+            // when
+            DiaryRecallResDto result = diaryRecallService.getRecallDiary(USER_ID);
+
+            // then
+            assertThat(result.available()).isFalse();
+            assertThat(result.diary()).isNull();
+            verify(diaryRepository, never()).findIdsByUserIdAndDate(any(), any());
+        }
+
+        @Test
+        @DisplayName("후보 일기가 없으면 미노출")
+        void 과거의_나_조회_실패_후보_없음() {
+            // given
+            LocalDate today = LocalDate.now();
+            given(diaryQueryService.getUserById(USER_ID)).willReturn(user);
+            given(user.getLastRecalledAt()).willReturn(null);
+            given(diaryRepository.findIdsByUserIdAndDate(USER_ID, today.minusDays(21))).willReturn(List.of());
+            given(diaryRepository.findOldestDateBefore(USER_ID, today)).willReturn(null);
+
+            // when
+            DiaryRecallResDto result = diaryRecallService.getRecallDiary(USER_ID);
+
+            // then
+            assertThat(result.available()).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("과거의 나 돌아보기 노출 확정 : markRecallSeen()")
+    class MarkRecallSeenTest {
+
+        @Test
+        @DisplayName("주기 도래 시 오늘로 저장하고 21일 뒤를 다음 노출일로 반환")
+        void 노출_확정_성공() {
+            // given
+            LocalDate today = LocalDate.now();
+            given(diaryQueryService.getUserById(USER_ID)).willReturn(user);
+            given(user.getLastRecalledAt()).willReturn(null);
+
+            // when
+            DiaryRecallSeenResDto result = diaryRecallService.markRecallSeen(USER_ID, 10L);
+
+            // then
+            verify(diaryQueryService).getDiaryWithAuth(USER_ID, 10L);
+            verify(user).updateLastRecalledAt(today);
+            assertThat(result.nextRecallDate()).isEqualTo(today.plusDays(21));
+        }
+
+        @Test
+        @DisplayName("같은 날 재호출은 허용")
+        void 노출_확정_성공_같은날_재호출() {
+            // given
+            LocalDate today = LocalDate.now();
+            given(diaryQueryService.getUserById(USER_ID)).willReturn(user);
+            given(user.getLastRecalledAt()).willReturn(today);
+
+            // when
+            DiaryRecallSeenResDto result = diaryRecallService.markRecallSeen(USER_ID, 10L);
+
+            // then
+            assertThat(result.recalledAt()).isEqualTo(today);
+        }
+
+        @Test
+        @DisplayName("주기 미도래 시 RECALL_NOT_AVAILABLE 예외")
+        void 노출_확정_실패_주기_미도래() {
+            // given
+            given(diaryQueryService.getUserById(USER_ID)).willReturn(user);
+            given(user.getLastRecalledAt()).willReturn(LocalDate.now().minusDays(5));
+
+            // when & then
+            assertThatThrownBy(() -> diaryRecallService.markRecallSeen(USER_ID, 10L))
+                    .isInstanceOf(CustomException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(DiaryErrorCode.RECALL_NOT_AVAILABLE);
+            verify(user, never()).updateLastRecalledAt(any());
         }
     }
 }

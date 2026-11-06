@@ -27,6 +27,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.DynamicUpdate;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
@@ -113,6 +114,9 @@ public class User extends BaseTimeEntity {
     @Column(name = "background_image_url", length = 500)
     private String backgroundImageUrl;
 
+    @Column(name = "last_recalled_at")
+    private LocalDate lastRecalledAt;
+
     @Column(name = "letter_receive_blocked_until")
     private LocalDateTime letterReceiveBlockedUntil;
 
@@ -172,6 +176,14 @@ public class User extends BaseTimeEntity {
     }
 
     /**
+     * '과거의 나 돌아보기' 팝업이 노출된 날짜를 기록한다. 다음 노출 주기(21일)의 기준점이 된다.
+     * @param recalledAt 팝업 노출 날짜
+     */
+    public void updateLastRecalledAt(LocalDate recalledAt) {
+        this.lastRecalledAt = recalledAt;
+    }
+
+    /**
      * 사용자 닉네임을 업데이트하는 Entity 비즈니스 메서드이다.
      * @param newNickname 새로운 닉네임
      */
@@ -203,7 +215,7 @@ public class User extends BaseTimeEntity {
     public void suspend() {
         this.status = UserStatus.SUSPENDED;
     }
-    
+
     public void activate() {
         this.status = UserStatus.ACTIVE;
     }
