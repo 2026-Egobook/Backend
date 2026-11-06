@@ -2,6 +2,7 @@ package com.example.egobook_be.domain.diary.controller;
 
 import com.example.egobook_be.domain.diary.dto.*;
 import com.example.egobook_be.domain.diary.enums.DiaryType;
+import com.example.egobook_be.domain.diary.service.DiaryRecallService;
 import com.example.egobook_be.domain.diary.service.DiaryService;
 import com.example.egobook_be.global.response.GlobalResponse;
 import jakarta.validation.Valid;
@@ -21,6 +22,7 @@ import java.util.Map;
 public class DiaryController implements DiaryControllerDocs{
 
     private final DiaryService diaryService;
+    private final DiaryRecallService diaryRecallService;
 
     /**
      * [감정 일기 생성]
@@ -122,6 +124,34 @@ public class DiaryController implements DiaryControllerDocs{
     ) {
         return ResponseEntity.ok(
                 GlobalResponse.success(diaryService.exportDiaries(userId, dto))
+        );
+    }
+
+    // [AI-GEN] 과거의 나 돌아보기 조회
+    /**
+     * [과거의 나 돌아보기 조회]
+     * GET /diaries/recall
+     */
+    @Override
+    public ResponseEntity<GlobalResponse<DiaryRecallResDto>> getRecallDiary(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success(diaryRecallService.getRecallDiary(userId))
+        );
+    }
+
+    /**
+     * [과거의 나 돌아보기 노출 확정]
+     * POST /diaries/recall/{diaryId}/seen
+     */
+    @Override
+    public ResponseEntity<GlobalResponse<DiaryRecallSeenResDto>> markRecallSeen(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @PathVariable Long diaryId
+    ) {
+        return ResponseEntity.ok(
+                GlobalResponse.success(diaryRecallService.markRecallSeen(userId, diaryId))
         );
     }
 }

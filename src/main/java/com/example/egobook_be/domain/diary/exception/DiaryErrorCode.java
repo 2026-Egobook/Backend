@@ -104,7 +104,9 @@ public enum DiaryErrorCode implements BaseErrorCode {
 
     COUNSEL_NOT_FOUND( "DIARY_COUNSEL_404_001", "해당 주간의 상담서가 존재하지 않습니다", HttpStatus.NOT_FOUND ),
 
-    WEEKLY_LOCKED( "DIARY_COUNSEL_403_001", "월정액 미구독 시 이용 불가합니다", HttpStatus.FORBIDDEN );
+    WEEKLY_LOCKED( "DIARY_COUNSEL_403_001", "월정액 미구독 시 이용 불가합니다", HttpStatus.FORBIDDEN ),
+
+    RECALL_NOT_AVAILABLE( "DIARY_RECALL_409_001", "아직 과거의 나 돌아보기 주기가 돌아오지 않았어요", HttpStatus.CONFLICT );
 
 
     private final String code;

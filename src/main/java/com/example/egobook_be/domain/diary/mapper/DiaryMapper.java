@@ -88,6 +88,31 @@ public class DiaryMapper {
                 .build();
     }
 
+    /**
+     * 과거의 나 돌아보기 노출 대상 일기 -> DiaryRecallResDto 변환
+     * @param diary : 노출할 일기 (null이면 미노출 응답)
+     * @return : 변환된 DiaryRecallResDto
+     */
+    public static DiaryRecallResDto toDiaryRecallDto(Diary diary) {
+        return DiaryRecallResDto.builder()
+                .available(diary != null)
+                .diary(diary == null ? null : toDiaryDto(diary))
+                .build();
+    }
+
+    /**
+     * 노출 확정 날짜 -> DiaryRecallSeenResDto 변환
+     * @param recalledAt     : 노출 확정 날짜
+     * @param nextRecallDate : 다음 노출 가능 날짜
+     * @return : 변환된 DiaryRecallSeenResDto
+     */
+    public static DiaryRecallSeenResDto toDiaryRecallSeenDto(LocalDate recalledAt, LocalDate nextRecallDate) {
+        return DiaryRecallSeenResDto.builder()
+                .recalledAt(recalledAt)
+                .nextRecallDate(nextRecallDate)
+                .build();
+    }
+
     public static DiaryDeleteResDto toDiaryDeleteDto(boolean deleted) {
         return DiaryDeleteResDto.builder()
                 .deleted(deleted)

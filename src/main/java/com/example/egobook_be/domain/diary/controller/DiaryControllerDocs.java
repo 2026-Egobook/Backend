@@ -52,7 +52,7 @@ public interface DiaryControllerDocs {
             @RequestParam(required = false) DiaryType type,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
-            );
+    );
 
     @Operation(summary = "작성된 감정 일기 상세 확인", description = "선택한 감정 일기의 상세 정보를 확인합니다.")
     @GetMapping("/{diaryId}")
@@ -107,5 +107,34 @@ public interface DiaryControllerDocs {
     ResponseEntity<GlobalResponse<DiaryExportResDto>> exportDiaries(
             @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
             @RequestBody @Valid DiaryExportReqDto dto
+    );
+
+    // [AI-GEN] 과거의 나 돌아보기 조회 API 문서
+    @Operation(summary = "과거의 나 돌아보기 조회", description = """
+            앱 진입 시 '과거의 나 돌아보기' 팝업에 띄울 과거 일기 1개를 조회합니다. (상태 변경 없음)
+            
+            - 마지막 노출일로부터 21일이 지났을 때만 노출합니다. (첫 노출은 즉시)
+            - 1순위: 오늘 기준 21일 전 날짜의 일기 (여러 개면 랜덤 1개)
+            - 2순위: 오늘 이전 가장 오래된 날짜의 일기 (여러 개면 랜덤 1개)
+            - 같은 날 여러 번 호출해도 같은 일기를 반환합니다.
+            - 노출 대상이 없으면 available=false, diary=null 을 반환합니다.
+            """)
+    @GetMapping("/recall")
+    ResponseEntity<GlobalResponse<DiaryRecallResDto>> getRecallDiary(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId
+    );
+
+    // [AI-GEN] 과거의 나 돌아보기 노출 확정 API 문서
+    @Operation(summary = "과거의 나 돌아보기 노출 확정", description = """
+            팝업을 실제로 띄운 직후 호출합니다. 오늘 날짜를 마지막 노출일로 저장해 다음 21일 주기를 시작합니다.
+            
+            - 같은 날 재호출은 허용됩니다.
+            - 주기가 돌아오지 않았으면 409 (DIARY_RECALL_409_001)
+            - 본인 일기가 아니면 403, 없는 일기면 404
+            """)
+    @PostMapping("/recall/{diaryId}/seen")
+    ResponseEntity<GlobalResponse<DiaryRecallSeenResDto>> markRecallSeen(
+            @AuthenticationPrincipal(expression = "userAuthDto.userId") Long userId,
+            @PathVariable Long diaryId
     );
 }
